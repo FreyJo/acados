@@ -250,13 +250,13 @@ int sim_irk_yt(const sim_in *in, sim_out *out, void *opts_, void *mem_){
     double *A_mat = opts->A_mat;
     double *b_vec = opts->b_vec;
  
-	double *rGt = mem->rGt;
+	double *rGt = mem->rGt;  // residual of one stage of the impl. ODE
 	double *jac_out = mem->jac_out;
     double *Jt = mem->Jt;
     double *ode_args = mem->ode_args;
     int *ipiv = mem->ipiv;
 	struct d_strmat *JG = mem->JG;
-	struct d_strvec *rG = mem->rG;
+	struct d_strvec *rG = mem->rG; // residual of the of the IRK equations G
     struct d_strvec *K = mem->K;
     struct d_strmat *JGf = mem->JGf;
     struct d_strmat *JKf = mem->JKf;
@@ -278,7 +278,7 @@ int sim_irk_yt(const sim_in *in, sim_out *out, void *opts_, void *mem_){
 
     acados_timer timer;
 
-    // initializae
+    // initialize
     dgese_libstr(nx*num_stages, nx*num_stages, 0.0, JG, 0, 0);
     dgese_libstr(nx*num_stages, nx+nu, 0.0, JGf, 0, 0);
     dgese_libstr(nx*num_stages, nx+nu, 0.0, JKf, 0, 0);
@@ -300,9 +300,9 @@ int sim_irk_yt(const sim_in *in, sim_out *out, void *opts_, void *mem_){
         S_adj_in[nx+kk] = 0.0;
     d_cvt_vec2strvec(nx+nu, S_adj_in, lambda, 0);
     
-    for (kk=0;kk<2*nx;kk++)
+    for (kk=0;kk<2*nx;kk++) //initialize x,xdot with zeros
         ode_args[kk] = 0.0;
-    for (kk=0;kk<nu;kk++)
+    for (kk=0;kk<nu;kk++) //set controls
         ode_args[2*nx+kk] = u[kk];
 
     for (kk=0;kk<nx;kk++){
@@ -313,7 +313,7 @@ int sim_irk_yt(const sim_in *in, sim_out *out, void *opts_, void *mem_){
     for (kk=0;kk<nx*nx;kk++)
         Jt[kk] = 0.0;
     for (kk=0;kk<num_stages*nx;kk++)
-        ipiv[kk] = kk;
+        ipiv[kk] = kk; //ipiv?
         
     // start the loop
     acados_tic(&timer);
@@ -328,14 +328,14 @@ int sim_irk_yt(const sim_in *in, sim_out *out, void *opts_, void *mem_){
            
             for(ii=0; ii<num_stages; ii++){ // ii-th row of tableau   
                 
-                // take x(n);
+                // take x(n); copy a strvec into a strvec
                 dveccp_libstr(nx, xn, 0, xt, 0);
 
                 for(jj=0; jj<num_stages; jj++){ // jj-th col of tableau
                     a = A_mat[ii+num_stages*jj];
-					if(a!=0){
-                        a *= step;
-                        daxpy_libstr(nx, a, K, jj*nx, xt, 0, xt, 0);
+					if(a!=0){           // xt = xt + T_int * a[i,j]*K_j
+                        a *= step; 
+                        daxpy_libstr(nx, a, K, jj*nx, xt, 0, xt, 0); 
 					}
                 }
                 // put xn+sum kj into first nx elements of ode_arg               
@@ -344,20 +344,20 @@ int sim_irk_yt(const sim_in *in, sim_out *out, void *opts_, void *mem_){
                 // put ki into the next nx elements of ode_args
                 d_cvt_strvec2vec(nx, K, ii*nx, ode_args+nx);      
 
-                // compute the residual of implicit ode
+                // compute the residual of implicit ode at time t_ii, store value in rGt 
                 in->eval_impl_res(nx, nu, ode_args, rGt, in->impl_ode);
-                // fill in elements of rG   
+                // fill in elements of rG  - store values rGt on (ii*nx)th position of rG
                 d_cvt_vec2strvec(nx, rGt, rG, ii*nx);
                 
                 // compute the jacobian of implicit ode
                 in->eval_impl_jac_x(nx, nu, ode_args, jac_out, in->impl_jac_x);
                 in->eval_impl_jac_xdot(nx, nu, ode_args, jac_out+nx*nx, in->impl_jac_xdot);
                 // compute the blocks of JG
-                for (jj=0;jj<num_stages;jj++){
-                    a = A_mat[ii+num_stages*jj];
+                for (jj=0; jj<num_stages; jj++){ //compute the block (ii,jj)th block = Jt
+                    a = A_mat[ii + num_stages*jj];
                     if (a!=0){
                         a *= step;
-                        for (kk=0;kk<nx*nx;kk++)
+                        for (kk=0; kk<nx*nx; kk++)
                             Jt[kk] = a* jac_out[kk];                          
                     }
                     if(jj==ii){
@@ -371,7 +371,7 @@ int sim_irk_yt(const sim_in *in, sim_out *out, void *opts_, void *mem_){
             } // end ii
             
             //DGETRF computes an LU factorization of a general M-by-N matrix A
-            //using partial pivoting with row interchanges.
+            //using partial pivoting with row interchanges. // and store it in JG
             dgetrf_libstr(nx*num_stages, nx*num_stages, JG, 0, 0, JG, 0, 0, ipiv);
             // permute also the r.h.s
             dvecpe_libstr(nx*num_stages, ipiv, rG, 0);
@@ -380,10 +380,10 @@ int sim_irk_yt(const sim_in *in, sim_out *out, void *opts_, void *mem_){
             //                    (u)nit trian
             dtrsv_lnu_libstr(nx*num_stages, JG, 0, 0, rG, 0, rG, 0);
             
-            // solve JG * x = y, JG on the (l)eft, (u)pper-trian, (n)o-trans
-            //                    (n)o unit trian
+            // solve JG * x = rG, JG on the (l)eft, (u)pper-trian, (n)o-trans
+            //                    (n)o unit trian , and store x in rG
             dtrsv_unn_libstr(nx*num_stages, JG, 0, 0, rG, 0, rG, 0);
-            // scale and add a generic strmat into a generic strmat
+            // scale and add a generic strmat into a generic strmat // K = K - rG, where rG is DeltaK
             daxpy_libstr(nx*num_stages, -1.0, rG, 0, K, 0, K, 0);
         }// end iter
 
@@ -398,7 +398,7 @@ int sim_irk_yt(const sim_in *in, sim_out *out, void *opts_, void *mem_){
             for(ii=0; ii<num_stages; ii++){  
 
                 dveccp_libstr(nx, xn, 0, xt, 0);
-
+                //compute xt = final x;
                 for(jj=0; jj<num_stages; jj++){ 
                     a = A_mat[ii+num_stages*jj];
                     if(a!=0){
