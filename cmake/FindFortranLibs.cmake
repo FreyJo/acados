@@ -17,12 +17,16 @@
 #
 #
 
+list(REMOVE_ITEM CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+
 find_library(FORTRAN_LIBRARY
-    NAMES gfortran
+    NAMES gfortran gfortran-3 gfortran-4
     PATHS
         "/usr/local/lib/gcc/*"
         "/usr/lib/gcc/x86_64-linux-gnu/*"
         "/usr/lib/gcc/arm-linux-gnueabihf/*"
+        "/usr/lib/gcc/x86_64-w64-mingw32/*"
+    CMAKE_FIND_ROOT_PATH_BOTH
 )
 
 include(FindPackageHandleStandardArgs)
