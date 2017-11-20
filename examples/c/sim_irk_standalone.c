@@ -52,7 +52,7 @@ int main() {
     in->eval_impl_jac_u = &impl_jac_u_fun;
 
     in->sens_forw = true;
-    in->sens_adj = false;
+    in->sens_adj = true;
 
     for (ii = 0; ii < nx; ii++) {
         in->x[ii] = xref[ii];
@@ -65,6 +65,11 @@ int main() {
         in->S_forw[ii] = 0.0;
     for (ii = 0; ii < nx; ii++)
         in->S_forw[ii * (nx + 1)] = 1.0;
+
+    for (ii = 0; ii < nx; ii++)
+        in->S_adj[ii] = 1.0;
+    // for (ii = 0; ii < nu; ii++)
+    //     in->S_adj[nx+ii] = 0.0;
 
     double A_impl[] = {0.1389, 0.3003, 0.2680 ,
         -0.0360, 0.2222, 0.4804,
@@ -92,6 +97,7 @@ int main() {
 
     double *xn = out->xn;
     double *S_forw_out = out->S_forw;
+    double *S_adj_out = out->S_adj;
 
     printf("\nxn: \n");
     for (ii=0;ii<nx;ii++)
@@ -104,6 +110,12 @@ int main() {
             printf("%8.5f ",S_forw_out[jj*nx+ii]);
         printf("\n");
     }
+
+    printf("\nS_adj_out: \n");
+    for (ii=0;ii<nx+nu;ii++){
+        printf("%8.5f ",S_adj_out[ii]);
+    }
+    printf("\n"); 
     
     printf("\n");
     printf("cpt: %8.4f [ms]\n", out->info->CPUtime*1000);

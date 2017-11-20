@@ -24,14 +24,18 @@ typedef struct {
     struct d_strvec *xt; // temporary x
     struct d_strvec *xn; // x at each integration step
     
-    struct d_strvec *lambda; // adjoint seed (nx)
+    struct d_strvec *lambda; // adjoint seed (nx+nu)
     struct d_strvec *lambdaK; // auxiliary variable (nx*ns)
     
     double *rGt; // temporary residuals of G (nx, 1)
     double *jac_out; // temporary Jacobian of ode (nx, 2*nx+nu)
     double *Jt; // temporary Jacobian of ode (nx, nx)
     double *ode_args; // pointer to ode args
+    double *S_adj_w;
     int *ipiv; // index of pivot vector// jacobian of G over x and u (nx*ns, nx+nu);
+
+    struct d_strvec **xn_traj; // xn trajectory
+    struct d_strvec **K_traj;  // K trajectory
 }sim_irk_memory;
 
 int irk_calculate_memory_size(sim_RK_opts *opts, sim_in *in);
