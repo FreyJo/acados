@@ -530,7 +530,10 @@ int main()
 //		plan->sim_solver_plan[i].sim_solver = ERK;
 		// plan->sim_solver_plan[i].sim_solver = IRK;
 		// plan->sim_solver_plan[i].sim_solver = NEW_LIFTED_IRK;
-		plan->sim_solver_plan[i].sim_solver = GNSF;
+		if (i%2 == 0)
+			plan->sim_solver_plan[i].sim_solver = GNSF;
+		else
+			plan->sim_solver_plan[i].sim_solver = IRK;
 	}
 
 	ocp_nlp_solver_config *config = ocp_nlp_config_create(*plan, NN);
@@ -574,8 +577,8 @@ int main()
 	external_function_param_casadi_create_array(NN, phi_jac_y_uhat, np);
 	external_function_param_casadi_create_array(NN, f_lo_jac_x1_x1dot_u_z, np);
 
-	int gnsf_num_stages = 5;
-	int gnsf_num_steps  = 2;
+	int gnsf_num_stages = 4;
+	int gnsf_num_steps  = 1;
 
 	for (int i = 0; i < NN; i++)
 	{
