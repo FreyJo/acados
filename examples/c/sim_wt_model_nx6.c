@@ -30,9 +30,6 @@
 // acados
 // TODO(dimitris): remove most includes
 #include "acados/sim/sim_common.h"
-#include "acados/sim/sim_erk_integrator.h"
-#include "acados/sim/sim_irk_integrator.h"
-#include "acados/sim/sim_lifted_irk_integrator.h"
 #include "acados/sim/sim_gnsf.h"
 
 #include "acados/utils/external_function_generic.h"
@@ -41,6 +38,7 @@
 #include "acados_c/sim_interface.h"
 
 // blasfeo
+<<<<<<< HEAD
 #include <blasfeo/include/blasfeo_target.h>
 #include <blasfeo/include/blasfeo_common.h>
 #include <blasfeo/include/blasfeo_d_aux.h>
@@ -49,6 +47,14 @@
 #include <blasfeo/include/blasfeo_d_blas.h>
 #include "blasfeo/include/blasfeo_d_aux_ext_dep.h"
 
+=======
+#include "blasfeo/include/blasfeo_target.h"
+#include "blasfeo/include/blasfeo_common.h"
+#include "blasfeo/include/blasfeo_d_aux.h"
+#include "blasfeo/include/blasfeo_d_aux_ext_dep.h"
+#include "blasfeo/include/blasfeo_v_aux_ext_dep.h"
+#include "blasfeo/include/blasfeo_d_blas.h"
+>>>>>>> gnsf_mpc
 
 // wt model
 #include "examples/c/wt_model_nx6/wt_model.h"
@@ -454,7 +460,22 @@ int main()
 			acados_timer timer;
 			acados_tic(&timer);
 
+<<<<<<< HEAD
 			int nsim0 = nsim;
+=======
+		/************************************************
+		* printing
+		************************************************/
+		printf("\nxn: \n");
+		d_print_e_mat(1, nx, &x_sim[nsim0*nx], 1);
+
+		double *S_forw_out = NULL;
+		if(opts->sens_forw){
+			S_forw_out = out->S_forw;
+			printf("\nS_forw_out: \n");
+			d_print_e_mat(nx, NF, S_forw_out, nx);
+		}
+>>>>>>> gnsf_mpc
 
 			double cpu_time = 0.0;
 			double la_time = 0.0;
@@ -467,6 +488,7 @@ int main()
 			double kP = 10;
 			double tmp, ctrlErr;
 
+<<<<<<< HEAD
 
 
 			for (ii=0; ii<nsim; ii++)
@@ -525,6 +547,11 @@ int main()
 					printf("error in sim solver\n");
 					return ACADOS_FAILURE;
 				}
+=======
+			blasfeo_allocate_dmat(nx, nx+nu, &S_forw_result);
+			blasfeo_allocate_dvec(nx, &adjoint_seed);
+			blasfeo_allocate_dvec(nx+nu, &forw_times_seed);
+>>>>>>> gnsf_mpc
 
 				cpu_time += out->info->CPUtime;
 				la_time += out->info->LAtime;
@@ -533,6 +560,7 @@ int main()
 				// d_print_mat(1, nx, out->xn, 1);
 				// d_print_mat(1, nx, x_ref+ii*nx, 1);
 
+<<<<<<< HEAD
 				// extract state at next time step
 				for (jj = 0; jj < nx; jj++)
 					x_sim[(ii+1)*nx+jj] = out->xn[jj];
@@ -617,6 +645,11 @@ int main()
 			free(out);
 			free(opts);
 			free(config);
+=======
+			blasfeo_free_dmat(&S_forw_result);
+			blasfeo_free_dvec(&adjoint_seed);
+			blasfeo_free_dvec(&forw_times_seed);			
+>>>>>>> gnsf_mpc
 		}
 
 
