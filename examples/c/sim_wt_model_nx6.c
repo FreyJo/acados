@@ -61,9 +61,16 @@
 int main()
 {
 	int max_num_stages = 8;
+	int num_experiments= max_num_stages;
 	bool jac_reuse = true;
-	int doubles_per_experiment = 5;
-	double experiment_results[max_num_stages * doubles_per_experiment ];
+
+	double experiment_num_stages[num_experiments];
+	double experiment_solver[num_experiments];
+	double experiment_jac_reuse[num_experiments];
+	double experiment_cpu_time[num_experiments];
+	double experiment_ad_time[num_experiments];
+	double experiment_la_time[num_experiments];
+
 	for (int num_stages = 1; num_stages < max_num_stages; num_stages++) {
 
 		/************************************************
@@ -544,9 +551,6 @@ int main()
 			* printing
 			************************************************/
 			printf("\nxn: \n");
-			// for (ii=0; ii<nx; ii++)
-			// 	printf("%8.5f ", x_sim[nsim0*nx+ii]);
-			// printf("\n");
 			d_print_e_mat(1, nx, &x_sim[nsim0*nx], 1);
 
 			double *S_forw_out = NULL;
@@ -603,12 +607,12 @@ int main()
 			printf("time spent in integrator outside of casADi %f \n", 1e3*(total_cpu_time-ad_time));
 
 			// store experiment results in matrix
-			experiment_results[(num_stages-1)*doubles_per_experiment]   = (double) num_stages;
-			experiment_results[(num_stages-1)*doubles_per_experiment+1] = total_cpu_time;
-			experiment_results[(num_stages-1)*doubles_per_experiment+2] = ad_time;
-			experiment_results[(num_stages-1)*doubles_per_experiment+3] = total_cpu_time-ad_time;
-			experiment_results[(num_stages-1)*doubles_per_experiment+4] = (double) jac_reuse;
-			
+			experiment_num_stages[i_experiment] = (double) num_stages;
+			experiment_solver[i_experiment] = (double) nss;
+			experiment_jac_reuse[i_experiment] = (double) jac_reuse;
+			experiment_cpu_time[i_experiment] = total_cpu_time;
+			experiment_ad_time[i_experiment] = ad_time;
+			experiment_la_time[i_experiment] = total_cpu_time-ad_time;
 
 			
 
