@@ -33,6 +33,7 @@
 #include "acados/sim/sim_gnsf.h"
 
 #include "acados/utils/external_function_generic.h"
+#include "acados/utils/print.h"
 
 #include "acados_c/external_function_interface.h"
 #include "acados_c/sim_interface.h"
@@ -55,8 +56,9 @@
 
 int main()
 {
-	int max_num_stages = 8;
-	int num_experiments= max_num_stages;
+	int max_num_stages = 10;
+	int num_solver_in_experiment = 1;
+	int num_experiments= num_solver_in_experiment * (max_num_stages-1);
 	bool jac_reuse = true;
 
 	double experiment_num_stages[num_experiments];
@@ -249,9 +251,9 @@ int main()
 		external_function_casadi_create(&get_matrices_fun);
 
 
-		int number_sim_solvers = 4;
+		int number_sim_solvers = 3;
 		int nss;
-		for (nss = 3; nss < number_sim_solvers; nss++)
+		for (nss = 2; nss < number_sim_solvers; nss++)
 		{
 			/************************************************
 			* sim plan & config
@@ -299,7 +301,7 @@ int main()
 
 		//		opts->ns = 4; // number of stages in rk integrator
 		//		opts->num_steps = 5; // number of integration steps
-			opts->sens_adj = true;
+			// opts->sens_adj = true;
 			opts->sens_forw = true;
 
 			sim_gnsf_dims *gnsf_dim;
@@ -594,12 +596,13 @@ int main()
 			printf("time spent in integrator outside of casADi %f \n", 1e3*(total_cpu_time-ad_time));
 
 			// store experiment results in matrix
+			int i_experiment = (num_stages-1);
 			experiment_num_stages[i_experiment] = (double) num_stages;
 			experiment_solver[i_experiment] = (double) nss;
 			experiment_jac_reuse[i_experiment] = (double) jac_reuse;
-			experiment_cpu_time[i_experiment] = total_cpu_time;
-			experiment_ad_time[i_experiment] = ad_time;
-			experiment_la_time[i_experiment] = total_cpu_time-ad_time;
+			experiment_cpu_time[i_experiment] = 1e3*cpu_time;
+			experiment_ad_time[i_experiment] = 1e3*ad_time;
+			experiment_la_time[i_experiment] = 1e3*(cpu_time-ad_time);
 
 			
 
@@ -641,11 +644,21 @@ int main()
 
 	}
 	
-	// char export_filename[] = "~/Git/acados/results_gnsf.txt";
-	// FILE *file_handle = fopen(export_filename, "w+");
-	// assert(file_handle!=NULL);
+	char export_filename[] = "/home/oj/Git/acados/results_irk.txt";
+	// char export_filename[] = "/home/oj/Git/acados/results_gnsf.txt";
+
+	FILE *file_handle = fopen(export_filename, "wr");
+	assert(file_handle!=NULL);
 	// d_print_to_file_tran_mat(file_handle, doubles_per_experiment, max_num_stages, experiment_results, doubles_per_experiment);
-	d_print_e_mat(max_num_stages, doubles_per_experiment, experiment_results, max_num_stages);
+	d_print_to_file_mat(file_handle, 1, num_experiments, experiment_num_stages, 1);
+	d_print_to_file_mat(file_handle, 1, num_experiments, experiment_solver	  , 1);
+	d_print_to_file_mat(file_handle, 1, num_experiments, experiment_jac_reuse , 1);
+	d_print_to_file_mat(file_handle, 1, num_experiments, experiment_cpu_time  , 1);
+	d_print_to_file_mat(file_handle, 1, num_experiments, experiment_la_time   , 1);
+	d_print_to_file_mat(file_handle, 1, num_experiments, experiment_ad_time, 1);
+	
+	// d_print_e_mat(max_num_stages, doubles_per_experiment, experiment_results, max_num_stages);
+	// write_double_vector_to_txt(experiment_num_stages, num_experiments, "./experiment_num_stages.txt");
 
     return 0;
 }
