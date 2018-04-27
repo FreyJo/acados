@@ -59,7 +59,7 @@ int main()
 	int max_num_stages = 10;
 	int num_solver_in_experiment = 1;
 	int num_experiments= num_solver_in_experiment * (max_num_stages-1);
-	bool jac_reuse = true;
+	bool jac_reuse = false;
 
 	double experiment_num_stages[num_experiments];
 	double experiment_solver[num_experiments];
@@ -67,6 +67,8 @@ int main()
 	double experiment_cpu_time[num_experiments];
 	double experiment_ad_time[num_experiments];
 	double experiment_la_time[num_experiments];
+
+	int num_steps = 10;
 
 	for (int num_stages = 1; num_stages < max_num_stages; num_stages++) {
 
@@ -321,7 +323,7 @@ int main()
 
 				case 2:
 					opts->ns = num_stages; // number of stages in rk integrator
-					opts->num_steps = 1; // number of integration steps
+					opts->num_steps = num_steps; // number of integration steps
 					opts->jac_reuse = jac_reuse;
 					break;
 
@@ -340,8 +342,8 @@ int main()
 					opts->ns = num_stages; // number of stages in rk integrator
 					opts->jac_reuse = jac_reuse;
 					gnsf_dim->num_stages = num_stages;
-					opts->num_steps = 1; // number of integration steps
-					gnsf_dim->num_steps = 1;
+					opts->num_steps = num_steps; // number of integration steps
+					gnsf_dim->num_steps = num_steps;
 					break;
 
 				default:
@@ -602,9 +604,7 @@ int main()
 			experiment_jac_reuse[i_experiment] = (double) jac_reuse;
 			experiment_cpu_time[i_experiment] = 1e3*cpu_time;
 			experiment_ad_time[i_experiment] = 1e3*ad_time;
-			experiment_la_time[i_experiment] = 1e3*(cpu_time-ad_time);
-
-			
+			experiment_la_time[i_experiment] = 1e3*(la_time);
 
 			/************************************************
 			* free memory
@@ -644,8 +644,8 @@ int main()
 
 	}
 	
+	// char export_filename[] = "/home/oj/Git/acados/results_irk.txt";
 	char export_filename[] = "/home/oj/Git/acados/results_irk.txt";
-	// char export_filename[] = "/home/oj/Git/acados/results_gnsf.txt";
 
 	FILE *file_handle = fopen(export_filename, "wr");
 	assert(file_handle!=NULL);
