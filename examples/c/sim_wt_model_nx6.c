@@ -146,36 +146,6 @@ int main()
 			impl_ode_fun.casadi_n_out = &casadi_impl_ode_fun_n_out;
 			external_function_param_casadi_create(&impl_ode_fun, np);
 
-			// impl_ode_jac_x
-			external_function_param_casadi impl_ode_jac_x;
-			impl_ode_jac_x.casadi_fun = &casadi_impl_ode_jac_x;
-			impl_ode_jac_x.casadi_work = &casadi_impl_ode_jac_x_work;
-			impl_ode_jac_x.casadi_sparsity_in = &casadi_impl_ode_jac_x_sparsity_in;
-			impl_ode_jac_x.casadi_sparsity_out = &casadi_impl_ode_jac_x_sparsity_out;
-			impl_ode_jac_x.casadi_n_in = &casadi_impl_ode_jac_x_n_in;
-			impl_ode_jac_x.casadi_n_out = &casadi_impl_ode_jac_x_n_out;
-			external_function_param_casadi_create(&impl_ode_jac_x, np);
-
-			// impl_ode_jac_xdot
-			external_function_param_casadi impl_ode_jac_xdot;
-			impl_ode_jac_xdot.casadi_fun = &casadi_impl_ode_jac_xdot;
-			impl_ode_jac_xdot.casadi_work = &casadi_impl_ode_jac_xdot_work;
-			impl_ode_jac_xdot.casadi_sparsity_in = &casadi_impl_ode_jac_xdot_sparsity_in;
-			impl_ode_jac_xdot.casadi_sparsity_out = &casadi_impl_ode_jac_xdot_sparsity_out;
-			impl_ode_jac_xdot.casadi_n_in = &casadi_impl_ode_jac_xdot_n_in;
-			impl_ode_jac_xdot.casadi_n_out = &casadi_impl_ode_jac_xdot_n_out;
-			external_function_param_casadi_create(&impl_ode_jac_xdot, np);
-
-			// impl_ode_jac_u
-			external_function_param_casadi impl_ode_jac_u;
-			impl_ode_jac_u.casadi_fun = &casadi_impl_ode_jac_u;
-			impl_ode_jac_u.casadi_work = &casadi_impl_ode_jac_u_work;
-			impl_ode_jac_u.casadi_sparsity_in = &casadi_impl_ode_jac_u_sparsity_in;
-			impl_ode_jac_u.casadi_sparsity_out = &casadi_impl_ode_jac_u_sparsity_out;
-			impl_ode_jac_u.casadi_n_in = &casadi_impl_ode_jac_u_n_in;
-			impl_ode_jac_u.casadi_n_out = &casadi_impl_ode_jac_u_n_out;
-			external_function_param_casadi_create(&impl_ode_jac_u, np);
-
 			// impl_ode_fun_jac_x_xdot
 			external_function_param_casadi impl_ode_fun_jac_x_xdot;
 			impl_ode_fun_jac_x_xdot.casadi_fun = &casadi_impl_ode_fun_jac_x_xdot;
@@ -196,16 +166,6 @@ int main()
 			impl_ode_jac_x_xdot_u.casadi_n_out = &casadi_impl_ode_jac_x_xdot_u_n_out;
 			external_function_param_casadi_create(&impl_ode_jac_x_xdot_u, np);
 
-			// impl_ode_jac_x_u
-			external_function_param_casadi impl_ode_jac_x_u;
-			impl_ode_jac_x_u.casadi_fun = &casadi_impl_ode_jac_x_u;
-			impl_ode_jac_x_u.casadi_work = &casadi_impl_ode_jac_x_u_work;
-			impl_ode_jac_x_u.casadi_sparsity_in = &casadi_impl_ode_jac_x_u_sparsity_in;
-			impl_ode_jac_x_u.casadi_sparsity_out = &casadi_impl_ode_jac_x_u_sparsity_out;
-			impl_ode_jac_x_u.casadi_n_in = &casadi_impl_ode_jac_x_u_n_in;
-			impl_ode_jac_x_u.casadi_n_out = &casadi_impl_ode_jac_x_u_n_out;
-			external_function_param_casadi_create(&impl_ode_jac_x_u, np);
-
 			/************************************************
 			* external functions (Generalized Nonlinear Static Feedback (GNSF) model)
 			************************************************/
@@ -219,7 +179,7 @@ int main()
 			phi_fun.casadi_n_out          = &casadi_phi_fun_n_out;
 			external_function_param_casadi_create(&phi_fun, np);
 
-			// Phi_inc_dy
+			// phi_inc_dy
 			external_function_param_casadi phi_fun_jac_y;
 			phi_fun_jac_y.casadi_fun            = &casadi_phi_fun_jac_y;
 			phi_fun_jac_y.casadi_work           = &casadi_phi_fun_jac_y_work;
@@ -346,9 +306,7 @@ int main()
 					// set options
 					opts->ns = num_stages; // number of stages in rk integrator
 					opts->jac_reuse = jac_reuse;
-					gnsf_dim->num_stages = num_stages;
 					opts->num_steps = num_steps; // number of integration steps
-					gnsf_dim->num_steps = num_steps;
 					break;
 
 				default:
@@ -382,7 +340,6 @@ int main()
 					sim_set_model(config, in, "impl_ode_fun", &impl_ode_fun);
 					sim_set_model(config, in, "impl_ode_fun_jac_x_xdot", &impl_ode_fun_jac_x_xdot);
 					sim_set_model(config, in, "impl_ode_jac_x_xdot_u", &impl_ode_jac_x_xdot_u);
-					sim_set_model(config, in, "impl_ode_jac_x_u", &impl_ode_jac_x_u);
 					break;
 				}
 				case 3: // gnsf
@@ -452,7 +409,7 @@ int main()
 			int acados_return;
 
 			if (nss == 3) // for gnsf: perform precomputation
-				gnsf_precompute(gnsf_dim, in->model, opts, in->T);
+				gnsf_precompute(config, gnsf_dim, in->model, opts, sim_solver->mem, sim_solver->work, in->T);
 
 
 			acados_timer timer;
@@ -501,7 +458,6 @@ int main()
 						impl_ode_fun.set_param(&impl_ode_fun, p_sim+ii*np);
 						impl_ode_fun_jac_x_xdot.set_param(&impl_ode_fun_jac_x_xdot, p_sim+ii*np);
 						impl_ode_jac_x_xdot_u.set_param(&impl_ode_jac_x_xdot_u, p_sim+ii*np);
-						impl_ode_jac_x_u.set_param(&impl_ode_jac_x_u, p_sim+ii*np);
 						break;
 					}
 					case 3:
@@ -630,12 +586,8 @@ int main()
 			external_function_param_casadi_free(&expl_vde_adj);
 			// implicit model
 			external_function_param_casadi_free(&impl_ode_fun);
-			external_function_param_casadi_free(&impl_ode_jac_x);
-			external_function_param_casadi_free(&impl_ode_jac_xdot);
-			external_function_param_casadi_free(&impl_ode_jac_u);
 			external_function_param_casadi_free(&impl_ode_fun_jac_x_xdot);
 			external_function_param_casadi_free(&impl_ode_jac_x_xdot_u);
-			external_function_param_casadi_free(&impl_ode_jac_x_u);
 			// gnsf functions:
 			external_function_param_casadi_free(&f_lo_fun_jac_x1k1uz);
 			external_function_param_casadi_free(&phi_fun);
@@ -651,7 +603,7 @@ int main()
 		printf("\nsuccess!\n\n");
 
 		char export_filename[50]; // = "/home/oj/Git/acados/results_irk.txt";
-		FILE *file_handle;
+		// FILE *file_handle;
 		// const char *export_filename;
 		if (nss == 2){
 			// export_filename = "/home/oj/Git/acados/results_irk.txt";
@@ -687,7 +639,6 @@ int main()
 
 
 	}
-	
 
 	// d_print_e_mat(max_num_stages, doubles_per_experiment, experiment_results, max_num_stages);
 	// write_double_vector_to_txt(experiment_num_stages, num_experiments, "./experiment_num_stages.txt");

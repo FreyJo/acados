@@ -40,27 +40,18 @@ typedef struct
 {
     int nx;
     int nu;
-    int num_stages;
     int nz;
     int nx1;
     int nx2;
-    int num_steps;
     int n_out;
     int ny;
     int nuhat;
+
 } sim_gnsf_dims;
-
-
-typedef struct {
-    double *ff;
-    double *x0_1;
-    double *u_0;
-} gnsf_res_in;
-
 
 typedef struct
 {
-    // external functions
+    /* external functions */
     // phi: nonlinearity function
     external_function_generic *phi_fun;
     external_function_generic *phi_fun_jac_y;
@@ -68,26 +59,7 @@ typedef struct
     // f_lo: linear output function
     external_function_generic *f_lo_fun_jac_x1_x1dot_u_z;
 
-    // precomputed matrices
-    struct blasfeo_dmat KKf;
-    struct blasfeo_dmat KKx;
-    struct blasfeo_dmat KKu;
-
-    struct blasfeo_dmat YYf;
-    struct blasfeo_dmat YYx;
-    struct blasfeo_dmat YYu;
-
-    struct blasfeo_dmat ZZf;
-    struct blasfeo_dmat ZZx;
-    struct blasfeo_dmat ZZu;
-
-    struct blasfeo_dmat ALO;
-    struct blasfeo_dmat M2inv;
-    struct blasfeo_dmat dK2_dx2;
-
-    struct blasfeo_dmat Lu;
-
-    // model defining matrices
+    /* model defining matrices */
     double *A;
     double *B;
     double *C;
@@ -99,14 +71,9 @@ typedef struct
     double *L_u;
     double *A_LO;
 
-    // butcher table maybe remove
-    double* A_dt;
-    double* b_dt;
-    double* c;
-    double dt;
 } gnsf_model;
 
-typedef struct {
+typedef struct { // pre_workspace - workspace used in the precomputation phase
     struct blasfeo_dmat E11;
     struct blasfeo_dmat E12;
     struct blasfeo_dmat E21;
@@ -140,12 +107,15 @@ typedef struct {
     struct blasfeo_dmat dK2_dx2_work;
 
     int *ipivEE1; // index of pivot vector
-    int *ipivEE2; // index of pivot vector
-    int *ipivQQ1; // index of pivot vector
+    int *ipivEE2;
+    int *ipivQQ1;
     int* ipivM2;
+
 } gnsf_pre_workspace;
 
-typedef struct { //workspace
+
+typedef struct {
+    /* workspace */
     double *Z_work; // used to perform computations to get Z_out
     double *Z_out;
 
@@ -203,6 +173,35 @@ typedef struct { //workspace
 
 } gnsf_workspace;
 
+typedef struct
+{
+    // scaled butcher table
+    double* A_dt;
+    double* b_dt;
+    double* c;
+    double dt;
+
+    // precomputed matrices
+    struct blasfeo_dmat KKf;
+    struct blasfeo_dmat KKx;
+    struct blasfeo_dmat KKu;
+
+    struct blasfeo_dmat YYf;
+    struct blasfeo_dmat YYx;
+    struct blasfeo_dmat YYu;
+
+    struct blasfeo_dmat ZZf;
+    struct blasfeo_dmat ZZx;
+    struct blasfeo_dmat ZZu;
+
+    struct blasfeo_dmat ALO;
+    struct blasfeo_dmat M2inv;
+    struct blasfeo_dmat dK2_dx2;
+
+    struct blasfeo_dmat Lu;
+    
+} sim_gnsf_memory;
+
 
 // gnsf dims
 int sim_gnsf_dims_calculate_size();
@@ -226,19 +225,15 @@ void *sim_gnsf_model_assign(void *config, void *dims_, void *raw_memory);
 int sim_gnsf_model_set_function(void *model_, sim_function_t fun_type, void *fun);
 
 // import
-void export_from_ML_wrapped(const double *in, double *out, casadi_function_t import_fun);
 void gnsf_import_matrices(sim_gnsf_dims* dims, gnsf_model *model, external_function_generic *get_matrices_fun);
 // void gnsf_import_precomputed(sim_gnsf_dims* dims, gnsf_model *model, casadi_function_t But_KK_YY_ZZ_LO_fun);
-void gnsf_get_dims( sim_gnsf_dims* dims, casadi_function_t get_ints_fun); // maybe remove
+// void gnsf_get_dims( sim_gnsf_dims* dims, casadi_function_t get_ints_fun); // maybe remove
 
 // precomputation
-int gnsf_pre_workspace_calculate_size(sim_gnsf_dims *dims, sim_rk_opts *opts);
-void *gnsf_cast_pre_workspace(sim_gnsf_dims* dims, sim_rk_opts *opts, void *raw_memory);
-void gnsf_precompute(sim_gnsf_dims* dims, gnsf_model *model, sim_rk_opts *opts, double T);
+void gnsf_precompute(void * config, sim_gnsf_dims* dims, gnsf_model *model, sim_rk_opts *opts, void* mem_, void *work_, double T);
 
 // workspace & memory
 int sim_gnsf_workspace_calculate_size(void *config, void *dims_, void *args);
-void *sim_gnsf_cast_workspace(void *config, void* dims_, void *raw_memory, void *args);
 int sim_gnsf_memory_calculate_size(void *config, void *dims_, void *opts_);
 void *sim_gnsf_memory_assign(void *config, void *dims_, void *opts_, void *raw_memory);
 
@@ -246,10 +241,6 @@ void *sim_gnsf_memory_assign(void *config, void *dims_, void *opts_, void *raw_m
 void sim_gnsf_config_initialize_default(void *config_);
 
 // integrator
-int gnsf_simulate(void *config, sim_in *in, sim_out *out, void *opts, void *mem_, void *work_);
-
-// helpful functions
-double minimum_of_doubles(double *x, int n);
-void gnsf_neville(double *out, double xx, int n, double *x, double *Q);
+int sim_gnsf(void *config, sim_in *in, sim_out *out, void *opts, void *mem_, void *work_);
 
 #endif  // ACADOS_SIM_SIM_COMMON_H_

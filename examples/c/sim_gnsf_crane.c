@@ -28,6 +28,7 @@
 #include <acados/sim/sim_gnsf.h>
 
 #include "acados/utils/external_function_generic.h"
+#include "acados/utils/math.h"
 
 #include "acados_c/external_function_interface.h"
 #include "acados_c/sim_interface.h"
@@ -91,7 +92,6 @@ int main() {
     get_matrices_fun.casadi_n_in           = &casadi_get_matrices_fun_n_in;
     get_matrices_fun.casadi_n_out          = &casadi_get_matrices_fun_n_out;
 	external_function_casadi_create(&get_matrices_fun);
-    printf("assigned casadi function \n");
 
 /************************************************
 * Set up sim_gnsf structs
@@ -99,16 +99,15 @@ int main() {
 
     sim_solver_plan plan;
 
-    printf("assigned plan");
     plan.sim_solver = GNSF;
     sim_solver_config *config = sim_config_create(plan);
-
-    printf("assigned plan, config");
 
     void *dims = sim_dims_create(config);
     sim_gnsf_dims *gnsf_dim = (sim_gnsf_dims *) dims;
     int nx = 9;
     int nu = 2;
+    int num_stages = 4;
+    int num_steps = 2;
 
     gnsf_dim->nx = nx;
     gnsf_dim->nx1 = 8;
@@ -118,8 +117,7 @@ int main() {
     gnsf_dim->nz = 1;
     gnsf_dim->ny = 4;
     gnsf_dim->nuhat = 1;
-    gnsf_dim->num_stages = 4;
-    gnsf_dim->num_steps = 2;
+
 
     // set up sim_dims
     // sim_dims *dims = (sim_dims *) gnsf_dim; // typecasting works as gnsf_dims has entries of sim_dims at the beginning
@@ -152,8 +150,9 @@ int main() {
     opts->b_vec[2] =     3.260666571808232e-01;
     opts->b_vec[3] =     1.739354743418989e-01;
     
-    opts->ns = gnsf_dim->num_stages;
-    printf("\nsim_in create\n");
+    opts->ns = num_stages;
+    opts->num_steps = num_steps;
+    
     sim_in *in = sim_in_create(config, dims);
 
     for (int ii = 0; ii < nx *(nx +nu); ii++) {
@@ -172,7 +171,6 @@ int main() {
     in->T = 0.1;
 
     // set up gnsf_model
-    printf("model set up");
     gnsf_model *model = in->model;
     // set external functions
     model->f_lo_fun_jac_x1_x1dot_u_z = (external_function_generic *) &f_lo_fun_jac_x1k1uz;
@@ -181,18 +179,19 @@ int main() {
     model->phi_jac_y_uhat = (external_function_generic *) &phi_jac_y_uhat;
     external_function_generic *get_model_matrices = (external_function_generic *) &get_matrices_fun;
     gnsf_import_matrices(gnsf_dim, model, get_model_matrices);
-    gnsf_precompute(gnsf_dim, model, opts, in->T);
+
+    sim_solver *sim_solver = sim_create(config, dims, opts);
+
+    gnsf_precompute(config, gnsf_dim, model, opts, sim_solver->mem, sim_solver->work, in->T);
 
     // gnsf_import_precomputed(gnsf_dim, model, But_KK_YY_ZZ_LO_fun);
 
     // set up sim_out
     sim_out *out = sim_out_create(config, dims);
-    sim_solver *sim_solver = sim_create(config, dims, opts);
 
     int NREP = 10000;
     double casadi_times[NREP];
     double gnsf_times[NREP];
-    printf("before sim solver\n");
     for (int i = 0; i < NREP; i++) {
         int acados_return = sim_solve(sim_solver, in, out);
         if (acados_return != 0)
@@ -208,7 +207,7 @@ int main() {
     double gnsf_time = minimum_of_doubles(gnsf_times, NREP);
 
     // PRINTING
-    printf("Newton_iter = %d,\t num_steps = %d \n", opts->newton_iter, gnsf_dim->num_steps);
+    printf("Newton_iter = %d,\t num_steps = %d \n", opts->newton_iter, opts->num_steps);
     printf("xf =\n");
     d_print_e_mat(1, nx, out->xn, 1);
     printf("forw_Sensitivities = \n");
