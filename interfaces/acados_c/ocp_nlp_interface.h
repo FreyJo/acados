@@ -17,8 +17,8 @@
  *
  */
 
-#ifndef ACADOS_C_OCP_NLP_INTERFACE_H_
-#define ACADOS_C_OCP_NLP_INTERFACE_H_
+#ifndef INTERFACES_ACADOS_C_OCP_NLP_INTERFACE_H_
+#define INTERFACES_ACADOS_C_OCP_NLP_INTERFACE_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,40 +30,60 @@ extern "C" {
 #include "acados_c/ocp_qp_interface.h"
 #include "acados_c/sim_interface.h"
 
-typedef enum {
-    SQP_GN
+typedef enum
+{
+    SQP_GN,
 } ocp_nlp_solver_t;
 
 
-typedef enum {
+
+typedef enum
+{
     LINEAR_LS,
     NONLINEAR_LS,
-    EXTERNALLY_PROVIDED
+    EXTERNALLY_PROVIDED,
 } ocp_nlp_cost_t;
 
 
-typedef enum {
+
+typedef enum
+{
     CONTINUOUS_MODEL,
-    DISCRETE_MODEL
+    DISCRETE_MODEL,
 } ocp_nlp_dynamics_t;
 
 
-typedef struct {
+
+typedef enum
+{
+    BGH,
+    BGHP,
+} ocp_nlp_constraints_t;
+
+
+
+typedef struct
+{
     ocp_qp_solver_plan ocp_qp_solver_plan;
     sim_solver_plan *sim_solver_plan;
-	ocp_nlp_solver_t nlp_solver;
+    ocp_nlp_solver_t nlp_solver;
     ocp_nlp_cost_t *nlp_cost;
     ocp_nlp_dynamics_t *nlp_dynamics;
+    ocp_nlp_constraints_t *nlp_constraints;
 } ocp_nlp_solver_plan;
 
 
-typedef struct {
+
+typedef struct
+{
     ocp_nlp_solver_config *config;
     void *dims;
     void *opts;
     void *mem;
     void *work;
 } ocp_nlp_solver;
+
+
 
 //
 ocp_nlp_solver_plan *ocp_nlp_plan_create(int N);
@@ -74,7 +94,8 @@ ocp_nlp_dims *ocp_nlp_dims_create(void *config);
 //
 ocp_nlp_in *ocp_nlp_in_create(ocp_nlp_solver_config *config, ocp_nlp_dims *dims);
 //
-int nlp_set_model_in_stage(ocp_nlp_solver_config *config, ocp_nlp_in *in, int stage, const char *fun_type, void *fun_ptr);
+int nlp_set_model_in_stage(ocp_nlp_solver_config *config, ocp_nlp_in *in, int stage,
+                           const char *fun_type, void *fun_ptr);
 //
 ocp_nlp_out *ocp_nlp_out_create(ocp_nlp_solver_config *config, ocp_nlp_dims *dims);
 //
@@ -84,9 +105,8 @@ ocp_nlp_solver *ocp_nlp_create(ocp_nlp_solver_config *config, ocp_nlp_dims *dims
 //
 int ocp_nlp_solve(ocp_nlp_solver *solver, ocp_nlp_in *qp_in, ocp_nlp_out *qp_out);
 
-
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif  // ACADOS_C_OCP_NLP_INTERFACE_H_
+#endif  // INTERFACES_ACADOS_C_OCP_NLP_INTERFACE_H_

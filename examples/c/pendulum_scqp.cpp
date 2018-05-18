@@ -18,13 +18,12 @@
  */
 
 #include <stdio.h>
-#include <cmath>
 #include <cstdlib>
 #include <vector>
 
 #include "acados/utils/print.h"
 #include "acados/ocp_qp/ocp_qp_partial_condensing_solver.h"
-#include "acados/ocp_nlp/ocp_nlp_constraints.h"
+#include "acados/ocp_nlp/ocp_nlp_constraints_bghp.h"
 #include "acados/ocp_nlp/ocp_nlp_cost_ls.h"
 #include "acados/ocp_nlp/ocp_nlp_dynamics_common.h"
 #include "acados/ocp_nlp/ocp_nlp_dynamics_cont.h"
@@ -39,12 +38,15 @@
 #include "pendulum_model/constraint.h"
 #include "pendulum_model/position.h"
 
+#define PI 3.1415926535897932
+
 int main() {
 
 	int num_states = 4, num_controls = 1, N = 20;
 	double Tf = 1.0, Q = 1e-10, R = 1e-4, QN = 1e-10;
 	std::vector<int> idxb_0 {1, 2, 3, 4};
-	std::vector<double> x0 {0, 0, M_PI, 0};
+	std::vector<double> x0(num_states, 0);
+	x0[2] = PI;
 
 	double radius2 = 0.04, neg_inf = -1000000;
 	int max_num_sqp_iterations = 100;
@@ -68,10 +70,13 @@ int main() {
 	plan->ocp_qp_solver_plan.qp_solver = PARTIAL_CONDENSING_HPIPM;
 	for (int i = 0; i <= N; i++)
 		plan->nlp_cost[i] = LINEAR_LS;
-	for (int i = 0; i < N; i++) {
+	for (int i = 0; i < N; i++)
+	{
 		plan->nlp_dynamics[i] = CONTINUOUS_MODEL;
 		plan->sim_solver_plan[i].sim_solver = ERK;
 	}
+	for (int i = 0; i <= N; i++)
+		plan->nlp_constraints[i] = BGHP;
 
 	ocp_nlp_solver_config *config = ocp_nlp_config_create(*plan, N);
 
@@ -139,8 +144,6 @@ int main() {
 		model->expl_vde_for = (external_function_generic *) &forw_vde_casadi[i];
 	}
 
-    nlp_in->freezeSens = false;
-
 	// convex-composite constraint
 	external_function_casadi nonlinear_constraint;
 	nonlinear_constraint.casadi_fun = &constraint;
@@ -168,7 +171,7 @@ int main() {
 	external_function_casadi_assign(&position_constraint, ptr);
 
 	// bounds
-	ocp_nlp_constraints_model **constraints = (ocp_nlp_constraints_model **) nlp_in->constraints;
+	ocp_nlp_constraints_bghp_model **constraints = (ocp_nlp_constraints_bghp_model **) nlp_in->constraints;
 
     constraints[0]->idxb = idxb_0.data();
 	blasfeo_pack_dvec(nb[0], x0.data(), &constraints[0]->d, 0);
@@ -194,7 +197,7 @@ int main() {
 		blasfeo_dvecse(nu[i]+nx[i], 0.0, nlp_out->ux+i, 0);
 
 	// for (int i = 0; i <= N; ++i)
-		// BLASFEO_DVECEL(nlp_out->ux+i, 3) = M_PI;
+		// BLASFEO_DVECEL(nlp_out->ux+i, 3) = PI;
 
 	ocp_nlp_solver *solver = ocp_nlp_create(config, dims, nlp_opts);
 

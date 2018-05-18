@@ -42,6 +42,7 @@ LIBS += -lblasfeo -lm -lblas -llapack
 # LDFLAGS += -pg
 
 EXAMPLES =
+EXAMPLES += pendulum_scqp
 EXAMPLES += sim_wt_model_nx3
 EXAMPLES += sim_wt_model_nx6
 EXAMPLES += sim_crane_example
@@ -61,6 +62,7 @@ examples: $(EXAMPLES)
 
 
 RUN_EXAMPLES =
+RUN_EXAMPLES += run_pendulum_scqp
 RUN_EXAMPLES += run_sim_wt_model_nx3
 RUN_EXAMPLES += run_sim_wt_model_nx6
 RUN_EXAMPLES += run_sim_crane_example
@@ -199,6 +201,12 @@ WT_OBJS += wt_model_nx3/expl_vde_adj.o
 WT_OBJS += wt_model_nx3/impl_ode_fun.o
 WT_OBJS += wt_model_nx3/impl_ode_fun_jac_x_xdot.o
 WT_OBJS += wt_model_nx3/impl_ode_jac_x_xdot_u.o
+WT_OBJS += wt_model_nx3/impl_ode_fun_jac_x_xdot_u.o
+WT_OBJS += wt_model_nx3/phi_fun.o
+WT_OBJS += wt_model_nx3/phi_fun_jac_y.o
+WT_OBJS += wt_model_nx3/phi_jac_y_uhat.o
+WT_OBJS += wt_model_nx3/f_lo_fun_jac_x1k1uz.o
+WT_OBJS += wt_model_nx3/get_matrices_fun.o
 
 sim_wt_model_nx3: $(WT_OBJS) sim_wt_model_nx3.o
 	$(CCC) -o sim_wt_model_nx3.out sim_wt_model_nx3.o  $(WT_OBJS) $(LDFLAGS) $(LIBS)
@@ -376,6 +384,27 @@ nonlinear_chain_ocp_nlp: $(CHAIN_OBJS) nonlinear_chain_ocp_nlp.o
 
 run_nonlinear_chain_ocp_nlp:
 	./nonlinear_chain_ocp_nlp.out
+
+
+
+#################################################
+# pendulum model
+#################################################
+
+PENDULUM_OBJS = 
+PENDULUM_OBJS += pendulum_model/vde_forw_pendulum.o 
+PENDULUM_OBJS += pendulum_model/constraint.o
+PENDULUM_OBJS += pendulum_model/position.o
+
+pendulum_scqp: $(PENDULUM_OBJS) pendulum_scqp.o
+	$(CXX) -o pendulum_scqp.out $(PENDULUM_OBJS) pendulum_scqp.o $(LDFLAGS) $(LIBS)
+	@echo
+	@echo " Example pendulum_scqp build complete."
+	@echo
+
+run_pendulum_scqp:
+	./pendulum_scqp.out
+
 
 
 

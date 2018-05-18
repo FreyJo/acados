@@ -36,33 +36,30 @@ typedef struct
 
 typedef struct
 {
-	/* external functions */
-	// implicit ode
-	external_function_generic *impl_ode_fun;
-	// implicit ode & jax_x & jac_xdot & jac_u implicit ode
+    /* external functions */
+    // implicit ode
+    external_function_generic *impl_ode_fun;
+    // implicit ode & jax_x & jac_xdot & jac_u implicit ode
     external_function_generic *impl_ode_fun_jac_x_xdot_u;
-    
+
 } new_lifted_irk_model;
 
 
 typedef struct
 {
 
-    struct blasfeo_dmat *JG_traj; // JGK trajectory
+    struct blasfeo_dmat *J_temp_x;     // temporary Jacobian of ode w.r.t x (nx, nx)
+    struct blasfeo_dmat *J_temp_xdot;  // temporary Jacobian of ode w.r.t xdot (nx, nx)
+    struct blasfeo_dmat *J_temp_u;     // temporary Jacobian of ode w.r.t u (nx, nu)
 
-    struct blasfeo_dmat *J_temp_x;    // temporary Jacobian of ode w.r.t x (nx, nx)
-    struct blasfeo_dmat *J_temp_xdot; // temporary Jacobian of ode w.r.t xdot (nx, nx)
-    struct blasfeo_dmat *J_temp_u;    // temporary Jacobian of ode w.r.t u (nx, nu)
-
-    struct blasfeo_dvec *rG; // residuals of G (nx*ns)
-    struct blasfeo_dvec *xt; // temporary x
-    struct blasfeo_dvec *xn; // x at each integration step
-    
-    struct blasfeo_dvec *xn_traj; // xn trajectory
-    struct blasfeo_dvec *K_traj;  // K trajectory
+    struct blasfeo_dvec *rG;      // residuals of G (nx*ns)
+    struct blasfeo_dvec *xt;      // temporary x
+    struct blasfeo_dvec *xn;      // x at each integration step (for evaluations)
+    struct blasfeo_dvec *xn_out;  // x at each integration step (output)
+    struct blasfeo_dvec *dxn;     // dx at each integration step
     struct blasfeo_dvec *w;       // stacked x and u
 
-    int *ipiv; // index of pivot vector
+    int *ipiv;  // index of pivot vector
 
 } sim_new_lifted_irk_workspace;
 
@@ -78,7 +75,7 @@ typedef struct
     struct blasfeo_dvec *K;         // internal variables (nx*ns)
     struct blasfeo_dvec *x;         // states (nx) -- for expansion step
     struct blasfeo_dvec *u;         // controls (nu) -- for expansion step
-    
+
     int update_sens;
 
 } sim_new_lifted_irk_memory;
@@ -109,7 +106,8 @@ int sim_new_lifted_irk_memory_calculate_size(void *config, void *dims, void *opt
 //
 void *sim_new_lifted_irk_memory_assign(void *config, void *dims, void *opts_, void *raw_memory);
 //
-int sim_new_lifted_irk(void *config, sim_in *in, sim_out *out, void *opts_, void *mem_, void *work_);
+int sim_new_lifted_irk(void *config, sim_in *in, sim_out *out, void *opts_,
+        void *mem_, void *work_);
 //
 int sim_new_lifted_irk_workspace_calculate_size(void *config, void *dims, void *opts_);
 //
