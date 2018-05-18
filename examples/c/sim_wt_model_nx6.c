@@ -411,8 +411,8 @@ int main()
 				sim_gnsf_precompute(config, gnsf_dim, in->model, opts, sim_solver->mem, sim_solver->work, in->T);
 
 
-			acados_timer timer;
-			acados_tic(&timer);
+			// acados_timer timer;
+			// acados_tic(&timer);
 
 			int nsim0 = nsim;
 
@@ -504,7 +504,6 @@ int main()
 				// if (ii < nsim-1)
 				// 	printf("\nii = %d, sim error = %e\n", ii, ctrlErr);
 			}
-			double total_cpu_time = acados_toc(&timer);
 
 			/************************************************
 			* printing
@@ -554,8 +553,8 @@ int main()
 			#endif
 
 			// printf("time split: %f ms CPU, %f ms LA, %f ms AD\n\n", cpu_time, la_time, ad_time);
-			printf("\ntime for %d simulation steps: %f ms (AD time: %f ms (%5.2f%%))\n\n", nsim, 1e3*total_cpu_time, 1e3*ad_time, 1e2*ad_time/cpu_time);
-			printf("time spent in integrator outside of casADi %f \n", 1e3*(total_cpu_time-ad_time));
+			printf("\ntime for %d simulation steps: %f ms (AD time: %f ms (%5.2f%%))\n\n", nsim, 1e3*cpu_time, 1e3*ad_time, 1e2*ad_time/cpu_time);
+			printf("time spent in integrator outside of casADi %f \n", 1e3*(cpu_time-ad_time));
 
 			// store experiment results in matrix
 			int i_experiment = (num_stages-1);
