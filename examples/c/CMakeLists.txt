@@ -138,7 +138,6 @@ file(GLOB WT_MODEL_NX6_SRC
     wt_model_nx6/phi_jac_y_uhat.c
     wt_model_nx6/f_lo_fun_jac_x1k1uz.c
     wt_model_nx6/get_matrices_fun.c
-
 )
 
 file(GLOB WT_MODEL_NX6P2_SRC
@@ -163,6 +162,24 @@ file(GLOB GNSF_CRANE_SRC
     gnsf_crane_model/get_matrices_fun.c
 )
 
+
+file(GLOB INTEGRATOR_EXPERIMENT_SRC
+    wt_model_nx6/expl_ode_fun.c
+    wt_model_nx6/expl_vde_for.c
+    wt_model_nx6/expl_vde_adj.c
+    wt_model_nx6/impl_ode_fun.c
+    wt_model_nx6/impl_ode_fun_jac_x_xdot.c
+    wt_model_nx6/impl_ode_jac_x_xdot_u.c
+    wt_model_nx6/impl_ode_fun_jac_x_xdot_u.c
+    # gnsf functions
+    wt_model_nx6/phi_fun.c
+    wt_model_nx6/phi_fun_jac_y.c
+    wt_model_nx6/phi_jac_y_uhat.c
+    wt_model_nx6/f_lo_fun_jac_x1k1uz.c
+    wt_model_nx6/get_matrices_fun.c
+)
+
+
 # Define examples
 
 # -------------------- nonlinear_chain
@@ -179,6 +196,11 @@ add_test(wind_turbine_nmpc_example wind_turbine_nmpc_example)
 add_executable(sim_wt_model_nx6 sim_wt_model_nx6.c ${WT_MODEL_NX6_SRC})
 target_link_libraries(sim_wt_model_nx6 acados)
 add_test(sim_wt_model_nx6 sim_wt_model_nx6)
+
+# -------------------- integrator_experiment
+add_executable(integrator_experiment integrator_experiment.c ${INTEGRATOR_EXPERIMENT_SRC})
+target_link_libraries(integrator_experiment acados)
+add_test(integrator_experiment integrator_experiment)
 
 if(ACADOS_WITH_C_INTERFACE)
     add_executable(sim_gnsf_crane sim_gnsf_crane.c ${GNSF_CRANE_SRC})
