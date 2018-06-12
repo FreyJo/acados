@@ -1117,6 +1117,29 @@ double minimum_of_doubles(double *x, int n)
     return min;
 }
 
+double average_of_doubles(double *x, int n)
+{
+    double sum = 0.0;
+    for (int c = 0; c < n; c++)
+    {
+        sum += x[c];
+    }
+    double average = sum/n;
+    return average;
+}
+
+double standard_deviation(double *data, double average, int n)
+{  // average/ arithmetic mean
+    double sum = 0.0;
+    for (int c = 0; c < n; c++)
+    {
+        sum += pow(data[c] - average, 2);
+    }
+    sum /= n-1;
+    double sd = sqrt(sum);
+    return sd;
+}
+
 void neville_algorithm(double *out, double xx, int n, double *x, double *Q)
 {  // Neville's algorithm
     // writes value of interpolating polynom corresponding to the nodes (x_i, Q_i), i = 0,...,n
