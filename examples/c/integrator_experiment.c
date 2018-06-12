@@ -345,13 +345,13 @@ int main()
 	* printing
 	************************************************/
 	printf("\nxn: \n");
-	d_print_e_mat(1, nx, &x_sim[nsim*nx], 1);
+	d_print_exp_mat(1, nx, &x_sim[nsim*nx], 1);
 
 	double *S_forw_out = NULL;
 	if(opts->sens_forw){
 		S_forw_out = out->S_forw;
 		printf("\nS_forw_out: \n");
-		d_print_e_mat(nx, NF, S_forw_out, nx);
+		d_print_exp_mat(nx, NF, S_forw_out, nx);
 	}
 
     // store reference solution
@@ -683,19 +683,19 @@ int main()
 			* printing
 			************************************************/
 			printf("\nxn: \n");
-			d_print_e_mat(1, nx, &x_sim[nsim*nx], 1);
+			d_print_exp_mat(1, nx, &x_sim[nsim*nx], 1);
 
 			double *S_forw_out = NULL;
 			if(opts->sens_forw){
 				S_forw_out = out->S_forw;
 				printf("\nS_forw_out: \n");
-				d_print_e_mat(nx, NF, S_forw_out, nx);
+				d_print_exp_mat(nx, NF, S_forw_out, nx);
 			}
 
 			// if(opts->sens_adj){
 			// 	double *S_adj_out = out->S_adj;
 			// 	printf("\nS_adj_out: \n");
-			// 	d_print_e_mat(1, nx+nu, S_adj_out, 1);
+			// 	d_print_exp_mat(1, nx+nu, S_adj_out, 1);
 			// }
 
 			// if(opts->sens_forw){		// debug adjoints
@@ -780,15 +780,15 @@ int main()
 			experiment_num_stages[i_experiment] 	 	= (double) num_stages;
 			experiment_solver[i_experiment] 		 	= (double) nss;
 			experiment_jac_reuse[i_experiment] 		 	= (double) jac_reuse;
-			experiment_cpu_time[i_experiment]  		 	= 1e6 * cpu_time_experiment;
-			experiment_ad_time[i_experiment]   		 	= 1e6 * ad_time_experiment;
-			experiment_la_time[i_experiment]   		 	= 1e6 * (cpu_time_experiment - ad_time_experiment);
-			experiment_lss_time[i_experiment]  		 	= 1e6 * la_time_experiment;
-			experiment_error_sim[i_experiment]       	= 1e6 * rel_error;
-			experiment_error_sens_forw[i_experiment] 	= 1e6 * rel_error_forw;
-			experiment_cpu_time_sd[i_experiment]  	 	= 1e6 * cpu_time_sd;
-			experiment_ad_time_sd[i_experiment]   	 	= 1e6 * ad_time_sd;
-			experiment_la_time_sd[i_experiment]     	= 1e6 * la_time_sd;
+			experiment_cpu_time[i_experiment]  		 	= cpu_time_experiment;
+			experiment_ad_time[i_experiment]   		 	= ad_time_experiment;
+			experiment_la_time[i_experiment]   		 	= (cpu_time_experiment - ad_time_experiment);
+			experiment_lss_time[i_experiment]  		 	= la_time_experiment;
+			experiment_error_sim[i_experiment]       	= rel_error_x;
+			experiment_error_sens_forw[i_experiment] 	= rel_error_forw;
+			experiment_cpu_time_sd[i_experiment]  	 	= cpu_time_sd;
+			experiment_ad_time_sd[i_experiment]   	 	= ad_time_sd;
+			experiment_la_time_sd[i_experiment]     	= la_time_sd;
 		/* free memory */
 			free(dims);
 			free(sim_solver);
@@ -810,36 +810,36 @@ int main()
 			strcat(export_filename, "_wt_nx6.txt");
 			FILE *file_handle = fopen(export_filename, "wr");
 			assert(file_handle!=NULL);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_num_stages, 1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_solver	  , 1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_jac_reuse , 1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_cpu_time  , 1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_ad_time,    1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_la_time   , 1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_lss_time ,  1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_error_sim ,  1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_error_sens_forw ,  1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_cpu_time_sd  , 1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_ad_time_sd,    1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_la_time_sd   , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_num_stages, 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_solver	  , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_jac_reuse , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time  , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time,    1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time   , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time ,  1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sim ,  1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_forw ,  1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time_sd  , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time_sd,    1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time_sd   , 1);
 		}
 		else if (nss == 3){
 			strcpy(export_filename, "/home/oj/Git/acados/results_gnsf");
 			strcat(export_filename, "_wt_nx6.txt");
 			FILE *file_handle = fopen(export_filename, "wr");
 			assert(file_handle!=NULL);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_num_stages, 1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_solver	  , 1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_jac_reuse , 1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_cpu_time  , 1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_ad_time,    1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_la_time   , 1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_lss_time ,  1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_error_sim ,  1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_error_sens_forw ,  1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_cpu_time_sd  , 1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_ad_time_sd,    1);
-			d_print_to_file_e_mat(file_handle, 1, num_experiments, experiment_la_time_sd   , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_num_stages, 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_solver	  , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_jac_reuse , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time  , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time,    1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time   , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time ,  1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sim ,  1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_forw ,  1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time_sd  , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time_sd,    1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time_sd   , 1);
 		}
 		else{
 			assert(0);
@@ -866,7 +866,7 @@ int main()
 	external_function_casadi_free(&get_matrices_fun);
 
 	free(x_sim);
-	// d_print_e_mat(max_num_stages, doubles_per_experiment, experiment_results, max_num_stages);
+	// d_print_exp_mat(max_num_stages, doubles_per_experiment, experiment_results, max_num_stages);
 	// write_double_vector_to_txt(experiment_num_stages, num_experiments, "./experiment_num_stages.txt");
 
     return 0;
