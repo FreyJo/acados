@@ -57,6 +57,16 @@ void *sim_gnsf_dims_assign(void *config_, void *raw_memory)
     char *c_ptr = (char *) raw_memory;
     sim_gnsf_dims *dims = (sim_gnsf_dims *) c_ptr;
     c_ptr += sizeof(sim_gnsf_dims);
+
+    dims->nx = 0;
+    dims->nu = 0;
+    dims->nz = 0;
+    dims->nx1 = 0;
+    dims->nx2 = 0;
+    dims->n_out = 0;
+    dims->ny = 0;
+    dims->nuhat = 0;
+
     assert((char *) raw_memory + sim_gnsf_dims_calculate_size() == c_ptr);
     return dims;
 }
@@ -1906,7 +1916,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                         Z_work[jj] = blasfeo_dvecex1(&Z_val, nz * jj + ii);
                                 // copy values of z_ii in first step, into Z_work
                     }
-                    neville_algorithm(&out->zn[ii], 0.0, num_stages - 1, mem->c_butcher, Z_work);
+                    neville_algorithm(0.0, num_stages - 1, mem->c_butcher, Z_work, &out->zn[ii]);
                                 // eval polynomial through (c_i, Z_i) at 0.
                 }
             }
@@ -1921,7 +1931,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                         Z_work[jj] = blasfeo_dvecex1(&K1_val, nx1 * jj + ii);
                                 // copy values of k1_ii in first step, into Z_work
                     }
-                    neville_algorithm(&out->xn[ii], 0.0, num_stages - 1, mem->c_butcher, Z_work);
+                    neville_algorithm(0.0, num_stages - 1, mem->c_butcher, Z_work, &out->xn[ii]);
                                 // eval polynomial through (c_i, k1_ii) at 0, write in out->xn
                 }
 

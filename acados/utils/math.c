@@ -1140,7 +1140,7 @@ double standard_deviation(double *data, double average, int n)
     return sd;
 }
 
-void neville_algorithm(double *out, double xx, int n, double *x, double *Q)
+void neville_algorithm(double xx, int n, double *x, double *Q, double *out)
 {  // Neville's algorithm
     // writes value of interpolating polynom corresponding to the nodes (x_i, Q_i), i = 0,...,n
     // evaluated evaluated at xx into out
