@@ -387,19 +387,19 @@ int main()
     * printing
 		************************************************/
 		printf("\nxn: \n");
-		d_print_e_mat(1, nx, &x_sim[nsim0*nx], 1);
+		d_print_exp_mat(1, nx, &x_sim[nsim0*nx], 1);
 
 		double *S_forw_out = NULL;
 		if(opts->sens_forw){
 			S_forw_out = out->S_forw;
 			// printf("S_forw_out: \n");
-			// d_print_e_mat(nx, NF, S_forw_out, nx);
+			// d_print_exp_mat(nx, NF, S_forw_out, nx);
 		}
 
 		if(opts->sens_adj){
 			double *S_adj_out = out->S_adj;
 			printf("S_adj_out: \n");
-			d_print_e_mat(1, nx+nu, S_adj_out, 1);
+			d_print_exp_mat(1, nx+nu, S_adj_out, 1);
 		}
 
 		if(opts->sens_forw){		// debug adjoints
@@ -425,12 +425,12 @@ int main()
 
         if (opts->output_z){
             printf("zn \n");
-            d_print_e_mat(1, nz, &out->zn[0], 1);
+            d_print_exp_mat(1, nz, &out->zn[0], 1);
         }
 
         if (opts->sens_algebraic){
             printf("algebraic sensitivities \n");
-            d_print_e_mat(nz, NF, &out->S_algebraic[0], nz);
+            d_print_exp_mat(nz, NF, &out->S_algebraic[0], nz);
         }
 
     #if 0
