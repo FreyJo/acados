@@ -224,9 +224,7 @@ int main()
 /************************************************
 * generate reference solution
 ************************************************/
-	/************************************************
-	* sim plan & config
-	************************************************/
+	/* sim plan & config */
 
 	// choose plan
 	sim_solver_plan plan;
@@ -395,11 +393,11 @@ int main()
 ************************************************/
 	int n_executions = 20;
 
-	int max_num_stages = 9;
+	int max_num_stages = 11;
 	int min_num_stages = 1;
 	int stages_in_experiment = max_num_stages - min_num_stages;
 
-	int max_num_steps = 16;
+	int max_num_steps = 21;
 	int min_num_steps = 1;
 	int steps_in_experiment = max_num_steps - min_num_steps;
 
@@ -450,8 +448,14 @@ int main()
 	double ad_time_min_executions[nsim];
 
 	int number_sim_solvers = 4;
-	for (int nss = 2; nss < number_sim_solvers; nss++)
+	for (int nss = 1; nss < number_sim_solvers; nss++)
 	{
+		/************************************************
+		* nss:
+			1 : ERK
+			2 : IRK
+			3 : GNSF
+		************************************************/
 		for (int num_stages = min_num_stages; num_stages < max_num_stages; num_stages++) {
 			for (int num_steps = min_num_steps; num_steps < max_num_steps; num_steps++) {
 
@@ -459,11 +463,10 @@ int main()
 				sim_solver_plan plan;
 				switch (nss)
 				{
-					case 0:
+					case 1:
 						plan.sim_solver = ERK;
 						break;
 
-					case 1:
 					case 2:
 						plan.sim_solver = IRK;
 						break;
@@ -528,6 +531,13 @@ int main()
 			/* set model */
 				switch (plan.sim_solver)
 				{
+					case ERK:
+					{
+						sim_set_model(config, in, "expl_ode_fun", &expl_ode_fun);
+						sim_set_model(config, in, "expl_vde_for", &expl_vde_for);
+						sim_set_model(config, in, "expl_vde_adj", &expl_vde_adj);
+						break;
+					}
 					case IRK:  // IRK
 					{
 						sim_set_model(config, in, "impl_ode_fun", &impl_ode_fun);
@@ -736,7 +746,7 @@ int main()
 				// 	blasfeo_free_dvec(&forw_times_seed);
 				// }
 
-			/* compute error w.r.t. reference solution */
+			/* compute errors w.r.t. reference solution */
 				double rel_error_x, rel_error_forw, rel_error_adj, rel_error_z, rel_error_alg;
 				// error sim
 				for (int jj = 0; jj < nx; jj++){
@@ -792,7 +802,7 @@ int main()
 				printf("time spent in integrator outside of casADi %f \n", 1e3*(cpu_time_experiment-ad_time_experiment));
 
 			/* store experiment results in matrix */
-				int i_experiment = (num_stages - min_num_stages) + num_steps * stages_in_experiment;
+				int i_experiment = (num_stages - min_num_stages) * steps_in_experiment + (num_steps - min_num_steps);
 				// options
 				experiment_solver[i_experiment] 		 	= nss;
 				experiment_num_stages[i_experiment] 	 	= num_stages;
@@ -826,51 +836,58 @@ int main()
 				free(opts);
 				free(config);
 
-			}
+			}  // end num_steps loop
+		}  // end num_stages loop
 
-		/* print results to file */
-			char export_filename[50]; // = "/home/oj/Git/acados/results_irk.txt";
-			if (plan.sim_solver == IRK){
-				strcpy(export_filename, "/home/oj/Git/acados/results_irk");
-			}
-			else if (plan.sim_solver == GNSF){
-				strcpy(export_filename, "/home/oj/Git/acados/results_gnsf");
-			}
-			strcat(export_filename, "_wt_nx6.txt");
-			FILE *file_handle = fopen(export_filename, "wr");
-			assert(file_handle!=NULL);
+	/* print results to file */
+		char export_filename[50] = "/home/oj/Git/acados/results_";
+		if (nss == 2){
+			strcat(export_filename, "irk");
+		}
+		else if (nss == 3){
+			strcat(export_filename, "gnsf");
+		}
+		else if (nss == 1){
+			strcat(export_filename, "erk");
+		}
+		strcat(export_filename, "_wt_nx6.txt");
+		FILE *file_handle = fopen(export_filename, "wr");
+		assert(file_handle != NULL);
 
-			// 1st line -- options
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_solver	  , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_num_stages, 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_num_steps , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_newton_it , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_jac_reuse , 1);
-			// 6th
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_sens_forw , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_sens_adj  , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_output_z  , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_sens_alg  , 1);
-			/* errors */
-			// line 10
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sim ,  1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_forw, 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_adj, 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_z, 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_alg, 1);
-			/* timings */
-			// line 15
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time  , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time,    1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time   , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time ,  1);
-			// line 19
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time_sd, 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time_sd,    1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time_sd   , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time_sd   , 1);
-		}  // end num_steps loop
-	}  // end num_stages loop
+		// 1st line -- options
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_solver	  , 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_num_stages, 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_num_steps , 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_newton_it , 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_jac_reuse , 1);
+		// 6th
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_sens_forw , 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_sens_adj  , 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_output_z  , 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_sens_alg  , 1);
+		/* errors */ 
+		// line 10
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sim ,  1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_forw, 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_adj, 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_z, 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_alg, 1);
+		/* timings */
+		// line 15
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time  , 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time,    1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time   , 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time ,  1);
+		// line 19
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time_sd, 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time_sd,    1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time_sd   , 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time_sd   , 1);
+
+		fclose(file_handle);
+
+	}  // end for solver loop
+
 /* free stuff */
 	// explicit model
 	external_function_param_casadi_free(&expl_ode_fun);
