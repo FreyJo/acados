@@ -72,7 +72,7 @@ int main()
 	const int nuhat 	= 0;  //nx + nu;
 	const int n_out 	= 1;
 
-	int nsim = 100;
+	int nsim = 30;
 
 	int NF = nx + nu; // columns of forward seed
 
@@ -81,18 +81,21 @@ int main()
 	double *x_sim = malloc(sizeof(double)*nx*(nsim+1));
 
 	double x_ref_sol[nx];
+	double z_ref_sol[nz];
     double S_forw_ref_sol[nx*NF];
     double S_adj_ref_sol[NF];
+    double S_alg_ref_sol[nz * (nx + nu)];
 
     double error[nx];
+	double error_z[nz];
     double error_S_forw[nx*NF];
     double error_S_adj[NF];
+	double error_S_alg[nz * (nx + nu)];
 
-	double max_error, max_error_forw, max_error_adj;
     double norm_error, norm_error_forw, norm_error_adj, norm_error_z, norm_error_sens_alg;
 
 
-	for (int ii=0; ii<nx; ii++)
+	for (int ii = 0; ii < nx; ii++)
 		x_sim[ii] = x_ref[ii];
 
 	/************************************************
@@ -300,7 +303,7 @@ int main()
 
 
 
-	for (int ii=0; ii<nsim; ii++)
+	for (int ii = 0; ii < nsim; ii++)
 	{
 		// update initial state
 		for (int jj = 0; jj < nx; jj++)
@@ -364,11 +367,11 @@ int main()
     for (int jj = 0; jj < NF; jj++)
         S_adj_ref_sol[jj] = out->S_adj[jj];
 
-    // for (int jj = 0; jj < nz; jj++)
-    //     z_ref_sol[jj] = out->zn[jj];
+    for (int jj = 0; jj < nz; jj++)
+        z_ref_sol[jj] = out->zn[jj];
 
-    // for (int jj = 0; jj < nz*NF; jj++)
-    //     S_alg_ref_sol[jj] = out->S_algebraic[jj];
+    for (int jj = 0; jj < nz*NF; jj++)
+        S_alg_ref_sol[jj] = out->S_algebraic[jj];
 
 	// compute one norms
     double norm_x_ref, norm_S_forw_ref, norm_S_adj_ref, norm_z_ref, norm_S_alg_ref = 0;
@@ -376,8 +379,8 @@ int main()
     norm_x_ref = onenorm(nx, 1, x_ref_sol);
     norm_S_forw_ref = onenorm(nx, nx + nu, S_forw_ref_sol);
     norm_S_adj_ref = onenorm(1, nx + nu, S_adj_ref_sol);
-    // norm_z_ref = onenorm(nz, 1, z_ref_sol);
-    // norm_S_alg_ref = onenorm(nz, nx + nu, S_alg_ref_sol);
+    norm_z_ref = onenorm(nz, 1, z_ref_sol);
+    norm_S_alg_ref = onenorm(nz, nx + nu, S_alg_ref_sol);
 
 	free(config);
     free(dims);
@@ -390,465 +393,485 @@ int main()
 /************************************************
 * numerical experiment
 ************************************************/
-	int n_executions = 100;
+	int n_executions = 20;
 
 	int max_num_stages = 9;
-	int num_solver_in_experiment = 1;
-	int num_experiments = num_solver_in_experiment * (max_num_stages-1);
-	bool jac_reuse = false;
+	int min_num_stages = 1;
+	int stages_in_experiment = max_num_stages - min_num_stages;
 
+	int max_num_steps = 16;
+	int min_num_steps = 1;
+	int steps_in_experiment = max_num_steps - min_num_steps;
+
+	int num_experiments = steps_in_experiment * stages_in_experiment;
+
+	int newton_iter = 3;
+	bool jac_reuse 	= false;
+	bool sens_forw 	= true;
+	bool sens_adj  	= false;
+	bool output_z  	= false;
+	bool sens_alg  	= false;
+
+	// options
 	double experiment_num_stages[num_experiments];
+	double experiment_num_steps[num_experiments];
 	double experiment_solver[num_experiments];
 	double experiment_jac_reuse[num_experiments];
-	double experiment_cpu_time[num_experiments];
-	double experiment_ad_time[num_experiments];
-	double experiment_la_time[num_experiments];
-	double experiment_lss_time[num_experiments];
+	double experiment_newton_it[num_experiments];
+	double experiment_sens_forw[num_experiments];
+	double experiment_sens_adj[num_experiments];
+	double experiment_output_z[num_experiments];
+	double experiment_sens_alg[num_experiments];
+	// errors
 	double experiment_error_sim[num_experiments];
 	double experiment_error_sens_forw[num_experiments];
+	double experiment_error_sens_adj[num_experiments];
+	double experiment_error_z[num_experiments];
+	double experiment_error_sens_alg[num_experiments];
+	// timings
+	double experiment_cpu_time[num_experiments];
+	double experiment_ad_time[num_experiments];
+	double experiment_lss_time[num_experiments];
+	double experiment_la_time[num_experiments];
+
 	double experiment_cpu_time_sd[num_experiments];
 	double experiment_ad_time_sd[num_experiments];
+	double experiment_lss_time_sd[num_experiments];
 	double experiment_la_time_sd[num_experiments];
 
+	double cpu_time[nsim];
+	double lss_time[nsim];
+	double ad_time[nsim];
+	double la_time[nsim];
 
-	int num_steps = 1;
-	bool sens_forw = true;
-	int sens_adj  = 0;
-
-	int output_z = 0;
-	int sens_alg = 0;
+	double cpu_time_min_executions[nsim];
+	double lss_time_min_executions[nsim];
+	double la_time_min_executions[nsim];
+	double ad_time_min_executions[nsim];
 
 	int number_sim_solvers = 4;
 	for (int nss = 2; nss < number_sim_solvers; nss++)
 	{
-		for (int num_stages = 1; num_stages < max_num_stages; num_stages++) {
+		for (int num_stages = min_num_stages; num_stages < max_num_stages; num_stages++) {
+			for (int num_steps = min_num_steps; num_steps < max_num_steps; num_steps++) {
 
-			/************************************************
-			* sim plan & config
-			************************************************/
-
-			// choose plan
-			sim_solver_plan plan;
-			switch (nss)
-			{
-				case 0:
-					plan.sim_solver = ERK;
-					break;
-
-				case 1:
-				case 2:
-					plan.sim_solver = IRK;
-					break;
-
-				case 3:
-					plan.sim_solver = GNSF;
-					break;
-
-				default :
-					printf("\nnot enough sim solvers implemented!\n");
-					exit(1);
-
-			}
-
-			// create correct config based on plan
-			sim_solver_config *config = sim_config_create(plan);
-
-
-
-		/* sim dims */
-			void *dims = sim_dims_create(config);
-			config->set_nx(dims, nx);
-			config->set_nu(dims, nu);
-			config->set_nz(dims, nz);
-
-			// GNSF -- set additional dimensions
-			sim_gnsf_dims *gnsf_dim;
-			if (plan.sim_solver == GNSF)
-			{
-				gnsf_dim = (sim_gnsf_dims *) dims;
-				gnsf_dim->nx1   = nx1;
-				gnsf_dim->nx2   = nx2;
-				gnsf_dim->ny    = ny;
-				gnsf_dim->nuhat = nuhat;
-				gnsf_dim->n_out = n_out;
-			}
-
-
-		/* sim options */
-
-			void *opts_ = sim_opts_create(config, dims);
-			sim_rk_opts *opts = (sim_rk_opts *) opts_;
-			config->opts_initialize_default(config, dims, opts);
-
-			opts->jac_reuse = jac_reuse;        // jacobian reuse
-			opts->newton_iter = 2;          // number of newton iterations per integration step
-
-			opts->ns                = num_stages;          // number of stages in rk integrator
-			opts->num_steps         = num_steps;    // number of steps
-			opts->sens_forw         = (bool) sens_forw;
-			opts->sens_adj          = (bool) sens_adj;
-			opts->output_z          = (bool) output_z;
-			opts->sens_algebraic    = (bool) sens_alg;
-
-		/* sim in / out */
-
-			sim_in *in = sim_in_create(config, dims);
-			sim_out *out = sim_out_create(config, dims);
-
-			in->T = T;
-
-		/* set model */
-			switch (plan.sim_solver)
-			{
-				case IRK:  // IRK
+			/* sim plan & config */
+				sim_solver_plan plan;
+				switch (nss)
 				{
-					sim_set_model(config, in, "impl_ode_fun", &impl_ode_fun);
-					sim_set_model(config, in, "impl_ode_fun_jac_x_xdot",
-							&impl_ode_fun_jac_x_xdot);
-					sim_set_model(config, in, "impl_ode_jac_x_xdot_u", &impl_ode_jac_x_xdot_u);
-					break;
+					case 0:
+						plan.sim_solver = ERK;
+						break;
+
+					case 1:
+					case 2:
+						plan.sim_solver = IRK;
+						break;
+
+					case 3:
+						plan.sim_solver = GNSF;
+						break;
+
+					default :
+						printf("\nnot enough sim solvers implemented!\n");
+						exit(1);
+
 				}
-				case GNSF:  // GNSF
-				{
-					// set model funtions
-					sim_set_model(config, in, "phi_fun", &phi_fun);
-					sim_set_model(config, in, "phi_fun_jac_y", &phi_fun_jac_y);
-					sim_set_model(config, in, "phi_jac_y_uhat", &phi_jac_y_uhat);
-					sim_set_model(config, in, "f_lo_jac_x1_x1dot_u_z", &f_lo_fun_jac_x1k1uz);
 
-					// import model matrices
-					external_function_generic *get_model_matrices =
-							(external_function_generic *) &get_matrices_fun;
+				// create correct config based on plan
+				sim_solver_config *config = sim_config_create(plan);
+
+
+
+			/* sim dims */
+				void *dims = sim_dims_create(config);
+				config->set_nx(dims, nx);
+				config->set_nu(dims, nu);
+				config->set_nz(dims, nz);
+
+				// GNSF -- set additional dimensions
+				sim_gnsf_dims *gnsf_dim;
+				if (plan.sim_solver == GNSF)
+				{
+					gnsf_dim = (sim_gnsf_dims *) dims;
+					gnsf_dim->nx1   = nx1;
+					gnsf_dim->nx2   = nx2;
+					gnsf_dim->ny    = ny;
+					gnsf_dim->nuhat = nuhat;
+					gnsf_dim->n_out = n_out;
+				}
+
+
+			/* sim options */
+
+				void *opts_ = sim_opts_create(config, dims);
+				sim_rk_opts *opts = (sim_rk_opts *) opts_;
+				config->opts_initialize_default(config, dims, opts);
+
+				opts->newton_iter = newton_iter;        // number of newton iterations per integration step
+				opts->ns                = num_stages;   // number of stages in rk integrator
+				opts->num_steps         = num_steps;    // number of steps
+
+				opts->jac_reuse = jac_reuse;        	// jacobian reuse
+				opts->sens_forw         = sens_forw;
+				opts->sens_adj          = sens_adj;
+				opts->output_z          = output_z;
+				opts->sens_algebraic    = sens_alg;
+
+			/* sim in / out */
+
+				sim_in *in = sim_in_create(config, dims);
+				sim_out *out = sim_out_create(config, dims);
+
+				in->T = T;
+
+			/* set model */
+				switch (plan.sim_solver)
+				{
+					case IRK:  // IRK
+					{
+						sim_set_model(config, in, "impl_ode_fun", &impl_ode_fun);
+						sim_set_model(config, in, "impl_ode_fun_jac_x_xdot",
+								&impl_ode_fun_jac_x_xdot);
+						sim_set_model(config, in, "impl_ode_jac_x_xdot_u", &impl_ode_jac_x_xdot_u);
+						break;
+					}
+					case GNSF:  // GNSF
+					{
+						// set model funtions
+						sim_set_model(config, in, "phi_fun", &phi_fun);
+						sim_set_model(config, in, "phi_fun_jac_y", &phi_fun_jac_y);
+						sim_set_model(config, in, "phi_jac_y_uhat", &phi_jac_y_uhat);
+						sim_set_model(config, in, "f_lo_jac_x1_x1dot_u_z", &f_lo_fun_jac_x1k1uz);
+
+						// import model matrices
+						external_function_generic *get_model_matrices =
+								(external_function_generic *) &get_matrices_fun;
+						gnsf_model *model = (gnsf_model *) in->model;
+						sim_gnsf_import_matrices(gnsf_dim, model, get_model_matrices);
+						break;
+					}
+					// case NEW_LIFTED_IRK:  // new_lifted_irk
+					// {
+					//     sim_set_model(config, in, "impl_ode_fun", &impl_ode_fun);
+					//     sim_set_model(config, in, "impl_ode_fun_jac_x_xdot_u",
+					//              &impl_ode_fun_jac_x_xdot_u);
+					//     break;
+					// }
+					default :
+					{
+						printf("\nnot enough sim solvers implemented!\n");
+						exit(1);
+					}
+				}
+
+			/* seeds */
+				for (int ii = 0; ii < nx * NF; ii++)
+					in->S_forw[ii] = 0.0;
+				for (int ii = 0; ii < nx; ii++)
+					in->S_forw[ii * (nx + 1)] = 1.0;
+
+				// seeds adj
+				for (int ii = 0; ii < nx; ii++)
+					in->S_adj[ii] = 1.0;
+				for (int ii = nx; ii < nx + nu; ii++)
+					in->S_adj[ii] = 0.0;
+			/* sim solver  */
+				sim_solver = sim_create(config, dims, opts);
+				int acados_return;
+
+				if (plan.sim_solver == GNSF){  // for gnsf: perform precomputation
 					gnsf_model *model = (gnsf_model *) in->model;
-					sim_gnsf_import_matrices(gnsf_dim, model, get_model_matrices);
-					break;
+					sim_gnsf_precompute(config, gnsf_dim, model, opts,
+								sim_solver->mem, sim_solver->work, in->T);
 				}
-				// case NEW_LIFTED_IRK:  // new_lifted_irk
-				// {
-				//     sim_set_model(config, in, "impl_ode_fun", &impl_ode_fun);
-				//     sim_set_model(config, in, "impl_ode_fun_jac_x_xdot_u",
-				//              &impl_ode_fun_jac_x_xdot_u);
-				//     break;
+
+			// print solver info
+				printf("\n ===  USING SOLVER NUMBER %d === \n",nss);
+				printf("with settings: ns=%d, num_steps=%d\n", opts->ns, opts->num_steps);
+
+				// to avoid unstable behavior introduce a small pi-controller for rotor speed tracking
+				double uctrl = 0.0;
+				double uctrlI = 0.0;
+				double kI = 1e-1;
+				double kP = 10;
+				double tmp, ctrlErr;
+				
+
+			/* sim loop */
+				for (int i_execution = 0; i_execution < n_executions; i_execution++) {
+					// initialize minimum of execution timings with something big
+					for (int ii = 0; ii < nsim; ii++) {
+						cpu_time_min_executions[ii] = 1e15;
+						lss_time_min_executions[ii] = 1e15;
+						ad_time_min_executions[ii] = 1e15;
+					}
+					for (int ii=0; ii<nsim; ii++)
+					{
+						// update initial state
+						for (int jj = 0; jj < nx; jj++)
+							in->x[jj] = x_sim[ii*nx+jj];
+
+						// compute inputs
+						for (int jj = 0; jj < nu; jj++)
+							in->u[jj] = u_sim[ii*nu+jj];
+						tmp = in->u[1] - uctrl;
+						in->u[1] = tmp>0.0 ? tmp : 0.0;
+
+						// update parameters
+						switch (plan.sim_solver)
+						{
+							case ERK:  // ERK
+							{
+								expl_ode_fun.set_param(&expl_ode_fun, p_sim+ii*np);
+								expl_vde_for.set_param(&expl_vde_for, p_sim+ii*np);
+								expl_vde_for.set_param(&expl_vde_adj, p_sim+ii*np);
+								break;
+							}
+							case IRK:  // IRK
+							{
+								impl_ode_fun.set_param(&impl_ode_fun, p_sim+ii*np);
+								impl_ode_fun_jac_x_xdot.set_param(&impl_ode_fun_jac_x_xdot, p_sim+ii*np);
+								impl_ode_jac_x_xdot_u.set_param(&impl_ode_jac_x_xdot_u, p_sim+ii*np);
+								break;
+							}
+							case GNSF:  // GNSF
+							{
+								phi_fun.set_param(&phi_fun, p_sim+ii*np);
+								phi_fun_jac_y.set_param(&phi_fun_jac_y, p_sim+ii*np);
+								phi_jac_y_uhat.set_param(&phi_jac_y_uhat, p_sim+ii*np);
+								f_lo_fun_jac_x1k1uz.set_param(&f_lo_fun_jac_x1k1uz, p_sim+ii*np);
+								break;
+							}
+							default :
+							{
+								printf("\nnot enough sim solvers implemented!\n");
+								exit(1);
+							}
+						}
+
+						// execute simulation step with current input and state
+						acados_return = sim_solve(sim_solver, in, out);
+						if (acados_return != 0)
+						{
+							printf("error in sim solver\n");
+							return ACADOS_FAILURE;
+						}
+
+						cpu_time[ii] = out->info->CPUtime;
+						lss_time[ii] = out->info->LAtime;
+						ad_time[ii]  = out->info->ADtime;
+						la_time[ii]  = out->info->CPUtime - out->info->ADtime;;
+
+						// extract state at next time step
+						for (int jj = 0; jj < nx; jj++)
+							x_sim[(ii+1)*nx+jj] = out->xn[jj];
+
+						// update PI-controller
+						ctrlErr = x_ref[nx*(ii+1)] - x_sim[nx*(ii+1)];
+						uctrlI = uctrlI + kI*ctrlErr*T;
+						uctrl = kP*ctrlErr + uctrlI;
+
+						// if (ii < nsim-1)
+						// 	printf("\nii = %d, sim error = %e\n", ii, ctrlErr);
+					}
+					// take minimum of execution timings
+					for (int ii = 0; ii < nsim; ii++) {
+						cpu_time_min_executions[ii] = cpu_time_min_executions[ii] < cpu_time[ii]?
+									cpu_time_min_executions[ii] : cpu_time[ii];
+						lss_time_min_executions[ii] = lss_time_min_executions[ii] < lss_time[ii]?
+									lss_time_min_executions[ii] : lss_time[ii];
+						ad_time_min_executions[ii] = ad_time_min_executions[ii] < ad_time[ii]?
+									ad_time_min_executions[ii] : ad_time[ii];
+						la_time_min_executions[ii] = la_time_min_executions[ii] < la_time[ii]?
+									la_time_min_executions[ii] : la_time[ii];						
+					}
+				}
+				// average of minima
+				double cpu_time_experiment = average_of_doubles(cpu_time_min_executions, nsim);
+				double lss_time_experiment = average_of_doubles(lss_time_min_executions, nsim);
+				double ad_time_experiment = average_of_doubles(ad_time_min_executions, nsim);
+				double la_time_experiment = average_of_doubles(la_time_min_executions, nsim);
+				// standard deviation
+				double cpu_time_sd = standard_deviation(cpu_time_min_executions, cpu_time_experiment, nsim);
+				double lss_time_sd = standard_deviation(lss_time_min_executions, lss_time_experiment, nsim);
+				double ad_time_sd = standard_deviation(ad_time_min_executions, ad_time_experiment, nsim);
+				double la_time_sd = standard_deviation(la_time_min_executions, la_time_experiment, nsim);
+				
+			/* printing */
+				printf("\nxn: \n");
+				d_print_exp_mat(1, nx, &x_sim[nsim*nx], 1);
+
+				double *S_forw_out = NULL;
+				if(opts->sens_forw){
+					S_forw_out = out->S_forw;
+					printf("\nS_forw_out: \n");
+					d_print_exp_mat(nx, NF, S_forw_out, nx);
+				}
+
+				// if(opts->sens_adj){
+				// 	double *S_adj_out = out->S_adj;
+				// 	printf("\nS_adj_out: \n");
+				// 	d_print_exp_mat(1, nx+nu, S_adj_out, 1);
 				// }
-				default :
-				{
-					printf("\nnot enough sim solvers implemented!\n");
-					exit(1);
+
+				// if(opts->sens_forw){		// debug adjoints
+				// 	struct blasfeo_dmat S_forw_result;
+				// 	struct blasfeo_dvec adjoint_seed;
+				// 	struct blasfeo_dvec forw_times_seed;
+
+				// 	blasfeo_allocate_dmat(nx, nx+nu, &S_forw_result);
+				// 	blasfeo_allocate_dvec(nx, &adjoint_seed);
+				// 	blasfeo_allocate_dvec(nx+nu, &forw_times_seed);
+
+				// 	blasfeo_pack_dmat(nx, nx+nu, S_forw_out, nx, &S_forw_result, 0, 0);
+				// 	blasfeo_pack_dvec(nx, in->S_adj, &adjoint_seed, 0);
+
+				// 	blasfeo_dgemv_t(nx, nx+nu, 1.0, &S_forw_result, 0, 0, &adjoint_seed, 0, 0.0, &forw_times_seed, 0, &forw_times_seed, 0);
+				// 	printf("S_forw^T * adj_seed = \n");
+				// 	blasfeo_print_exp_tran_dvec(nx+nu, &forw_times_seed, 0);
+
+				// 	blasfeo_free_dmat(&S_forw_result);
+				// 	blasfeo_free_dvec(&adjoint_seed);
+				// 	blasfeo_free_dvec(&forw_times_seed);
+				// }
+
+			/* compute error w.r.t. reference solution */
+				double rel_error_x, rel_error_forw, rel_error_adj, rel_error_z, rel_error_alg;
+				// error sim
+				for (int jj = 0; jj < nx; jj++){
+					error[jj] = fabs(out->xn[jj] - x_ref_sol[jj]);
 				}
-			}
+				norm_error = onenorm(nx, 1, error);
+				rel_error_x = norm_error / norm_x_ref;
 
-		/* seeds */
-			for (int ii = 0; ii < nx * NF; ii++)
-				in->S_forw[ii] = 0.0;
-			for (int ii = 0; ii < nx; ii++)
-				in->S_forw[ii * (nx + 1)] = 1.0;
-
-			// seeds adj
-			for (int ii = 0; ii < nx; ii++)
-				in->S_adj[ii] = 1.0;
-			for (int ii = nx; ii < nx + nu; ii++)
-				in->S_adj[ii] = 0.0;
-		/* sim solver  */
-			sim_solver = sim_create(config, dims, opts);
-			int acados_return;
-
-			if (plan.sim_solver == GNSF){  // for gnsf: perform precomputation
-				gnsf_model *model = (gnsf_model *) in->model;
-				sim_gnsf_precompute(config, gnsf_dim, model, opts,
-							sim_solver->mem, sim_solver->work, in->T);
-			}
-
-		// print solver info
-			printf("\n ===  USING SOLVER NUMBER %d === \n",nss);
-			printf("with settings: ns=%d, num_steps=%d\n", opts->ns, opts->num_steps);
-
-			double cpu_time[nsim];
-			double la_time[nsim];
-			double ad_time[nsim];
-
-			double cpu_time_min_executions[nsim];
-			double la_time_min_executions[nsim];
-			double ad_time_min_executions[nsim];
-
-			double rel_error, rel_error_forw, rel_error_adj, rel_error_z, rel_error_alg;
-
-			// to avoid unstable behavior introduce a small pi-controller for rotor speed tracking
-			double uctrl = 0.0;
-			double uctrlI = 0.0;
-			double kI = 1e-1;
-			double kP = 10;
-			double tmp, ctrlErr;
-			
-
-		/* sim loop */
-			for (int i_execution = 0; i_execution < n_executions; i_execution++) {
-				// initialize minimum of execution timings with something big
-				for (int ii = 0; ii < nsim; ii++) {
-					cpu_time_min_executions[ii] = 1e15;
-					la_time_min_executions[ii] = 1e15;
-					ad_time_min_executions[ii] = 1e15;
-				}
-				for (int ii=0; ii<nsim; ii++)
-				{
-					// update initial state
-					for (int jj = 0; jj < nx; jj++)
-						in->x[jj] = x_sim[ii*nx+jj];
-
-					// compute inputs
-					for (int jj = 0; jj < nu; jj++)
-						in->u[jj] = u_sim[ii*nu+jj];
-					tmp = in->u[1] - uctrl;
-					in->u[1] = tmp>0.0 ? tmp : 0.0;
-
-					// update parameters
-					switch (plan.sim_solver)
-					{
-						case ERK:  // ERK
-						{
-							expl_ode_fun.set_param(&expl_ode_fun, p_sim+ii*np);
-							expl_vde_for.set_param(&expl_vde_for, p_sim+ii*np);
-							expl_vde_for.set_param(&expl_vde_adj, p_sim+ii*np);
-							break;
-						}
-						case IRK:  // IRK
-						{
-							impl_ode_fun.set_param(&impl_ode_fun, p_sim+ii*np);
-							impl_ode_fun_jac_x_xdot.set_param(&impl_ode_fun_jac_x_xdot, p_sim+ii*np);
-							impl_ode_jac_x_xdot_u.set_param(&impl_ode_jac_x_xdot_u, p_sim+ii*np);
-							break;
-						}
-						case GNSF:  // GNSF
-						{
-							phi_fun.set_param(&phi_fun, p_sim+ii*np);
-							phi_fun_jac_y.set_param(&phi_fun_jac_y, p_sim+ii*np);
-							phi_jac_y_uhat.set_param(&phi_jac_y_uhat, p_sim+ii*np);
-							f_lo_fun_jac_x1k1uz.set_param(&f_lo_fun_jac_x1k1uz, p_sim+ii*np);
-							break;
-						}
-						default :
-						{
-							printf("\nnot enough sim solvers implemented!\n");
-							exit(1);
-						}
+				if ( opts->sens_forw ){     // error_S_forw
+					norm_error_forw = 0.0;
+					for (int jj = 0; jj < nx*NF; jj++){
+						error_S_forw[jj] = fabs(S_forw_ref_sol[jj] - out->S_forw[jj]);
 					}
+					norm_error_forw = onenorm(nx, nx + nu, error_S_forw);
+					rel_error_forw = norm_error_forw / norm_S_forw_ref;
+				}
 
-					// execute simulation step with current input and state
-					acados_return = sim_solve(sim_solver, in, out);
-					if (acados_return != 0)
-					{
-						printf("error in sim solver\n");
-						return ACADOS_FAILURE;
+
+				if ( opts->sens_adj ){               // error_S_adj
+					for (int jj = 0; jj < nx + nu; jj++){
+						error_S_adj[jj] = S_adj_ref_sol[jj] - out->S_adj[jj];
 					}
-
-					cpu_time[ii] = out->info->CPUtime;
-					la_time[ii]  = out->info->LAtime;
-					ad_time[ii]  = out->info->ADtime;
-
-					// d_print_mat(1, nx, out->xn, 1);
-					// d_print_mat(1, nx, x_ref+ii*nx, 1);
-
-					// extract state at next time step
-					for (int jj = 0; jj < nx; jj++)
-						x_sim[(ii+1)*nx+jj] = out->xn[jj];
-
-					// update PI-controller
-					ctrlErr = x_ref[nx*(ii+1)] - x_sim[nx*(ii+1)];
-					uctrlI = uctrlI + kI*ctrlErr*T;
-					uctrl = kP*ctrlErr + uctrlI;
-
-					// if (ii < nsim-1)
-					// 	printf("\nii = %d, sim error = %e\n", ii, ctrlErr);
+					norm_error_adj = onenorm(1, nx +nu, error_S_adj);
+					rel_error_adj = norm_error_adj / norm_S_adj_ref;
 				}
-				// take minimum of execution timings
-				for (int ii = 0; ii < nsim; ii++) {
-					cpu_time_min_executions[ii] = cpu_time_min_executions[ii] < cpu_time[ii]?
-								cpu_time_min_executions[ii] : cpu_time[ii];
-					la_time_min_executions[ii] = la_time_min_executions[ii] < la_time[ii]?
-								la_time_min_executions[ii] : la_time[ii];
-					ad_time_min_executions[ii] = ad_time_min_executions[ii] < ad_time[ii]?
-								ad_time_min_executions[ii] : ad_time[ii];
-					
+
+				if ( opts->output_z ){      // error_z
+					for (int jj = 0; jj < nz; jj++){
+						error_z[jj] = fabs(out->zn[jj] - z_ref_sol[jj]);
+					}
+					norm_error_z = onenorm(nz, 1, error_z);
+					rel_error_z = norm_error_z / norm_z_ref;
 				}
-			}
-			// average of minima
-			double cpu_time_experiment = average_of_doubles(cpu_time_min_executions, nsim);
-			double la_time_experiment = average_of_doubles(la_time_min_executions, nsim);
-			double ad_time_experiment = average_of_doubles(ad_time_min_executions, nsim);
-			// standard deviation
-			double cpu_time_sd = standard_deviation(cpu_time_min_executions, cpu_time_experiment, nsim);
-			double la_time_sd = standard_deviation(la_time_min_executions, la_time_experiment, nsim);
-			double ad_time_sd = standard_deviation(ad_time_min_executions, ad_time_experiment, nsim);
-			
-			/************************************************
-			* printing
-			************************************************/
-			printf("\nxn: \n");
-			d_print_exp_mat(1, nx, &x_sim[nsim*nx], 1);
 
-			double *S_forw_out = NULL;
-			if(opts->sens_forw){
-				S_forw_out = out->S_forw;
-				printf("\nS_forw_out: \n");
-				d_print_exp_mat(nx, NF, S_forw_out, nx);
-			}
-
-			// if(opts->sens_adj){
-			// 	double *S_adj_out = out->S_adj;
-			// 	printf("\nS_adj_out: \n");
-			// 	d_print_exp_mat(1, nx+nu, S_adj_out, 1);
-			// }
-
-			// if(opts->sens_forw){		// debug adjoints
-			// 	struct blasfeo_dmat S_forw_result;
-			// 	struct blasfeo_dvec adjoint_seed;
-			// 	struct blasfeo_dvec forw_times_seed;
-
-			// 	blasfeo_allocate_dmat(nx, nx+nu, &S_forw_result);
-			// 	blasfeo_allocate_dvec(nx, &adjoint_seed);
-			// 	blasfeo_allocate_dvec(nx+nu, &forw_times_seed);
-
-			// 	blasfeo_pack_dmat(nx, nx+nu, S_forw_out, nx, &S_forw_result, 0, 0);
-			// 	blasfeo_pack_dvec(nx, in->S_adj, &adjoint_seed, 0);
-
-			// 	blasfeo_dgemv_t(nx, nx+nu, 1.0, &S_forw_result, 0, 0, &adjoint_seed, 0, 0.0, &forw_times_seed, 0, &forw_times_seed, 0);
-			// 	printf("S_forw^T * adj_seed = \n");
-			// 	blasfeo_print_exp_tran_dvec(nx+nu, &forw_times_seed, 0);
-
-			// 	blasfeo_free_dmat(&S_forw_result);
-			// 	blasfeo_free_dvec(&adjoint_seed);
-			// 	blasfeo_free_dvec(&forw_times_seed);
-			// }
-
-		/************************************************
-		* compute error w.r.t. reference solution
-		************************************************/
-			// error sim
-			for (int jj = 0; jj < nx; jj++){
-				error[jj] = fabs(out->xn[jj] - x_ref_sol[jj]);
-			}
-			norm_error = onenorm(nx, 1, error);
-			double rel_error_x = norm_error / norm_x_ref;
-
-			if ( opts->sens_forw ){     // error_S_forw
-				norm_error_forw = 0.0;
-				for (int jj = 0; jj < nx*NF; jj++){
-					error_S_forw[jj] = fabs(S_forw_ref_sol[jj] - out->S_forw[jj]);
+				if ( opts->sens_algebraic ){        // error_S_alg
+					for (int jj = 0; jj < nz * (nx + nu); jj++){
+						error_S_alg[jj] = fabs(out->S_algebraic[jj] - S_alg_ref_sol[jj]);
+					}
+					norm_error_sens_alg = onenorm(nz, nx + nu, error_S_alg);
+					rel_error_alg = norm_error_sens_alg / norm_S_alg_ref;
 				}
-				norm_error_forw = onenorm(nx, nx + nu, error_S_forw);
-				rel_error_forw = norm_error_forw / norm_S_forw_ref;
+
+
+				#if 0
+					printf("\n");doubles_per_experiment
+					printf("cpt: %8.4f [ms]\n", 1000*out->info->CPUtime);
+					printf("AD cpt: %8.4f [ms]\n", 1000*out->info->ADtime);
+
+				#endif
+
+				// printf("time split: %f ms CPU, %f ms LA, %f ms AD\n\n", cpu_time, lss_time, ad_time);
+				printf("\naverage time for 1 simulation step: %f ms (AD time: %f ms (%5.2f%%))\n", 1e3*cpu_time_experiment, 1e3*ad_time_experiment, 1e2*ad_time_experiment/cpu_time_experiment);
+				printf("time spent in integrator outside of casADi %f \n", 1e3*(cpu_time_experiment-ad_time_experiment));
+
+			/* store experiment results in matrix */
+				int i_experiment = (num_stages - min_num_stages) + num_steps * stages_in_experiment;
+				// options
+				experiment_solver[i_experiment] 		 	= nss;
+				experiment_num_stages[i_experiment] 	 	= num_stages;
+				experiment_num_steps[i_experiment] 	 		= num_steps;
+				experiment_newton_it[i_experiment] 		 	= newton_iter;
+				experiment_jac_reuse[i_experiment] 		 	= (double) jac_reuse;
+				experiment_sens_forw[i_experiment] 		 	= (double) sens_forw;
+				experiment_sens_adj[i_experiment] 		 	= (double) sens_adj;
+				experiment_output_z[i_experiment] 			= (double) output_z;
+				experiment_sens_alg[i_experiment] 		 	= (double) sens_alg;
+				// errors
+				experiment_error_sim[i_experiment]       	= rel_error_x;
+				experiment_error_sens_forw[i_experiment] 	= rel_error_forw;
+				experiment_error_sens_adj[i_experiment] 	= rel_error_adj;
+				experiment_error_z[i_experiment] 			= rel_error_z;
+				experiment_error_sens_alg[i_experiment] 	= rel_error_alg;
+				// timings
+				experiment_cpu_time[i_experiment]  		 	= cpu_time_experiment;
+				experiment_ad_time[i_experiment]   		 	= ad_time_experiment;
+				experiment_lss_time[i_experiment]   		= lss_time_experiment;
+				experiment_la_time[i_experiment]  		 	= la_time_experiment;
+				experiment_cpu_time_sd[i_experiment]  	 	= cpu_time_sd;
+				experiment_ad_time_sd[i_experiment]   	 	= ad_time_sd;
+				experiment_lss_time_sd[i_experiment]     	= lss_time_sd;
+				experiment_la_time_sd[i_experiment]  		= la_time_sd;
+			/* free memory */
+				free(dims);
+				free(sim_solver);
+				free(in);
+				free(out);
+				free(opts);
+				free(config);
+
 			}
 
-
-			if ( opts->sens_adj ){               // error_S_adj
-				for (int jj = 0; jj < nx + nu; jj++){
-					error_S_adj[jj] = S_adj_ref_sol[jj] - out->S_adj[jj];
-				}
-				norm_error_adj = onenorm(1, nx +nu, error_S_adj);
-				rel_error_adj = norm_error_adj / norm_S_adj_ref;
+		/* print results to file */
+			char export_filename[50]; // = "/home/oj/Git/acados/results_irk.txt";
+			if (plan.sim_solver == IRK){
+				strcpy(export_filename, "/home/oj/Git/acados/results_irk");
 			}
-
-			// if ( opts->output_z ){      // error_z
-			// 	for (int jj = 0; jj < nz; jj++){
-			// 		error_z[jj] = fabs(out->zn[jj] - z_ref_sol[jj]);
-			// 	}
-			// 	norm_error_z = onenorm(nz, 1, error_z);
-			// 	rel_error_z = norm_error_z / norm_z_ref;
-			// }
-
-			// if ( opts->sens_algebraic ){        // error_S_alg
-			// 	for (int jj = 0; jj < nz * (nx + nu); jj++){
-			// 		error_S_alg[jj] = fabs(out->S_algebraic[jj] - S_alg_ref_sol[jj]);
-			// 	}
-			// 	norm_error_sens_alg = onenorm(nz, nx + nu, error_S_alg);
-			// 	rel_error_alg = norm_error_sens_alg / norm_S_alg_ref;
-			// }
-
-
-			#if 0
-				printf("\n");doubles_per_experiment
-				printf("cpt: %8.4f [ms]\n", 1000*out->info->CPUtime);
-				printf("AD cpt: %8.4f [ms]\n", 1000*out->info->ADtime);
-
-			#endif
-
-			// printf("time split: %f ms CPU, %f ms LA, %f ms AD\n\n", cpu_time, la_time, ad_time);
-			printf("\ntime for %d simulation steps: %f ms (AD time: %f ms (%5.2f%%))\n\n", nsim, 1e3*cpu_time_experiment, 1e3*ad_time_experiment, 1e2*ad_time_experiment/cpu_time_experiment);
-			printf("time spent in integrator outside of casADi %f \n", 1e3*(cpu_time_experiment-ad_time_experiment));
-
-		/* store experiment results in matrix */
-			int i_experiment = (num_stages-1);
-			experiment_num_stages[i_experiment] 	 	= (double) num_stages;
-			experiment_solver[i_experiment] 		 	= (double) nss;
-			experiment_jac_reuse[i_experiment] 		 	= (double) jac_reuse;
-			experiment_cpu_time[i_experiment]  		 	= cpu_time_experiment;
-			experiment_ad_time[i_experiment]   		 	= ad_time_experiment;
-			experiment_la_time[i_experiment]   		 	= (cpu_time_experiment - ad_time_experiment);
-			experiment_lss_time[i_experiment]  		 	= la_time_experiment;
-			experiment_error_sim[i_experiment]       	= rel_error_x;
-			experiment_error_sens_forw[i_experiment] 	= rel_error_forw;
-			experiment_cpu_time_sd[i_experiment]  	 	= cpu_time_sd;
-			experiment_ad_time_sd[i_experiment]   	 	= ad_time_sd;
-			experiment_la_time_sd[i_experiment]     	= la_time_sd;
-		/* free memory */
-			free(dims);
-			free(sim_solver);
-			free(in);
-			free(out);
-			free(opts);
-			free(config);
-
-		}
-
-		printf("\nsuccess!\n\n");
-
-		char export_filename[50]; // = "/home/oj/Git/acados/results_irk.txt";
-		// FILE *file_handle;
-		// const char *export_filename;
-		if (nss == 2){
-			// export_filename = "/home/oj/Git/acados/results_irk.txt";
-			strcpy(export_filename, "/home/oj/Git/acados/results_irk");
+			else if (plan.sim_solver == GNSF){
+				strcpy(export_filename, "/home/oj/Git/acados/results_gnsf");
+			}
 			strcat(export_filename, "_wt_nx6.txt");
 			FILE *file_handle = fopen(export_filename, "wr");
 			assert(file_handle!=NULL);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_num_stages, 1);
+
+			// 1st line -- options
 			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_solver	  , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_num_stages, 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_num_steps , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_newton_it , 1);
 			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_jac_reuse , 1);
+			// 6th
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_sens_forw , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_sens_adj  , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_output_z  , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_sens_alg  , 1);
+			/* errors */
+			// line 10
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sim ,  1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_forw, 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_adj, 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_z, 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_alg, 1);
+			/* timings */
+			// line 15
 			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time  , 1);
 			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time,    1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time   , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time ,  1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sim ,  1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_forw ,  1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time_sd  , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time   , 1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time ,  1);
+			// line 19
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time_sd, 1);
 			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time_sd,    1);
+			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time_sd   , 1);
 			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time_sd   , 1);
-		}
-		else if (nss == 3){
-			strcpy(export_filename, "/home/oj/Git/acados/results_gnsf");
-			strcat(export_filename, "_wt_nx6.txt");
-			FILE *file_handle = fopen(export_filename, "wr");
-			assert(file_handle!=NULL);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_num_stages, 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_solver	  , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_jac_reuse , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time  , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time,    1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time   , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time ,  1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sim ,  1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_error_sens_forw ,  1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time_sd  , 1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time_sd,    1);
-			d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time_sd   , 1);
-		}
-		else{
-			assert(0);
-		}
-
-
-		// d_print_to_file_tran_mat(file_handle, doubles_per_experiment, max_num_stages, experiment_results, doubles_per_experiment);
-	}
-
+		}  // end num_steps loop
+	}  // end num_stages loop
+/* free stuff */
 	// explicit model
 	external_function_param_casadi_free(&expl_ode_fun);
 	external_function_param_casadi_free(&expl_vde_for);
@@ -866,8 +889,6 @@ int main()
 	external_function_casadi_free(&get_matrices_fun);
 
 	free(x_sim);
-	// d_print_exp_mat(max_num_stages, doubles_per_experiment, experiment_results, max_num_stages);
-	// write_double_vector_to_txt(experiment_num_stages, num_experiments, "./experiment_num_stages.txt");
 
     return 0;
 }
