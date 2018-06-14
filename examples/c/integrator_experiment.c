@@ -72,7 +72,7 @@ int main()
 	const int nuhat 	= 0;  //nx + nu;
 	const int n_out 	= 1;
 
-	int nsim = 30;
+	int nsim = 1;
 
 	int NF = nx + nu; // columns of forward seed
 
@@ -241,6 +241,7 @@ int main()
 	void *dims = sim_dims_create(config);
 	config->set_nx(dims, nx);
 	config->set_nu(dims, nu);
+	config->set_nz(dims, nz);
 
 	/************************************************
 	* sim opts
@@ -248,8 +249,10 @@ int main()
 
 	sim_rk_opts *opts = sim_opts_create(config, dims);
 
-	opts->ns = 8; // number of stages in rk integrator
-	opts->num_steps = 8; // number of integration steps
+	opts->ns = 14; // number of stages in rk integrator
+	opts->num_steps = 400; // number of integration steps
+	opts->newton_iter = 5; // number of integration steps
+	opts->jac_reuse = false; // number of integration steps
 	opts->sens_adj = true;
 	opts->sens_forw = true;
 
@@ -307,11 +310,12 @@ int main()
 		for (int jj = 0; jj < nx; jj++)
 			in->x[jj] = x_sim[ii*nx+jj];
 
-		// compute inputs
-		for (int jj = 0; jj < nu; jj++)
-			in->u[jj] = u_sim[ii*nu+jj];
-		tmp = in->u[1] - uctrl;
-		in->u[1] = tmp>0.0 ? tmp : 0.0;
+		// // compute inputs
+		// for (int jj = 0; jj < nu; jj++)
+		// 	in->u[jj] = u_sim[ii*nu+jj];
+		// tmp = in->u[1] - uctrl;
+		// in->u[1] = tmp>0.0 ? tmp : 0.0;
+		in->u[1] = 0.0;
 
 		// update parameters
 
@@ -334,9 +338,9 @@ int main()
 			x_sim[(ii+1)*nx+jj] = out->xn[jj];
 
 		// update PI-controller
-		ctrlErr = x_ref[nx*(ii+1)] - x_sim[nx*(ii+1)];
-		uctrlI = uctrlI + kI*ctrlErr*T;
-		uctrl = kP*ctrlErr + uctrlI;
+		// ctrlErr = x_ref[nx*(ii+1)] - x_sim[nx*(ii+1)];
+		// uctrlI = uctrlI + kI*ctrlErr*T;
+		// uctrl = kP*ctrlErr + uctrlI;
 
 		// if (ii < nsim-1)
 		// 	printf("\nii = %d, sim error = %e\n", ii, ctrlErr);
@@ -393,7 +397,7 @@ int main()
 ************************************************/
 	int n_executions = 20;
 
-	int max_num_stages = 11;
+	int max_num_stages = 13;
 	int min_num_stages = 1;
 	int stages_in_experiment = max_num_stages - min_num_stages;
 
@@ -403,7 +407,7 @@ int main()
 
 	int num_experiments = steps_in_experiment * stages_in_experiment;
 
-	int newton_iter = 3;
+	int newton_iter = 1;
 	bool jac_reuse 	= false;
 	bool sens_forw 	= true;
 	bool sens_adj  	= false;
@@ -448,7 +452,7 @@ int main()
 	double ad_time_min_executions[nsim];
 
 	int number_sim_solvers = 4;
-	for (int nss = 1; nss < number_sim_solvers; nss++)
+	for (int nss = 2; nss < number_sim_solvers; nss++)
 	{
 		/************************************************
 		* nss:
@@ -623,10 +627,11 @@ int main()
 							in->x[jj] = x_sim[ii*nx+jj];
 
 						// compute inputs
-						for (int jj = 0; jj < nu; jj++)
-							in->u[jj] = u_sim[ii*nu+jj];
-						tmp = in->u[1] - uctrl;
-						in->u[1] = tmp>0.0 ? tmp : 0.0;
+						// for (int jj = 0; jj < nu; jj++)
+						// 	in->u[jj] = u_sim[ii*nu+jj];
+						// tmp = in->u[1] - uctrl;
+						// in->u[1] = tmp>0.0 ? tmp : 0.0;
+						in->u[1] = 0.0;
 
 						// update parameters
 						switch (plan.sim_solver)
@@ -850,7 +855,7 @@ int main()
 		else if (nss == 1){
 			strcat(export_filename, "erk");
 		}
-		strcat(export_filename, "_wt_nx6.txt");
+		strcat(export_filename, "_wt_nx6_june14.txt");
 		FILE *file_handle = fopen(export_filename, "wr");
 		assert(file_handle != NULL);
 
