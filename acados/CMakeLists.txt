@@ -62,6 +62,7 @@ target_include_directories(acados
         $<BUILD_INTERFACE:${EXTERNAL_SRC_DIR}/qore/KKTPACK_DENSE/source>
         $<BUILD_INTERFACE:${EXTERNAL_SRC_DIR}/qore/QPCORE/include>
         $<BUILD_INTERFACE:${EXTERNAL_SRC_DIR}/qore>
+        $<BUILD_INTERFACE:${EXTERNAL_SRC_DIR}/hpipm/include>
         $<BUILD_INTERFACE:${EXTERNAL_SRC_DIR}>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/interfaces>
         $<INSTALL_INTERFACE:include>)
@@ -120,7 +121,7 @@ endif()
 add_subdirectory(../interfaces/acados_c acados/interfaces/acados_c)
 if((SWIG_PYTHON OR SWIG_MATLAB) AND NOT CMAKE_SYSTEM_NAME MATCHES "dSpace")
     find_package(Casadi REQUIRED)
-	add_subdirectory(../interfaces/acados_cpp acados/interfaces/acados_cpp)
+    add_subdirectory(../interfaces/acados_cpp acados/interfaces/acados_cpp)
     target_link_libraries(acados PUBLIC casadi)
 endif()
 
@@ -140,7 +141,7 @@ install(TARGETS acados EXPORT acadosTargets
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin)
 
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../acados
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     DESTINATION include
     FILES_MATCHING PATTERN "*.h"
     PATTERN "simplified" EXCLUDE)
