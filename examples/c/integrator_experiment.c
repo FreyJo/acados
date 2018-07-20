@@ -229,7 +229,7 @@ int main()
 	// choose plan
 	sim_solver_plan plan;
 
-	plan.sim_solver = IRK;
+	plan.sim_solver = GNSF; // or IRK
 
 	// create correct config based on plan
 	sim_solver_config *config = sim_config_create(plan);
@@ -243,6 +243,18 @@ int main()
 	config->set_nu(dims, nu);
 	config->set_nz(dims, nz);
 
+	// GNSF -- set additional dimensions
+	sim_gnsf_dims *gnsf_dim;
+	if (plan.sim_solver == GNSF)
+	{
+		gnsf_dim = (sim_gnsf_dims *) dims;
+		gnsf_dim->nx1   = nx1;
+		gnsf_dim->nx2   = nx2;
+		gnsf_dim->ny    = ny;
+		gnsf_dim->nuhat = nuhat;
+		gnsf_dim->n_out = n_out;
+	}
+
 	/************************************************
 	* sim opts
 	************************************************/
@@ -251,8 +263,8 @@ int main()
 
 	opts->ns = 14; // number of stages in rk integrator
 	opts->num_steps = 400; // number of integration steps
-	opts->newton_iter = 5; // number of integration steps
-	opts->jac_reuse = false; // number of integration steps
+	opts->newton_iter = 5;
+	opts->jac_reuse = false;
 	opts->sens_adj = true;
 	opts->sens_forw = true;
 
@@ -267,11 +279,38 @@ int main()
 
 	in->T = T;
 
-	// external functions
-	// IRK
-	sim_set_model(config, in, "impl_ode_fun", &impl_ode_fun);
-	sim_set_model(config, in, "impl_ode_fun_jac_x_xdot", &impl_ode_fun_jac_x_xdot);
-	sim_set_model(config, in, "impl_ode_jac_x_xdot_u", &impl_ode_jac_x_xdot_u);
+	/* set model */
+	switch (plan.sim_solver)
+	{
+		case IRK:  // IRK
+		{
+			sim_set_model(config, in, "impl_ode_fun", &impl_ode_fun);
+			sim_set_model(config, in, "impl_ode_fun_jac_x_xdot",
+					&impl_ode_fun_jac_x_xdot);
+			sim_set_model(config, in, "impl_ode_jac_x_xdot_u", &impl_ode_jac_x_xdot_u);
+			break;
+		}
+		case GNSF:  // GNSF
+		{
+			// set model funtions
+			sim_set_model(config, in, "phi_fun", &phi_fun);
+			sim_set_model(config, in, "phi_fun_jac_y", &phi_fun_jac_y);
+			sim_set_model(config, in, "phi_jac_y_uhat", &phi_jac_y_uhat);
+			sim_set_model(config, in, "f_lo_jac_x1_x1dot_u_z", &f_lo_fun_jac_x1k1uz);
+
+			// import model matrices
+			external_function_generic *get_model_matrices =
+					(external_function_generic *) &get_matrices_fun;
+			gnsf_model *model = (gnsf_model *) in->model;
+			sim_gnsf_import_matrices(gnsf_dim, model, get_model_matrices);
+			break;
+		}
+		default :
+		{
+			printf("\nnot enough sim solvers implemented!\n");
+			exit(1);
+		}
+	}
 
 	// seeds forw
 	for (int ii = 0; ii < nx * NF; ii++)
@@ -292,8 +331,14 @@ int main()
 	printf("\n ===  GENERATE REFERENCE SOLUTION USING IRK with %d stages and %d steps === \n", opts->ns, opts->num_steps);
 
 	sim_solver *sim_solver = sim_create(config, dims, opts);
-
 	int acados_return;
+
+	if (plan.sim_solver == GNSF){  // for gnsf: perform precomputation
+		gnsf_model *model = (gnsf_model *) in->model;
+		sim_gnsf_precompute(config, gnsf_dim, model, opts,
+					sim_solver->mem, sim_solver->work, in->T);
+	}
+
 
 	// to avoid unstable behavior introduce a small pi-controller for rotor speed tracking
 	double uctrl = 0.0;
@@ -318,10 +363,24 @@ int main()
 		in->u[1] = 0.0;
 
 		// update parameters
-
-		impl_ode_fun.set_param(&impl_ode_fun, p_sim+ii*np);
-		impl_ode_fun_jac_x_xdot.set_param(&impl_ode_fun_jac_x_xdot, p_sim+ii*np);
-		impl_ode_jac_x_xdot_u.set_param(&impl_ode_jac_x_xdot_u, p_sim+ii*np);
+		switch (plan.sim_solver)
+		{
+			case IRK:  // IRK
+			{
+				impl_ode_fun.set_param(&impl_ode_fun, p_sim+ii*np);
+				impl_ode_fun_jac_x_xdot.set_param(&impl_ode_fun_jac_x_xdot, p_sim+ii*np);
+				impl_ode_jac_x_xdot_u.set_param(&impl_ode_jac_x_xdot_u, p_sim+ii*np);
+				break;
+			}
+			case GNSF:  // GNSF
+			{
+				phi_fun.set_param(&phi_fun, p_sim+ii*np);
+				phi_fun_jac_y.set_param(&phi_fun_jac_y, p_sim+ii*np);
+				phi_jac_y_uhat.set_param(&phi_jac_y_uhat, p_sim+ii*np);
+				f_lo_fun_jac_x1k1uz.set_param(&f_lo_fun_jac_x1k1uz, p_sim+ii*np);
+				break;
+			}
+		}
 
 		// d_print_mat(1, nx, in->x, 1);
 		// d_print_mat(1, nu, in->u, 1);
@@ -401,16 +460,20 @@ int main()
 	int min_num_stages = 1;
 	int stages_in_experiment = max_num_stages - min_num_stages;
 
-	int max_num_steps = 21;
+	int max_num_steps = 11;
 	int min_num_steps = 1;
 	int steps_in_experiment = max_num_steps - min_num_steps;
 
-	int num_experiments = steps_in_experiment * stages_in_experiment;
+	int min_newton = 1;
+	int max_newton = 4;
+	int newton_in_experiment = max_newton - min_newton;
 
-	int newton_iter = 1;
+	int num_experiments = steps_in_experiment * stages_in_experiment * newton_in_experiment;
+
+	// int newton_iter = 3;
 	bool jac_reuse 	= false;
 	bool sens_forw 	= true;
-	bool sens_adj  	= false;
+	bool sens_adj  	= true;
 	bool output_z  	= false;
 	bool sens_alg  	= false;
 
@@ -462,6 +525,7 @@ int main()
 		************************************************/
 		for (int num_stages = min_num_stages; num_stages < max_num_stages; num_stages++) {
 			for (int num_steps = min_num_steps; num_steps < max_num_steps; num_steps++) {
+				for (int newton_iter = min_newton; newton_iter < max_newton; newton_iter++){
 
 			/* sim plan & config */
 				sim_solver_plan plan;
@@ -807,7 +871,9 @@ int main()
 				printf("time spent in integrator outside of casADi %f \n", 1e3*(cpu_time_experiment-ad_time_experiment));
 
 			/* store experiment results in matrix */
-				int i_experiment = (num_stages - min_num_stages) * steps_in_experiment + (num_steps - min_num_steps);
+				// int i_experiment = (num_stages - min_num_stages) * steps_in_experiment + (num_steps - min_num_steps);
+				int i_experiment = ((num_stages - min_num_stages) * steps_in_experiment + (num_steps - min_num_steps)) *
+									 newton_in_experiment + (newton_iter - min_newton);
 				// options
 				experiment_solver[i_experiment] 		 	= nss;
 				experiment_num_stages[i_experiment] 	 	= num_stages;
@@ -840,7 +906,7 @@ int main()
 				free(out);
 				free(opts);
 				free(config);
-
+				}  // end newton loop
 			}  // end num_steps loop
 		}  // end num_stages loop
 
@@ -855,7 +921,7 @@ int main()
 		else if (nss == 1){
 			strcat(export_filename, "erk");
 		}
-		strcat(export_filename, "_wt_nx6_june14.txt");
+		strcat(export_filename, "_wt_nx6_july22.txt");
 		FILE *file_handle = fopen(export_filename, "wr");
 		assert(file_handle != NULL);
 
