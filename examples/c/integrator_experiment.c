@@ -72,7 +72,7 @@ int main()
 	const int nuhat 	= 0;  //nx + nu;
 	const int n_out 	= 1;
 
-	int nsim = 1;
+	int nsim = 20;
 
 	int NF = nx + nu; // columns of forward seed
 
@@ -262,7 +262,7 @@ int main()
 	sim_rk_opts *opts = sim_opts_create(config, dims);
 
 	opts->ns = 14; // number of stages in rk integrator
-	opts->num_steps = 400; // number of integration steps
+	opts->num_steps = 200; // number of integration steps
 	opts->newton_iter = 5;
 	opts->jac_reuse = false;
 	opts->sens_adj = true;
@@ -454,13 +454,19 @@ int main()
 /************************************************
 * numerical experiment
 ************************************************/
-	int n_executions = 20;
+	int n_executions = 25;
+
+	bool jac_reuse 	= false;
+	bool sens_forw 	= true;
+	bool sens_adj  	= true;
+	bool output_z  	= false;
+	bool sens_alg  	= false;
 
 	int max_num_stages = 13;
 	int min_num_stages = 1;
 	int stages_in_experiment = max_num_stages - min_num_stages;
 
-	int max_num_steps = 11;
+	int max_num_steps = 13;
 	int min_num_steps = 1;
 	int steps_in_experiment = max_num_steps - min_num_steps;
 
@@ -470,13 +476,7 @@ int main()
 
 	int num_experiments = steps_in_experiment * stages_in_experiment * newton_in_experiment;
 
-	// int newton_iter = 3;
-	bool jac_reuse 	= false;
-	bool sens_forw 	= true;
-	bool sens_adj  	= true;
-	bool output_z  	= false;
-	bool sens_alg  	= false;
-
+	/* arrays for numerical experiment */
 	// options
 	double experiment_num_stages[num_experiments];
 	double experiment_num_steps[num_experiments];
@@ -911,7 +911,7 @@ int main()
 		}  // end num_stages loop
 
 	/* print results to file */
-		char export_filename[50] = "/home/oj/Git/acados/results_";
+		char export_filename[100] = "/home/oj/Git/1Thesis/1Matlab_prototypes/evaluation/results/results_";
 		if (nss == 2){
 			strcat(export_filename, "irk");
 		}
@@ -921,7 +921,14 @@ int main()
 		else if (nss == 1){
 			strcat(export_filename, "erk");
 		}
-		strcat(export_filename, "_wt_nx6_july22.txt");
+		// append model name
+		strcat(export_filename, "_wt_nx6");
+		// append date identifier
+		strcat(export_filename, "_july_21");
+		// append file format
+		strcat(export_filename, ".txt");
+
+		// open file
 		FILE *file_handle = fopen(export_filename, "wr");
 		assert(file_handle != NULL);
 
@@ -951,15 +958,16 @@ int main()
 		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time ,  1);
 		// line 19
 		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time_sd, 1);
-		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time_sd,    1);
-		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time_sd   , 1);
-		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time_sd   , 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time_sd,  1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time_sd, 1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time_sd , 1);
 
+		// close file
 		fclose(file_handle);
 
 	}  // end for solver loop
 
-/* free stuff */
+/* free functions */
 	// explicit model
 	external_function_param_casadi_free(&expl_ode_fun);
 	external_function_param_casadi_free(&expl_vde_for);
@@ -968,12 +976,11 @@ int main()
 	external_function_param_casadi_free(&impl_ode_fun);
 	external_function_param_casadi_free(&impl_ode_fun_jac_x_xdot);
 	external_function_param_casadi_free(&impl_ode_jac_x_xdot_u);
-	// gnsf functions:
+	// gnsf model
 	external_function_param_casadi_free(&f_lo_fun_jac_x1k1uz);
 	external_function_param_casadi_free(&phi_fun);
 	external_function_param_casadi_free(&phi_fun_jac_y);
 	external_function_param_casadi_free(&phi_jac_y_uhat);
-
 	external_function_casadi_free(&get_matrices_fun);
 
 	free(x_sim);
