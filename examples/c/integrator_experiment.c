@@ -98,6 +98,7 @@ int main()
 	double error_S_alg[nz * (nx + nu)];
 
     double norm_error, norm_error_forw, norm_error_adj, norm_error_z, norm_error_sens_alg;
+	double rel_error_x, rel_error_forw, rel_error_adj, rel_error_z, rel_error_alg;
 
 
 	for (int ii = 0; ii < nx; ii++)
@@ -354,7 +355,7 @@ int main()
 
 
 
-	for (int ii = 0; ii < nsim; ii++)
+	for (int ii = 0; ii < 1; ii++) // upper bound was nsim, but for error computation we just compare first simulation
 	{
 		// update initial state
 		for (int jj = 0; jj < nx; jj++)
@@ -459,7 +460,7 @@ int main()
 /************************************************
 * numerical experiment
 ************************************************/
-	int n_executions = 25;
+	int n_executions = 20;
 
 	bool jac_reuse 	= false;
 	bool sens_forw 	= true;
@@ -476,7 +477,7 @@ int main()
 	int steps_in_experiment = max_num_steps - min_num_steps;
 
 	int min_newton = 1;
-	int max_newton = 4;
+	int max_newton = 5;
 	int newton_in_experiment = max_newton - min_newton;
 
 	int num_experiments = steps_in_experiment * stages_in_experiment * newton_in_experiment;
@@ -524,6 +525,7 @@ int main()
 			2 : IRK
 			3 : GNSF
 		************************************************/
+		printf("\n ===  USING SOLVER NUMBER %d === \n",nss);
 		/* initialize experiment times  */ 
 		for (int ii = 0; ii < num_experiments; ii++) {
 			// with 1e15 such that minimum can be taken easily
@@ -535,10 +537,14 @@ int main()
 		for (int i_execution = 0; i_execution < n_executions; i_execution++) {
 			printf("**************************************\n");
 			printf("**************************************\n");
-			printf("**** TEST EXECUTION NO   %d  *******  \n ", i_execution);
+			printf("**** TEST EXECUTION NO   %d  *******  \n", i_execution);
 			printf("**************************************\n");
 			printf("**************************************\n");			
 			for (int num_stages = min_num_stages; num_stages < max_num_stages; num_stages++) {
+				
+			// print experiment info
+			printf("num_stages %d \n", num_stages);
+
 				for (int num_steps = min_num_steps; num_steps < max_num_steps; num_steps++) {
 					for (int newton_iter = min_newton; newton_iter < max_newton; newton_iter++){
 					/* sim plan & config */
@@ -678,10 +684,6 @@ int main()
 										sim_solver->mem, sim_solver->work, in->T);
 						}
 
-					// // print solver info
-						printf("\n ===  USING SOLVER NUMBER %d === \n",nss);
-						printf("with settings: ns=%d, num_steps=%d\n", opts->ns, opts->num_steps);
-
 						// to avoid unstable behavior introduce a small pi-controller for rotor speed tracking
 						// double uctrl = 0.0;
 						// double uctrlI = 0.0;
@@ -752,67 +754,55 @@ int main()
 							for (int jj = 0; jj < nx; jj++)
 								x_sim[(ii+1)*nx+jj] = out->xn[jj];
 
-							// update PI-controller
-							// ctrlErr = x_ref[nx*(ii+1)] - x_sim[nx*(ii+1)];
-							// uctrlI = uctrlI + kI*ctrlErr*T;
-							// uctrl = kP*ctrlErr + uctrlI;
+							/* compute errors w.r.t. reference solution */
+							if (ii == 0){
+								// error sim
+								for (int jj = 0; jj < nx; jj++){
+									error[jj] = fabs(out->xn[jj] - x_ref_sol[jj]);
+								}
+								norm_error = onenorm(nx, 1, error);
+								rel_error_x = norm_error / norm_x_ref;
 
-							// if (ii < nsim-1)
-							// 	printf("\nii = %d, sim error = %e\n", ii, ctrlErr);
+								if ( opts->sens_forw ){     // error_S_forw
+									norm_error_forw = 0.0;
+									for (int jj = 0; jj < nx*NF; jj++){
+										error_S_forw[jj] = fabs(S_forw_ref_sol[jj] - out->S_forw[jj]);
+									}
+									norm_error_forw = onenorm(nx, nx + nu, error_S_forw);
+									rel_error_forw = norm_error_forw / norm_S_forw_ref;
+								}
+
+
+								if ( opts->sens_adj ){               // error_S_adj
+									for (int jj = 0; jj < nx + nu; jj++){
+										error_S_adj[jj] = S_adj_ref_sol[jj] - out->S_adj[jj];
+									}
+									norm_error_adj = onenorm(1, nx +nu, error_S_adj);
+									rel_error_adj = norm_error_adj / norm_S_adj_ref;
+								}
+
+								if ( opts->output_z ){      // error_z
+									for (int jj = 0; jj < nz; jj++){
+										error_z[jj] = fabs(out->zn[jj] - z_ref_sol[jj]);
+									}
+									norm_error_z = onenorm(nz, 1, error_z);
+									rel_error_z = norm_error_z / norm_z_ref;
+								}
+
+								if ( opts->sens_algebraic ){        // error_S_alg
+									for (int jj = 0; jj < nz * (nx + nu); jj++){
+										error_S_alg[jj] = fabs(out->S_algebraic[jj] - S_alg_ref_sol[jj]);
+									}
+									norm_error_sens_alg = onenorm(nz, nx + nu, error_S_alg);
+									rel_error_alg = norm_error_sens_alg / norm_S_alg_ref;
+								}
+							}
 						}
 						// take average of nsim timings
 						cpu_time_experiment = average_of_doubles(cpu_time, nsim);
 						lss_time_experiment = average_of_doubles(lss_time, nsim);
 						ad_time_experiment  = average_of_doubles(ad_time, nsim); 
-						la_time_experiment  = average_of_doubles(la_time, nsim); 
-				
-
-					
-
-
-
-					/* compute errors w.r.t. reference solution */
-						double rel_error_x, rel_error_forw, rel_error_adj, rel_error_z, rel_error_alg;
-						// error sim
-						for (int jj = 0; jj < nx; jj++){
-							error[jj] = fabs(out->xn[jj] - x_ref_sol[jj]);
-						}
-						norm_error = onenorm(nx, 1, error);
-						rel_error_x = norm_error / norm_x_ref;
-
-						if ( opts->sens_forw ){     // error_S_forw
-							norm_error_forw = 0.0;
-							for (int jj = 0; jj < nx*NF; jj++){
-								error_S_forw[jj] = fabs(S_forw_ref_sol[jj] - out->S_forw[jj]);
-							}
-							norm_error_forw = onenorm(nx, nx + nu, error_S_forw);
-							rel_error_forw = norm_error_forw / norm_S_forw_ref;
-						}
-
-
-						if ( opts->sens_adj ){               // error_S_adj
-							for (int jj = 0; jj < nx + nu; jj++){
-								error_S_adj[jj] = S_adj_ref_sol[jj] - out->S_adj[jj];
-							}
-							norm_error_adj = onenorm(1, nx +nu, error_S_adj);
-							rel_error_adj = norm_error_adj / norm_S_adj_ref;
-						}
-
-						if ( opts->output_z ){      // error_z
-							for (int jj = 0; jj < nz; jj++){
-								error_z[jj] = fabs(out->zn[jj] - z_ref_sol[jj]);
-							}
-							norm_error_z = onenorm(nz, 1, error_z);
-							rel_error_z = norm_error_z / norm_z_ref;
-						}
-
-						if ( opts->sens_algebraic ){        // error_S_alg
-							for (int jj = 0; jj < nz * (nx + nu); jj++){
-								error_S_alg[jj] = fabs(out->S_algebraic[jj] - S_alg_ref_sol[jj]);
-							}
-							norm_error_sens_alg = onenorm(nz, nx + nu, error_S_alg);
-							rel_error_alg = norm_error_sens_alg / norm_S_alg_ref;
-						}
+						la_time_experiment  = average_of_doubles(la_time, nsim);
 
 						/* printing - OFF */
 						#if 0
@@ -835,7 +825,7 @@ int main()
 					/* store experiment results in array entries */
 						// int i_experiment = (num_stages - min_num_stages) * steps_in_experiment + (num_steps - min_num_steps);
 						int i_experiment = ((num_stages - min_num_stages) * steps_in_experiment + (num_steps - min_num_steps)) *
-											newton_in_experiment + (newton_iter - min_newton);
+											newton_in_experiment + (newton_iter - min_newton); // maybe easier to increment :P
 						// options
 						experiment_solver[i_experiment] 		 	= nss;
 						experiment_num_stages[i_experiment] 	 	= num_stages;
@@ -854,14 +844,21 @@ int main()
 						experiment_error_sens_alg[i_experiment] 	= rel_error_alg;
 						// timings
 						/* take minimal timing over n_executions */
-						experiment_cpu_time[i_experiment]  	= experiment_cpu_time[i_experiment] < cpu_time_experiment ?
-																experiment_cpu_time[i_experiment] : cpu_time_experiment;
-						experiment_ad_time[i_experiment]   	= experiment_ad_time[i_experiment] < ad_time_experiment ?
-																experiment_ad_time[i_experiment] : ad_time_experiment;
-						experiment_lss_time[i_experiment]   = experiment_lss_time[i_experiment] < lss_time_experiment ?
-																experiment_lss_time[i_experiment] : lss_time_experiment;
-						experiment_la_time[i_experiment]  	= experiment_la_time[i_experiment] < la_time_experiment ?
-																experiment_la_time[i_experiment] : la_time_experiment;
+
+						if ( cpu_time_experiment <=  experiment_cpu_time[i_experiment] ){
+							experiment_cpu_time[i_experiment]  	= cpu_time_experiment;
+							experiment_ad_time[i_experiment]   	= ad_time_experiment;
+							experiment_lss_time[i_experiment]   = lss_time_experiment;
+							experiment_la_time[i_experiment]  	= la_time_experiment;
+						}
+						// experiment_cpu_time[i_experiment]  	= experiment_cpu_time[i_experiment] < cpu_time_experiment ?
+						// 				experiment_cpu_time[i_experiment] : cpu_time_experiment;
+						// experiment_ad_time[i_experiment]   	= experiment_ad_time[i_experiment] < ad_time_experiment ?
+						// 										experiment_ad_time[i_experiment] : ad_time_experiment;
+						// experiment_lss_time[i_experiment]   = experiment_lss_time[i_experiment] < lss_time_experiment ?
+						// 										experiment_lss_time[i_experiment] : lss_time_experiment;
+						// experiment_la_time[i_experiment]  	= experiment_la_time[i_experiment] < la_time_experiment ?
+						// 										experiment_la_time[i_experiment] : la_time_experiment;
 					/* free memory */
 						free(dims);
 						free(sim_solver);
@@ -944,7 +941,7 @@ int main()
 	external_function_casadi_free(&get_matrices_fun);
 
 	double test_time = acados_toc(&test_timer);
-	printf("\n********   INTEGRATOR TEST COMPLETE    ******* \ntotal runtime = %f  [s] ", 1e9 * test_time);
+	printf("\n********   INTEGRATOR TEST COMPLETE    ******* \ntotal runtime = %f  [min]\n\n", test_time/60);
 
 	free(x_sim);
 
