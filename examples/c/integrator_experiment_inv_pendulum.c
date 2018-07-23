@@ -49,8 +49,8 @@
 #include "blasfeo/include/blasfeo_d_blas.h"
 #include "blasfeo/include/blasfeo_v_aux_ext_dep.h"
 
-// wt model
-#include "examples/c/wt_model_nx6/wt_model.h"
+// model
+#include "examples/c/inverted_pendulum_model/inverted_pendulum_model.h"
 
 // x0 and u for simulation
 #include "examples/c/wt_model_nx6/u_x0.c"
@@ -67,21 +67,34 @@ int main()
 	acados_timer test_timer;
 	acados_tic(&test_timer);
 
-	const int nx 		= 6;
-	const int nu 		= 2;
-	const int nz 		= 0;
-	const int np 		= 1;
-	const int nx1		= nx;
-	const int nx2		= 0;
-	const int ny 		= 5;  //nx + nu;
-	const int nuhat 	= 0;  //nx + nu;
-	const int n_out 	= 1;
+    const int nx    = 6;
+    const int nu    = 1;
+    const int nz    = 5;
+
+    const int nx1   = 5;  // gnsf split
+    const int nx2   = 1;
+    const int n_out = 3;
+    const int ny    = 8;
+    const int nuhat = 1;
+
+    // generate x0, u_sim
+    double x0[nx];
+    double u_sim[nu];
+
+    x0[0] =  1.0000;  // xpos
+    x0[1] = -5.0000;  // ypos
+    x0[2] =  0.1000;  // vx
+    x0[3] = -0.5000;  // vy
+    x0[4] =  0.1000;  // valpha
+    x0[5] =  1.0000;  // alpha
+
+    u_sim[0] = 1;
 
 	int nsim = 10;
 
 	int NF = nx + nu; // columns of forward seed
 
-	double T = 0.2; // simulation time
+	double T = 0.05; // simulation time
 
 	double *x_sim = malloc(sizeof(double)*nx*(nsim+1));
 
@@ -102,130 +115,106 @@ int main()
 
 
 	for (int ii = 0; ii < nx; ii++)
-		x_sim[ii] = x_ref[ii];
+		x_sim[ii] = x0[ii];
 
-	/************************************************
-	* external functions (explicit model)
-	************************************************/
+/************************************************
+* external functions
+************************************************/
 
-	// expl_ode_fun
-	external_function_param_casadi expl_ode_fun;
-	expl_ode_fun.casadi_fun = &casadi_expl_ode_fun;
-	expl_ode_fun.casadi_work = &casadi_expl_ode_fun_work;
-	expl_ode_fun.casadi_sparsity_in = &casadi_expl_ode_fun_sparsity_in;
-	expl_ode_fun.casadi_sparsity_out = &casadi_expl_ode_fun_sparsity_out;
-	expl_ode_fun.casadi_n_in = &casadi_expl_ode_fun_n_in;
-	expl_ode_fun.casadi_n_out = &casadi_expl_ode_fun_n_out;
-	external_function_param_casadi_create(&expl_ode_fun, np);
+    // impl_ode_fun
+    external_function_casadi impl_ode_fun;
+    impl_ode_fun.casadi_fun = &inv_pendulum_impl_ode_fun;
+    impl_ode_fun.casadi_work = &inv_pendulum_impl_ode_fun_work;
+    impl_ode_fun.casadi_sparsity_in = &inv_pendulum_impl_ode_fun_sparsity_in;
+    impl_ode_fun.casadi_sparsity_out = &inv_pendulum_impl_ode_fun_sparsity_out;
+    impl_ode_fun.casadi_n_in = &inv_pendulum_impl_ode_fun_n_in;
+    impl_ode_fun.casadi_n_out = &inv_pendulum_impl_ode_fun_n_out;
+    external_function_casadi_create(&impl_ode_fun);
 
-	// expl_vde_for
-	external_function_param_casadi expl_vde_for;
-	expl_vde_for.casadi_fun = &casadi_expl_vde_for;
-	expl_vde_for.casadi_work = &casadi_expl_vde_for_work;
-	expl_vde_for.casadi_sparsity_in = &casadi_expl_vde_for_sparsity_in;
-	expl_vde_for.casadi_sparsity_out = &casadi_expl_vde_for_sparsity_out;
-	expl_vde_for.casadi_n_in = &casadi_expl_vde_for_n_in;
-	expl_vde_for.casadi_n_out = &casadi_expl_vde_for_n_out;
-	external_function_param_casadi_create(&expl_vde_for, np);
+    // impl_ode_fun_jac_x_xdot
+    external_function_casadi impl_ode_fun_jac_x_xdot;
+    impl_ode_fun_jac_x_xdot.casadi_fun = &inv_pendulum_impl_ode_fun_jac_x_xdot;
+    impl_ode_fun_jac_x_xdot.casadi_work = &inv_pendulum_impl_ode_fun_jac_x_xdot_work;
+    impl_ode_fun_jac_x_xdot.casadi_sparsity_in = &inv_pendulum_impl_ode_fun_jac_x_xdot_sparsity_in;
+    impl_ode_fun_jac_x_xdot.casadi_sparsity_out = &inv_pendulum_impl_ode_fun_jac_x_xdot_sparsity_out;
+    impl_ode_fun_jac_x_xdot.casadi_n_in = &inv_pendulum_impl_ode_fun_jac_x_xdot_n_in;
+    impl_ode_fun_jac_x_xdot.casadi_n_out = &inv_pendulum_impl_ode_fun_jac_x_xdot_n_out;
+    external_function_casadi_create(&impl_ode_fun_jac_x_xdot);
 
-	// expl_vde_adj
-	external_function_param_casadi expl_vde_adj;
-	expl_vde_adj.casadi_fun = &casadi_expl_vde_adj;
-	expl_vde_adj.casadi_work = &casadi_expl_vde_adj_work;
-	expl_vde_adj.casadi_sparsity_in = &casadi_expl_vde_adj_sparsity_in;
-	expl_vde_adj.casadi_sparsity_out = &casadi_expl_vde_adj_sparsity_out;
-	expl_vde_adj.casadi_n_in = &casadi_expl_vde_adj_n_in;
-	expl_vde_adj.casadi_n_out = &casadi_expl_vde_adj_n_out;
-	external_function_param_casadi_create(&expl_vde_adj, np);
+    // impl_ode_jac_x_xdot_u
+    external_function_casadi impl_ode_jac_x_xdot_u;
+    impl_ode_jac_x_xdot_u.casadi_fun = &inv_pendulum_impl_ode_jac_x_xdot_u;
+    impl_ode_jac_x_xdot_u.casadi_work = &inv_pendulum_impl_ode_jac_x_xdot_u_work;
+    impl_ode_jac_x_xdot_u.casadi_sparsity_in = &inv_pendulum_impl_ode_jac_x_xdot_u_sparsity_in;
+    impl_ode_jac_x_xdot_u.casadi_sparsity_out = &inv_pendulum_impl_ode_jac_x_xdot_u_sparsity_out;
+    impl_ode_jac_x_xdot_u.casadi_n_in = &inv_pendulum_impl_ode_jac_x_xdot_u_n_in;
+    impl_ode_jac_x_xdot_u.casadi_n_out = &inv_pendulum_impl_ode_jac_x_xdot_u_n_out;
+    external_function_casadi_create(&impl_ode_jac_x_xdot_u);
 
-	/************************************************
-	* external functions (implicit model)
-	************************************************/
+    // impl_ode_jac_x_xdot_u
+    external_function_casadi impl_ode_fun_jac_x_xdot_u;
+    impl_ode_fun_jac_x_xdot_u.casadi_fun = &inv_pendulum_impl_ode_fun_jac_x_xdot_u;
+    impl_ode_fun_jac_x_xdot_u.casadi_work = &inv_pendulum_impl_ode_fun_jac_x_xdot_u_work;
+    impl_ode_fun_jac_x_xdot_u.casadi_sparsity_in =
+                            &inv_pendulum_impl_ode_fun_jac_x_xdot_u_sparsity_in;
+    impl_ode_fun_jac_x_xdot_u.casadi_sparsity_out =
+                            &inv_pendulum_impl_ode_fun_jac_x_xdot_u_sparsity_out;
+    impl_ode_fun_jac_x_xdot_u.casadi_n_in = &inv_pendulum_impl_ode_fun_jac_x_xdot_u_n_in;
+    impl_ode_fun_jac_x_xdot_u.casadi_n_out = &inv_pendulum_impl_ode_fun_jac_x_xdot_u_n_out;
+    external_function_casadi_create(&impl_ode_fun_jac_x_xdot_u);
 
-	// impl_ode_fun
-	external_function_param_casadi impl_ode_fun;
-	impl_ode_fun.casadi_fun = &casadi_impl_ode_fun;
-	impl_ode_fun.casadi_work = &casadi_impl_ode_fun_work;
-	impl_ode_fun.casadi_sparsity_in = &casadi_impl_ode_fun_sparsity_in;
-	impl_ode_fun.casadi_sparsity_out = &casadi_impl_ode_fun_sparsity_out;
-	impl_ode_fun.casadi_n_in = &casadi_impl_ode_fun_n_in;
-	impl_ode_fun.casadi_n_out = &casadi_impl_ode_fun_n_out;
-	external_function_param_casadi_create(&impl_ode_fun, np);
+    /************************************************
+    * external functions (Generalized Nonlinear Static Feedback (GNSF) model)
+    ************************************************/
+    // phi_fun
+    external_function_casadi phi_fun;
+    phi_fun.casadi_fun            = &inv_pendulum_phi_fun;
+    phi_fun.casadi_work           = &inv_pendulum_phi_fun_work;
+    phi_fun.casadi_sparsity_in    = &inv_pendulum_phi_fun_sparsity_in;
+    phi_fun.casadi_sparsity_out   = &inv_pendulum_phi_fun_sparsity_out;
+    phi_fun.casadi_n_in           = &inv_pendulum_phi_fun_n_in;
+    phi_fun.casadi_n_out          = &inv_pendulum_phi_fun_n_out;
+    external_function_casadi_create(&phi_fun);
 
-	// impl_ode_fun_jac_x_xdot
-	external_function_param_casadi impl_ode_fun_jac_x_xdot;
-	impl_ode_fun_jac_x_xdot.casadi_fun = &casadi_impl_ode_fun_jac_x_xdot;
-	impl_ode_fun_jac_x_xdot.casadi_work = &casadi_impl_ode_fun_jac_x_xdot_work;
-	impl_ode_fun_jac_x_xdot.casadi_sparsity_in = &casadi_impl_ode_fun_jac_x_xdot_sparsity_in;
-	impl_ode_fun_jac_x_xdot.casadi_sparsity_out = &casadi_impl_ode_fun_jac_x_xdot_sparsity_out;
-	impl_ode_fun_jac_x_xdot.casadi_n_in = &casadi_impl_ode_fun_jac_x_xdot_n_in;
-	impl_ode_fun_jac_x_xdot.casadi_n_out = &casadi_impl_ode_fun_jac_x_xdot_n_out;
-	external_function_param_casadi_create(&impl_ode_fun_jac_x_xdot, np);
+    // phi_fun_jac_y
+    external_function_casadi phi_fun_jac_y;
+    phi_fun_jac_y.casadi_fun            = &inv_pendulum_phi_fun_jac_y;
+    phi_fun_jac_y.casadi_work           = &inv_pendulum_phi_fun_jac_y_work;
+    phi_fun_jac_y.casadi_sparsity_in    = &inv_pendulum_phi_fun_jac_y_sparsity_in;
+    phi_fun_jac_y.casadi_sparsity_out   = &inv_pendulum_phi_fun_jac_y_sparsity_out;
+    phi_fun_jac_y.casadi_n_in           = &inv_pendulum_phi_fun_jac_y_n_in;
+    phi_fun_jac_y.casadi_n_out          = &inv_pendulum_phi_fun_jac_y_n_out;
+    external_function_casadi_create(&phi_fun_jac_y);
 
-	// impl_ode_jac_x_xdot_u
-	external_function_param_casadi impl_ode_jac_x_xdot_u;
-	impl_ode_jac_x_xdot_u.casadi_fun = &casadi_impl_ode_jac_x_xdot_u;
-	impl_ode_jac_x_xdot_u.casadi_work = &casadi_impl_ode_jac_x_xdot_u_work;
-	impl_ode_jac_x_xdot_u.casadi_sparsity_in = &casadi_impl_ode_jac_x_xdot_u_sparsity_in;
-	impl_ode_jac_x_xdot_u.casadi_sparsity_out = &casadi_impl_ode_jac_x_xdot_u_sparsity_out;
-	impl_ode_jac_x_xdot_u.casadi_n_in = &casadi_impl_ode_jac_x_xdot_u_n_in;
-	impl_ode_jac_x_xdot_u.casadi_n_out = &casadi_impl_ode_jac_x_xdot_u_n_out;
-	external_function_param_casadi_create(&impl_ode_jac_x_xdot_u, np);
+    // phi_jac_y_uhat
+    external_function_casadi phi_jac_y_uhat;
+    phi_jac_y_uhat.casadi_fun                = &inv_pendulum_phi_jac_y_uhat;
+    phi_jac_y_uhat.casadi_work               = &inv_pendulum_phi_jac_y_uhat_work;
+    phi_jac_y_uhat.casadi_sparsity_in        = &inv_pendulum_phi_jac_y_uhat_sparsity_in;
+    phi_jac_y_uhat.casadi_sparsity_out       = &inv_pendulum_phi_jac_y_uhat_sparsity_out;
+    phi_jac_y_uhat.casadi_n_in               = &inv_pendulum_phi_jac_y_uhat_n_in;
+    phi_jac_y_uhat.casadi_n_out              = &inv_pendulum_phi_jac_y_uhat_n_out;
+    external_function_casadi_create(&phi_jac_y_uhat);
 
-	/************************************************
-	* external functions (Generalized Nonlinear Static Feedback (GNSF) model)
-	************************************************/
-	// phi_fun
-	external_function_param_casadi phi_fun;
-	phi_fun.casadi_fun            = &casadi_phi_fun;
-	phi_fun.casadi_work           = &casadi_phi_fun_work;
-	phi_fun.casadi_sparsity_in    = &casadi_phi_fun_sparsity_in;
-	phi_fun.casadi_sparsity_out   = &casadi_phi_fun_sparsity_out;
-	phi_fun.casadi_n_in           = &casadi_phi_fun_n_in;
-	phi_fun.casadi_n_out          = &casadi_phi_fun_n_out;
-	external_function_param_casadi_create(&phi_fun, np);
+    // f_lo_fun_jac_x1k1uz
+    external_function_casadi f_lo_fun_jac_x1k1uz;
+    f_lo_fun_jac_x1k1uz.casadi_fun            = &inv_pendulum_f_lo_fun_jac_x1k1uz;
+    f_lo_fun_jac_x1k1uz.casadi_work           = &inv_pendulum_f_lo_fun_jac_x1k1uz_work;
+    f_lo_fun_jac_x1k1uz.casadi_sparsity_in    = &inv_pendulum_f_lo_fun_jac_x1k1uz_sparsity_in;
+    f_lo_fun_jac_x1k1uz.casadi_sparsity_out   = &inv_pendulum_f_lo_fun_jac_x1k1uz_sparsity_out;
+    f_lo_fun_jac_x1k1uz.casadi_n_in           = &inv_pendulum_f_lo_fun_jac_x1k1uz_n_in;
+    f_lo_fun_jac_x1k1uz.casadi_n_out          = &inv_pendulum_f_lo_fun_jac_x1k1uz_n_out;
+    external_function_casadi_create(&f_lo_fun_jac_x1k1uz);
 
-	// phi_inc_dy
-	external_function_param_casadi phi_fun_jac_y;
-	phi_fun_jac_y.casadi_fun            = &casadi_phi_fun_jac_y;
-	phi_fun_jac_y.casadi_work           = &casadi_phi_fun_jac_y_work;
-	phi_fun_jac_y.casadi_sparsity_in    = &casadi_phi_fun_jac_y_sparsity_in;
-	phi_fun_jac_y.casadi_sparsity_out   = &casadi_phi_fun_jac_y_sparsity_out;
-	phi_fun_jac_y.casadi_n_in           = &casadi_phi_fun_jac_y_n_in;
-	phi_fun_jac_y.casadi_n_out          = &casadi_phi_fun_jac_y_n_out;
-	external_function_param_casadi_create(&phi_fun_jac_y, np);
-
-	// phi_jac_y_uhat
-	external_function_param_casadi phi_jac_y_uhat;
-	phi_jac_y_uhat.casadi_fun                = &casadi_phi_jac_y_uhat;
-	phi_jac_y_uhat.casadi_work               = &casadi_phi_jac_y_uhat_work;
-	phi_jac_y_uhat.casadi_sparsity_in        = &casadi_phi_jac_y_uhat_sparsity_in;
-	phi_jac_y_uhat.casadi_sparsity_out       = &casadi_phi_jac_y_uhat_sparsity_out;
-	phi_jac_y_uhat.casadi_n_in               = &casadi_phi_jac_y_uhat_n_in;
-	phi_jac_y_uhat.casadi_n_out              = &casadi_phi_jac_y_uhat_n_out;
-
-	external_function_param_casadi_create(&phi_jac_y_uhat, np);
-
-	// f_lo_fun_jac_x1k1uz
-	external_function_param_casadi f_lo_fun_jac_x1k1uz;
-	f_lo_fun_jac_x1k1uz.casadi_fun            = &casadi_f_lo_fun_jac_x1k1uz;
-	f_lo_fun_jac_x1k1uz.casadi_work           = &casadi_f_lo_fun_jac_x1k1uz_work;
-	f_lo_fun_jac_x1k1uz.casadi_sparsity_in    = &casadi_f_lo_fun_jac_x1k1uz_sparsity_in;
-	f_lo_fun_jac_x1k1uz.casadi_sparsity_out   = &casadi_f_lo_fun_jac_x1k1uz_sparsity_out;
-	f_lo_fun_jac_x1k1uz.casadi_n_in           = &casadi_f_lo_fun_jac_x1k1uz_n_in;
-	f_lo_fun_jac_x1k1uz.casadi_n_out          = &casadi_f_lo_fun_jac_x1k1uz_n_out;
-	external_function_param_casadi_create(&f_lo_fun_jac_x1k1uz, np);
-
-	// get_matrices_fun
-	external_function_casadi get_matrices_fun;
-	get_matrices_fun.casadi_fun            = &casadi_get_matrices_fun;
-	get_matrices_fun.casadi_work           = &casadi_get_matrices_fun_work;
-	get_matrices_fun.casadi_sparsity_in    = &casadi_get_matrices_fun_sparsity_in;
-	get_matrices_fun.casadi_sparsity_out   = &casadi_get_matrices_fun_sparsity_out;
-	get_matrices_fun.casadi_n_in           = &casadi_get_matrices_fun_n_in;
-	get_matrices_fun.casadi_n_out          = &casadi_get_matrices_fun_n_out;
-	external_function_casadi_create(&get_matrices_fun);
-
+    // get_matrices_fun
+    external_function_casadi get_matrices_fun;
+    get_matrices_fun.casadi_fun            = &inv_pendulum_get_matrices_fun;
+    get_matrices_fun.casadi_work           = &inv_pendulum_get_matrices_fun_work;
+    get_matrices_fun.casadi_sparsity_in    = &inv_pendulum_get_matrices_fun_sparsity_in;
+    get_matrices_fun.casadi_sparsity_out   = &inv_pendulum_get_matrices_fun_sparsity_out;
+    get_matrices_fun.casadi_n_in           = &inv_pendulum_get_matrices_fun_n_in;
+    get_matrices_fun.casadi_n_out          = &inv_pendulum_get_matrices_fun_n_out;
+    external_function_casadi_create(&get_matrices_fun);
 
 /************************************************
 * generate reference solution
@@ -273,6 +262,8 @@ int main()
 	opts->jac_reuse = false;
 	opts->sens_adj = true;
 	opts->sens_forw = true;
+	opts->output_z = true;
+	opts->sens_algebraic = true;
 
 
 	/************************************************
@@ -318,17 +309,18 @@ int main()
 		}
 	}
 
-	// seeds forw
-	for (int ii = 0; ii < nx * NF; ii++)
-		in->S_forw[ii] = 0.0;
-	for (int ii = 0; ii < nx; ii++)
-		in->S_forw[ii * (nx + 1)] = 1.0;
+    /* seeds */
+    for (int ii = 0; ii < nx * NF; ii++)
+        in->S_forw[ii] = 0.0;
+    for (int ii = 0; ii < nx; ii++)
+        in->S_forw[ii * (nx + 1)] = 1.0;
 
-	// seeds adj
-	for (int ii = 0; ii < nx; ii++)
-		in->S_adj[ii] = 1.0;
-	for (int ii = 0; ii < nu; ii++)
-		in->S_adj[ii+nx] = 0.0;
+    // seeds adj
+    for (int ii = 0; ii < nx; ii++)
+        in->S_adj[ii] = 1.0;
+    for (int ii = nx; ii < nx + nu; ii++){
+        in->S_adj[ii] = 0.0;
+    }
 
 	/************************************************
 	* sim solver
@@ -337,6 +329,7 @@ int main()
 	// printf("\n ===  GENERATE REFERENCE SOLUTION USING IRK with %d stages and %d steps === \n", opts->ns, opts->num_steps);
 
 	sim_solver *sim_solver = sim_create(config, dims, opts);
+
 	int acados_return;
 
 	if (plan.sim_solver == GNSF){  // for gnsf: perform precomputation
@@ -345,53 +338,16 @@ int main()
 					sim_solver->mem, sim_solver->work, in->T);
 	}
 
-
-	// to avoid unstable behavior introduce a small pi-controller for rotor speed tracking
-	// double uctrl = 0.0;
-	// double uctrlI = 0.0;
-	// double kI = 1e-1;
-	// double kP = 10;
-	// double tmp, ctrlErr;
-
-
-
 	for (int ii = 0; ii < 1; ii++) // upper bound was nsim, but for error computation we just compare first simulation
 	{
 		// update initial state
 		for (int jj = 0; jj < nx; jj++)
 			in->x[jj] = x_sim[ii*nx+jj];
 
-		// // compute inputs
-		// for (int jj = 0; jj < nu; jj++)
-		// 	in->u[jj] = u_sim[ii*nu+jj];
-		// tmp = in->u[1] - uctrl;
-		// in->u[1] = tmp>0.0 ? tmp : 0.0;
-		in->u[1] = 0.0;
+        for (int jj = 0; jj < nu; jj++)
+            in->u[jj] = u_sim[ii*nu+jj];
 
-		// update parameters
-		switch (plan.sim_solver)
-		{
-			case IRK:  // IRK
-			{
-				impl_ode_fun.set_param(&impl_ode_fun, p_sim+ii*np);
-				impl_ode_fun_jac_x_xdot.set_param(&impl_ode_fun_jac_x_xdot, p_sim+ii*np);
-				impl_ode_jac_x_xdot_u.set_param(&impl_ode_jac_x_xdot_u, p_sim+ii*np);
-				break;
-			}
-			case GNSF:  // GNSF
-			{
-				phi_fun.set_param(&phi_fun, p_sim+ii*np);
-				phi_fun_jac_y.set_param(&phi_fun_jac_y, p_sim+ii*np);
-				phi_jac_y_uhat.set_param(&phi_jac_y_uhat, p_sim+ii*np);
-				f_lo_fun_jac_x1k1uz.set_param(&f_lo_fun_jac_x1k1uz, p_sim+ii*np);
-				break;
-			}
-		}
-
-		// d_print_mat(1, nx, in->x, 1);
-		// d_print_mat(1, nu, in->u, 1);
-
-		// execute simulation step with current input and state
+        // execute simulation step with current input and state
 		acados_return = sim_solve(sim_solver, in, out);
 		if (acados_return != 0)
 		{
@@ -401,28 +357,31 @@ int main()
 		// extract state at next time step
 		for (int jj = 0; jj < nx; jj++)
 			x_sim[(ii+1)*nx+jj] = out->xn[jj];
+        
+        if (ii == 0){
+            /* printing */
+            printf("\nxn: \n");
+            d_print_exp_mat(1, nx, &x_sim[nx], 1); // print first result
 
-		// update PI-controller
-		// ctrlErr = x_ref[nx*(ii+1)] - x_sim[nx*(ii+1)];
-		// uctrlI = uctrlI + kI*ctrlErr*T;
-		// uctrl = kP*ctrlErr + uctrlI;
+            double *S_forw_out = NULL;
+            if(opts->sens_forw){
+                S_forw_out = out->S_forw;
+                printf("S_forw_out: \n");
+                d_print_exp_mat(nx, NF, S_forw_out, nx);
+            }
+            if (opts->output_z){
+                printf("zn \n");
+                d_print_exp_mat(1, nz, &out->zn[0], 1);
+            }
 
-		// if (ii < nsim-1)
-		// 	printf("\nii = %d, sim error = %e\n", ii, ctrlErr);
+            if (opts->sens_algebraic){
+                printf("algebraic sensitivities \n");
+                d_print_exp_mat(nz, NF, &out->S_algebraic[0], nz);
+            }
+        }
 	}
 
-	/************************************************
-	* printing
-	************************************************/
-	printf("\nxn: \n");
-	d_print_exp_mat(1, nx, &x_sim[nx], 1);  // print first result
 
-	double *S_forw_out = NULL;
-	if(opts->sens_forw){
-		S_forw_out = out->S_forw;
-		printf("\nS_forw_out: \n");
-		d_print_exp_mat(nx, NF, S_forw_out, nx);
-	}
 
     // store reference solution
     for (int jj = 0; jj < nx; jj++)
@@ -477,7 +436,7 @@ int main()
 	int steps_in_experiment = max_num_steps - min_num_steps;
 
 	int min_newton = 1;
-	int max_newton = 5;
+	int max_newton = 4;
 	int newton_in_experiment = max_newton - min_newton;
 
 	int num_experiments = steps_in_experiment * stages_in_experiment * newton_in_experiment;
@@ -619,13 +578,6 @@ int main()
 					/* set model */
 						switch (plan.sim_solver)
 						{
-							case ERK:
-							{
-								sim_set_model(config, in, "expl_ode_fun", &expl_ode_fun);
-								sim_set_model(config, in, "expl_vde_for", &expl_vde_for);
-								sim_set_model(config, in, "expl_vde_adj", &expl_vde_adj);
-								break;
-							}
 							case IRK:  // IRK
 							{
 								sim_set_model(config, in, "impl_ode_fun", &impl_ode_fun);
@@ -649,13 +601,6 @@ int main()
 								sim_gnsf_import_matrices(gnsf_dim, model, get_model_matrices);
 								break;
 							}
-							// case NEW_LIFTED_IRK:  // new_lifted_irk
-							// {
-							//     sim_set_model(config, in, "impl_ode_fun", &impl_ode_fun);
-							//     sim_set_model(config, in, "impl_ode_fun_jac_x_xdot_u",
-							//              &impl_ode_fun_jac_x_xdot_u);
-							//     break;
-							// }
 							default :
 							{
 								printf("\nnot enough sim solvers implemented!\n");
@@ -683,13 +628,6 @@ int main()
 							sim_gnsf_precompute(config, gnsf_dim, model, opts,
 										sim_solver->mem, sim_solver->work, in->T);
 						}
-
-						// to avoid unstable behavior introduce a small pi-controller for rotor speed tracking
-						// double uctrl = 0.0;
-						// double uctrlI = 0.0;
-						// double kI = 1e-1;
-						// double kP = 10;
-						// double tmp, ctrlErr;
 						
 					/* sim loop */
 						for (int ii=0; ii<nsim; ii++)
@@ -697,45 +635,8 @@ int main()
 							// update initial state
 							for (int jj = 0; jj < nx; jj++)
 								in->x[jj] = x_sim[ii*nx+jj];
-
-							// compute inputs
-							// for (int jj = 0; jj < nu; jj++)
-							// 	in->u[jj] = u_sim[ii*nu+jj];
-							// tmp = in->u[1] - uctrl;
-							// in->u[1] = tmp>0.0 ? tmp : 0.0;
-							in->u[1] = 0.0;
-
-							// update parameters
-							switch (plan.sim_solver)
-							{
-								case ERK:  // ERK
-								{
-									expl_ode_fun.set_param(&expl_ode_fun, p_sim+ii*np);
-									expl_vde_for.set_param(&expl_vde_for, p_sim+ii*np);
-									expl_vde_for.set_param(&expl_vde_adj, p_sim+ii*np);
-									break;
-								}
-								case IRK:  // IRK
-								{
-									impl_ode_fun.set_param(&impl_ode_fun, p_sim+ii*np);
-									impl_ode_fun_jac_x_xdot.set_param(&impl_ode_fun_jac_x_xdot, p_sim+ii*np);
-									impl_ode_jac_x_xdot_u.set_param(&impl_ode_jac_x_xdot_u, p_sim+ii*np);
-									break;
-								}
-								case GNSF:  // GNSF
-								{
-									phi_fun.set_param(&phi_fun, p_sim+ii*np);
-									phi_fun_jac_y.set_param(&phi_fun_jac_y, p_sim+ii*np);
-									phi_jac_y_uhat.set_param(&phi_jac_y_uhat, p_sim+ii*np);
-									f_lo_fun_jac_x1k1uz.set_param(&f_lo_fun_jac_x1k1uz, p_sim+ii*np);
-									break;
-								}
-								default :
-								{
-									printf("\nnot enough sim solvers implemented!\n");
-									exit(1);
-								}
-							}
+                            for (int jj = 0; jj < nu; jj++)
+                                in->u[jj] = u_sim[ii*nu+jj];
 
 							// execute simulation step with current input and state
 							acados_return = sim_solve(sim_solver, in, out);
@@ -851,15 +752,8 @@ int main()
 							experiment_lss_time[i_experiment]   = lss_time_experiment;
 							experiment_la_time[i_experiment]  	= la_time_experiment;
 						}
-						// experiment_cpu_time[i_experiment]  	= experiment_cpu_time[i_experiment] < cpu_time_experiment ?
-						// 				experiment_cpu_time[i_experiment] : cpu_time_experiment;
-						// experiment_ad_time[i_experiment]   	= experiment_ad_time[i_experiment] < ad_time_experiment ?
-						// 										experiment_ad_time[i_experiment] : ad_time_experiment;
-						// experiment_lss_time[i_experiment]   = experiment_lss_time[i_experiment] < lss_time_experiment ?
-						// 										experiment_lss_time[i_experiment] : lss_time_experiment;
-						// experiment_la_time[i_experiment]  	= experiment_la_time[i_experiment] < la_time_experiment ?
-						// 										experiment_la_time[i_experiment] : la_time_experiment;
-					/* free memory */
+
+	                    /* free memory */
 						free(dims);
 						free(sim_solver);
 						free(in);
@@ -883,9 +777,9 @@ int main()
 			strcat(export_filename, "erk");
 		}
 		// append model name
-		strcat(export_filename, "_wt_nx6");
+		strcat(export_filename, "_inv_pendulum");
 		// append date identifier
-		strcat(export_filename, "_july_22");
+		strcat(export_filename, "_july_23");
 		// append file format
 		strcat(export_filename, ".txt");
 
@@ -925,19 +819,15 @@ int main()
 	}  // end for solver loop
 
 /* free functions */
-	// explicit model
-	external_function_param_casadi_free(&expl_ode_fun);
-	external_function_param_casadi_free(&expl_vde_for);
-	external_function_param_casadi_free(&expl_vde_adj);
 	// implicit model
-	external_function_param_casadi_free(&impl_ode_fun);
-	external_function_param_casadi_free(&impl_ode_fun_jac_x_xdot);
-	external_function_param_casadi_free(&impl_ode_jac_x_xdot_u);
+	external_function_casadi_free(&impl_ode_fun);
+	external_function_casadi_free(&impl_ode_fun_jac_x_xdot);
+	external_function_casadi_free(&impl_ode_jac_x_xdot_u);
 	// gnsf model
-	external_function_param_casadi_free(&f_lo_fun_jac_x1k1uz);
-	external_function_param_casadi_free(&phi_fun);
-	external_function_param_casadi_free(&phi_fun_jac_y);
-	external_function_param_casadi_free(&phi_jac_y_uhat);
+	external_function_casadi_free(&f_lo_fun_jac_x1k1uz);
+	external_function_casadi_free(&phi_fun);
+	external_function_casadi_free(&phi_fun_jac_y);
+	external_function_casadi_free(&phi_jac_y_uhat);
 	external_function_casadi_free(&get_matrices_fun);
 
 	double test_time = acados_toc(&test_timer);

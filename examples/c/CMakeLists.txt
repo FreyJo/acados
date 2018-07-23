@@ -221,6 +221,11 @@ add_executable(integrator_experiment integrator_experiment.c ${INTEGRATOR_EXPERI
 target_link_libraries(integrator_experiment acados)
 add_test(integrator_experiment integrator_experiment)
 
+# -------------------- integrator_experiment_inv_pendulum
+add_executable(integrator_experiment_inv_pendulum integrator_experiment_inv_pendulum.c ${INV_PENDULUM_SRC})
+target_link_libraries(integrator_experiment_inv_pendulum acados)
+add_test(integrator_experiment_inv_pendulum integrator_experiment_inv_pendulum)
+
 # -------------------- sim_gnsf_crane
 add_executable(sim_gnsf_crane sim_gnsf_crane.c ${GNSF_CRANE_SRC})
 target_link_libraries(sim_gnsf_crane acados)

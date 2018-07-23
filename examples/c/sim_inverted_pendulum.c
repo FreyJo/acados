@@ -245,7 +245,7 @@ int main()
 
         opts->ns                = 8;    // number of stages in rk integrator
         opts->num_steps         = 1;    // number of steps
-        opts->sens_forw         = false;
+        opts->sens_forw         = true;
         opts->sens_adj          = false;
         opts->output_z          = true;
         opts->sens_algebraic    = true;
@@ -393,8 +393,8 @@ int main()
 		double *S_forw_out = NULL;
 		if(opts->sens_forw){
 			S_forw_out = out->S_forw;
-			// printf("S_forw_out: \n");
-			// d_print_exp_mat(nx, NF, S_forw_out, nx);
+			printf("S_forw_out: \n");
+			d_print_exp_mat(nx, NF, S_forw_out, nx);
 		}
 
 		if(opts->sens_adj){
