@@ -640,12 +640,12 @@ int main()
 								// xdot1_z1_0 =
 								//   -3.290336833904700e-03                         0     1.353969828015453e+00     3.228986350219792e-04    -2.067303680241406e+01    -2.005255049361735e+02
 
-								// in->xdot[0] = -3.290336833904700e-03;
-								// in->xdot[1] = 0;
-								// in->xdot[2] = 1.353969828015453e+00;
-								// in->xdot[3] = 3.228986350219792e-04;
-								// in->xdot[4] = -2.067303680241406e+01;
-								// in->xdot[5] = -2.005255049361735e+02;
+								in->xdot[0] = -3.290336833904700e-03;
+								in->xdot[1] = 0;
+								in->xdot[2] = 1.353969828015453e+00;
+								in->xdot[3] = 3.228986350219792e-04;
+								in->xdot[4] = -2.067303680241406e+01;
+								in->xdot[5] = -2.005255049361735e+02;
 								break;
 							}
 							case GNSF:  // GNSF
@@ -698,12 +698,6 @@ int main()
 										sim_solver->mem, sim_solver->work, in->T);
 						}
 
-						// to avoid unstable behavior introduce a small pi-controller for rotor speed tracking
-						// double uctrl = 0.0;
-						// double uctrlI = 0.0;
-						// double kI = 1e-1;
-						// double kP = 10;
-						// double tmp, ctrlErr;
 						
 					/* sim loop */
 						for (int ii=0; ii<nsim; ii++)
@@ -712,11 +706,6 @@ int main()
 							for (int jj = 0; jj < nx; jj++)
 								in->x[jj] = x_sim[ii*nx+jj];
 
-							// compute inputs
-							// for (int jj = 0; jj < nu; jj++)
-							// 	in->u[jj] = u_sim[ii*nu+jj];
-							// tmp = in->u[1] - uctrl;
-							// in->u[1] = tmp>0.0 ? tmp : 0.0;
 							in->u[1] = 0.0;
 
 							// update parameters
@@ -886,7 +875,9 @@ int main()
 	}  //  end n_execution loop
 
 	/* print results to file */
-		char export_filename[100] = "/home/oj/Git/1Thesis/1Matlab_prototypes/evaluation/results/results_";
+		char export_filename[150] = "/home/oj/Git/1Thesis/1Matlab_prototypes/evaluation/results/results_";
+		// append model name
+		strcat(export_filename, "wt_nx6_");
 		if (nss == 2){
 			strcat(export_filename, "irk");
 		}
@@ -896,10 +887,10 @@ int main()
 		else if (nss == 1){
 			strcat(export_filename, "erk");
 		}
-		// append model name
-		strcat(export_filename, "_wt_nx6");
 		// append date identifier
 		strcat(export_filename, "_september_1");
+		// append additional identifier
+		strcat(export_filename, "_init_eq");
 		// append file format
 		strcat(export_filename, ".txt");
 
@@ -929,8 +920,8 @@ int main()
 		// line 15
 		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_cpu_time  , 1);
 		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_ad_time,    1);
-		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time   , 1);
-		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time ,  1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_lss_time   ,1);
+		d_print_to_file_exp_mat(file_handle, 1, num_experiments, experiment_la_time ,   1);
 		// line 19
 
 		// close file

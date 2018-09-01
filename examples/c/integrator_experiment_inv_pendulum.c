@@ -590,6 +590,7 @@ int main()
 								in->xdot[1] = -0.5;
 								in->z[3] 	= -1;
 								in->z[4] 	= 1.9620e+01;
+
 								// obtained these values in matlab using
 								// xdot1_z1_0 = (E\(A*x0(1:gnsf.nx1)+ B * u0 + c))'
 
@@ -779,7 +780,9 @@ int main()
 	}  //  end n_execution loop
 
 	/* print results to file */
-		char export_filename[100] = "/home/oj/Git/1Thesis/1Matlab_prototypes/evaluation/results/results_";
+		char export_filename[150] = "/home/oj/Git/1Thesis/1Matlab_prototypes/evaluation/results/results_";
+		// append model name
+		strcat(export_filename, "inv_pendulum_");
 		if (nss == 2){
 			strcat(export_filename, "irk");
 		}
@@ -789,10 +792,10 @@ int main()
 		else if (nss == 1){
 			strcat(export_filename, "erk");
 		}
-		// append model name
-		strcat(export_filename, "_inv_pendulum");
 		// append date identifier
 		strcat(export_filename, "_september_1");
+		// append additional identifier
+		strcat(export_filename, "_init_eq");
 		// append file format
 		strcat(export_filename, ".txt");
 
