@@ -72,7 +72,7 @@ int main()
 	const int nz 		= 0;
 	const int np 		= 1;
 	const int nx1		= nx;
-	const int nx2		= 0;
+	const int nz1		= 0;
 	const int ny 		= 5;  //nx + nu;
 	const int nuhat 	= 0;  //nx + nu;
 	const int n_out 	= 1;
@@ -255,7 +255,7 @@ int main()
 	{
 		gnsf_dim = (sim_gnsf_dims *) dims;
 		gnsf_dim->nx1   = nx1;
-		gnsf_dim->nx2   = nx2;
+		gnsf_dim->nz1   = nz1;
 		gnsf_dim->ny    = ny;
 		gnsf_dim->nuhat = nuhat;
 		gnsf_dim->n_out = n_out;
@@ -586,7 +586,7 @@ int main()
 						{
 							gnsf_dim = (sim_gnsf_dims *) dims;
 							gnsf_dim->nx1   = nx1;
-							gnsf_dim->nx2   = nx2;
+							gnsf_dim->nz1   = nz1;
 							gnsf_dim->ny    = ny;
 							gnsf_dim->nuhat = nuhat;
 							gnsf_dim->n_out = n_out;
