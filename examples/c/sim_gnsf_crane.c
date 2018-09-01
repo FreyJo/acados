@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <fenv.h>
 
 // acados
 #include <acados/sim/sim_common.h>
@@ -37,7 +38,7 @@
 #include "examples/c/gnsf_crane_model/gnsf_crane_model.h"
 
 int main() {
-
+    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 /************************************************
 *   external functions
 ************************************************/
@@ -111,7 +112,7 @@ int main() {
 
     gnsf_dim->nx = nx;
     gnsf_dim->nx1 = 8;
-    gnsf_dim->nx2 = 1;
+    gnsf_dim->nz1 = 1;
     gnsf_dim->nu = nu;
     gnsf_dim->n_out = 2;
     gnsf_dim->nz = 1;
@@ -150,10 +151,10 @@ int main() {
     // opts->b_vec[1] =     3.260788016404259e-01;
     // opts->b_vec[2] =     3.260666571808232e-01;
     // opts->b_vec[3] =     1.739354743418989e-01;
-    
+
     opts->ns = num_stages;
     opts->num_steps = num_steps;
-    
+
     sim_in *in = sim_in_create(config, dims);
 
     for (int ii = 0; ii < nx *(nx +nu); ii++) {
@@ -215,7 +216,6 @@ int main() {
     d_print_exp_mat(nx, nx + nu, out->S_forw, nx);
     printf("adj Sensitivities =\n");
     d_print_exp_mat(1, nx + nu, out->S_adj, 1);
-    
     printf("gnsf_time  =  %f [ms]\n", gnsf_time*1000);
     printf("casadi_time =  %f [ms]\t minimum of %d executions \n", casadi_time*1000, NREP);
 

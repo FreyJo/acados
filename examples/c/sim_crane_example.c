@@ -200,7 +200,7 @@ int main()
 		void *dims = sim_dims_create(config);
 		config->set_nx(dims, nx);
 		config->set_nu(dims, nu);
-		
+
 		/************************************************
 		* sim opts
 		************************************************/

@@ -43,6 +43,7 @@ typedef enum {
     IMPL_ODE_FUN_JAC_X_XDOT,
     IMPL_ODE_JAC_X_XDOT_U,
     IMPL_ODE_FUN_JAC_X_XDOT_U,
+    IMPL_ODE_HESS,
     // gnsf
     PHI_FUN,
     PHI_FUN_JAC_Y,
@@ -56,6 +57,7 @@ typedef struct
 
     double *x;  // x[NX]
     double *u;  // u[NU]
+    double *z;  // z[NZ]
 
     double *S_forw;  // forward seed
     double *S_adj;   // backward seed
@@ -80,7 +82,7 @@ typedef struct
     double *S_adj;   //
     double *S_hess;  //
 
-    double *zn;      // z - algebraic variables - value for start of simulation
+    double *zn;           // z - algebraic variables - reported at start of simulation interval
     double *S_algebraic;  // sensitivities of reported value of algebraic variables w.r.t.
                           // initial stat & control (x_n,u)
 

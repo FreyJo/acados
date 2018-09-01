@@ -62,7 +62,7 @@ int main()
     int nx = 6;
     int nu = 2;
 	int np = 1;
-	
+
 	int nsim = 1000;
 
     int NF = nx + nu; // columns of forward seed
@@ -278,7 +278,7 @@ int main()
 				gnsf_dim->nx = nx;
 				gnsf_dim->nu = nu;
 				gnsf_dim->nx1= nx;
-				gnsf_dim->nx2= 0;
+				// gnsf_dim->nx2= 0;
 				gnsf_dim->ny = 5;
 				gnsf_dim->nuhat = 0;
 				gnsf_dim->n_out = 1;
@@ -526,7 +526,7 @@ int main()
 
 			blasfeo_free_dmat(&S_forw_result);
 			blasfeo_free_dvec(&adjoint_seed);
-			blasfeo_free_dvec(&forw_times_seed);			
+			blasfeo_free_dvec(&forw_times_seed);
 		}
 
     #if 0
