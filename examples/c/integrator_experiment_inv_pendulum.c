@@ -419,7 +419,7 @@ int main()
 /************************************************
 * numerical experiment
 ************************************************/
-	int n_executions = 20;
+	int n_executions = 1;
 
 	bool jac_reuse 	= false;
 	bool sens_forw 	= true;
@@ -584,6 +584,18 @@ int main()
 								sim_set_model(config, in, "impl_ode_fun_jac_x_xdot",
 										&impl_ode_fun_jac_x_xdot);
 								sim_set_model(config, in, "impl_ode_jac_x_xdot_u", &impl_ode_jac_x_xdot_u);
+
+								/* initialize integration variables to be equivalent to GNSF */
+								in->xdot[0] = 0.1;
+								in->xdot[1] = -0.5;
+								in->z[3] 	= -1;
+								in->z[4] 	= 1.9620e+01;
+								// obtained these values in matlab using
+								// xdot1_z1_0 = (E\(A*x0(1:gnsf.nx1)+ B * u0 + c))'
+
+								// x10_z10 =
+
+								// 1.0000e-01  -5.0000e-01   0    0    0     0    0  0  -1.0000e+00   1.9620e+01
 								break;
 							}
 							case GNSF:  // GNSF
@@ -607,6 +619,7 @@ int main()
 								exit(1);
 							}
 						}
+
 
 					/* seeds */
 						for (int ii = 0; ii < nx * NF; ii++)
@@ -779,7 +792,7 @@ int main()
 		// append model name
 		strcat(export_filename, "_inv_pendulum");
 		// append date identifier
-		strcat(export_filename, "_july_23");
+		strcat(export_filename, "_september_1");
 		// append file format
 		strcat(export_filename, ".txt");
 

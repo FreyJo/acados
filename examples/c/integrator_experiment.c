@@ -77,7 +77,7 @@ int main()
 	const int nuhat 	= 0;  //nx + nu;
 	const int n_out 	= 1;
 
-	int nsim = 10;
+	int nsim = 1;
 
 	int NF = nx + nu; // columns of forward seed
 
@@ -235,7 +235,7 @@ int main()
 	// choose plan
 	sim_solver_plan plan;
 
-	plan.sim_solver = GNSF; // or IRK
+	plan.sim_solver = IRK; // or IRK
 
 	// create correct config based on plan
 	sim_solver_config *config = sim_config_create(plan);
@@ -460,13 +460,14 @@ int main()
 /************************************************
 * numerical experiment
 ************************************************/
-	int n_executions = 20;
+	int n_executions = 1;
 
 	bool jac_reuse 	= false;
 	bool sens_forw 	= true;
 	bool sens_adj  	= true;
 	bool output_z  	= false;
 	bool sens_alg  	= false;
+	bool sens_hess  = false;
 
 	int max_num_stages = 13;
 	int min_num_stages = 1;
@@ -608,6 +609,7 @@ int main()
 						opts->sens_adj          = sens_adj;
 						opts->output_z          = output_z;
 						opts->sens_algebraic    = sens_alg;
+						opts->sens_hess    		= sens_hess;
 
 					/* sim in / out */
 
@@ -632,6 +634,18 @@ int main()
 								sim_set_model(config, in, "impl_ode_fun_jac_x_xdot",
 										&impl_ode_fun_jac_x_xdot);
 								sim_set_model(config, in, "impl_ode_jac_x_xdot_u", &impl_ode_jac_x_xdot_u);
+								/* initialize integration variables to be equivalent to GNSF */
+								// xdot1_z1_0 = (E\(A*x0(1:nx1)+ B * u0 + c))'
+
+								// xdot1_z1_0 =
+								//   -3.290336833904700e-03                         0     1.353969828015453e+00     3.228986350219792e-04    -2.067303680241406e+01    -2.005255049361735e+02
+
+								// in->xdot[0] = -3.290336833904700e-03;
+								// in->xdot[1] = 0;
+								// in->xdot[2] = 1.353969828015453e+00;
+								// in->xdot[3] = 3.228986350219792e-04;
+								// in->xdot[4] = -2.067303680241406e+01;
+								// in->xdot[5] = -2.005255049361735e+02;
 								break;
 							}
 							case GNSF:  // GNSF
@@ -885,7 +899,7 @@ int main()
 		// append model name
 		strcat(export_filename, "_wt_nx6");
 		// append date identifier
-		strcat(export_filename, "_july_22");
+		strcat(export_filename, "_september_1");
 		// append file format
 		strcat(export_filename, ".txt");
 
