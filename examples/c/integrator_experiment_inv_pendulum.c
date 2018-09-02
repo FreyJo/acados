@@ -88,6 +88,8 @@ int main()
     x0[4] =  0.1000;  // valpha
     x0[5] =  1.0000;  // alpha
 
+	bool gnsf_init = false;
+
     u_sim[0] = 1;
 
 	int nsim = 10;
@@ -586,10 +588,13 @@ int main()
 								sim_set_model(config, in, "impl_ode_jac_x_xdot_u", &impl_ode_jac_x_xdot_u);
 
 								/* initialize integration variables to be equivalent to GNSF */
-								in->xdot[0] = 0.1;
-								in->xdot[1] = -0.5;
-								in->z[3] 	= -1;
-								in->z[4] 	= 1.9620e+01;
+								if (gnsf_init){
+									in->xdot[0] = 0.1;
+									in->xdot[1] = -0.5;
+									in->z[3] 	= -1;
+									in->z[4] 	= 1.9620e+01;
+								}
+
 
 								// obtained these values in matlab using
 								// xdot1_z1_0 = (E\(A*x0(1:gnsf.nx1)+ B * u0 + c))'
@@ -795,7 +800,13 @@ int main()
 		// append date identifier
 		strcat(export_filename, "_september_1");
 		// append additional identifier
-		strcat(export_filename, "_init_eq");
+		if (gnsf_init){
+			strcat(export_filename, "_init_eq");
+		}
+		else {
+			strcat(export_filename, "_init0");
+		}
+
 		// append file format
 		strcat(export_filename, ".txt");
 

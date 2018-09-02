@@ -77,6 +77,8 @@ int main()
 	const int nuhat 	= 0;  //nx + nu;
 	const int n_out 	= 1;
 
+	bool gnsf_init = false;
+
 	int nsim = 1;
 
 	int NF = nx + nu; // columns of forward seed
@@ -639,13 +641,14 @@ int main()
 
 								// xdot1_z1_0 =
 								//   -3.290336833904700e-03                         0     1.353969828015453e+00     3.228986350219792e-04    -2.067303680241406e+01    -2.005255049361735e+02
-
-								in->xdot[0] = -3.290336833904700e-03;
-								in->xdot[1] = 0;
-								in->xdot[2] = 1.353969828015453e+00;
-								in->xdot[3] = 3.228986350219792e-04;
-								in->xdot[4] = -2.067303680241406e+01;
-								in->xdot[5] = -2.005255049361735e+02;
+								if (gnsf_init){
+									in->xdot[0] = -3.290336833904700e-03;
+									in->xdot[1] = 0;
+									in->xdot[2] = 1.353969828015453e+00;
+									in->xdot[3] = 3.228986350219792e-04;
+									in->xdot[4] = -2.067303680241406e+01;
+									in->xdot[5] = -2.005255049361735e+02;
+								}
 								break;
 							}
 							case GNSF:  // GNSF
@@ -890,7 +893,12 @@ int main()
 		// append date identifier
 		strcat(export_filename, "_september_1");
 		// append additional identifier
-		strcat(export_filename, "_init_eq");
+		if (gnsf_init){
+			strcat(export_filename, "_init_eq");
+		}
+		else {
+			strcat(export_filename, "_init0");
+		}
 		// append file format
 		strcat(export_filename, ".txt");
 
