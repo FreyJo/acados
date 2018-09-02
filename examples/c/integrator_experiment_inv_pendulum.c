@@ -591,6 +591,7 @@ int main()
 								if (gnsf_init){
 									in->xdot[0] = 0.1;
 									in->xdot[1] = -0.5;
+									in->xdot[5] = 0.1;
 									in->z[3] 	= -1;
 									in->z[4] 	= 1.9620e+01;
 								}
