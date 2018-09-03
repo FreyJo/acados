@@ -88,7 +88,7 @@ int main()
     x0[4] =  0.1000;  // valpha
     x0[5] =  1.0000;  // alpha
 
-	bool gnsf_init = false;
+	bool gnsf_init = true;
 
     u_sim[0] = 1;
 
@@ -96,7 +96,7 @@ int main()
 
 	int NF = nx + nu; // columns of forward seed
 
-	double T = 0.05; // simulation time
+	double T = 0.1; // simulation time
 
 	double *x_sim = malloc(sizeof(double)*nx*(nsim+1));
 
