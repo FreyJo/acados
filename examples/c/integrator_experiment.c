@@ -462,7 +462,7 @@ int main()
 /************************************************
 * numerical experiment
 ************************************************/
-	int n_executions = 1;
+	int n_executions = 50;
 
 	bool jac_reuse 	= false;
 	bool sens_forw 	= true;
@@ -471,7 +471,7 @@ int main()
 	bool sens_alg  	= false;
 	bool sens_hess  = false;
 
-	int max_num_stages = 13;
+	int max_num_stages = 9;
 	int min_num_stages = 1;
 	int stages_in_experiment = max_num_stages - min_num_stages;
 
@@ -891,7 +891,7 @@ int main()
 			strcat(export_filename, "erk");
 		}
 		// append date identifier
-		strcat(export_filename, "_september_1");
+		strcat(export_filename, "_september_3");
 		// append additional identifier
 		if (gnsf_init){
 			strcat(export_filename, "_init_eq");

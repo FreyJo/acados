@@ -88,7 +88,7 @@ int main()
     x0[4] =  0.1000;  // valpha
     x0[5] =  1.0000;  // alpha
 
-	bool gnsf_init = true;
+	bool gnsf_init = false;
 
     u_sim[0] = 1;
 
@@ -421,7 +421,7 @@ int main()
 /************************************************
 * numerical experiment
 ************************************************/
-	int n_executions = 1;
+	int n_executions = 30;
 
 	bool jac_reuse 	= false;
 	bool sens_forw 	= true;
@@ -429,7 +429,7 @@ int main()
 	bool output_z  	= false;
 	bool sens_alg  	= false;
 
-	int max_num_stages = 13;
+	int max_num_stages = 9;
 	int min_num_stages = 1;
 	int stages_in_experiment = max_num_stages - min_num_stages;
 
@@ -437,7 +437,7 @@ int main()
 	int min_num_steps = 1;
 	int steps_in_experiment = max_num_steps - min_num_steps;
 
-	int min_newton = 1;
+	int min_newton = 2;
 	int max_newton = 4;
 	int newton_in_experiment = max_newton - min_newton;
 
@@ -493,7 +493,7 @@ int main()
 			experiment_cpu_time[ii] = 1e15;
 			experiment_ad_time[ii] = 1e15;
 			experiment_lss_time[ii] = 1e15;
-			experiment_la_time[ii] = 1e15;		
+			experiment_la_time[ii] = 1e15;
 		}
 		for (int i_execution = 0; i_execution < n_executions; i_execution++) {
 			printf("**************************************\n");
@@ -799,7 +799,7 @@ int main()
 			strcat(export_filename, "erk");
 		}
 		// append date identifier
-		strcat(export_filename, "_september_1");
+		strcat(export_filename, "_september_3");
 		// append additional identifier
 		if (gnsf_init){
 			strcat(export_filename, "_init_eq");
