@@ -88,7 +88,7 @@ int main()
     x0[4] =  0.1000;  // valpha
     x0[5] =  1.0000;  // alpha
 
-	bool gnsf_init = false;
+	bool gnsf_init = true;
 
     u_sim[0] = 1;
 
@@ -96,7 +96,7 @@ int main()
 
 	int NF = nx + nu; // columns of forward seed
 
-	double T = 0.1; // simulation time
+	double T = 1; // simulation time
 
 	double *x_sim = malloc(sizeof(double)*nx*(nsim+1));
 
@@ -421,7 +421,7 @@ int main()
 /************************************************
 * numerical experiment
 ************************************************/
-	int n_executions = 30;
+	int n_executions = 10;
 
 	bool jac_reuse 	= false;
 	bool sens_forw 	= true;
@@ -429,15 +429,22 @@ int main()
 	bool output_z  	= false;
 	bool sens_alg  	= false;
 
-	int max_num_stages = 9;
+	int max_num_stages = 7;
 	int min_num_stages = 1;
 	int stages_in_experiment = max_num_stages - min_num_stages;
 
-	int max_num_steps = 13;
-	int min_num_steps = 1;
-	int steps_in_experiment = max_num_steps - min_num_steps;
+	int steps_in_experiment = 7;
+	int steps_array[steps_in_experiment];
+	steps_array[0] = 1;
+	steps_array[1] = 2;
+	steps_array[2] = 5;
+	steps_array[3] = 10;
+	steps_array[4] = 20;
+	steps_array[5] = 50;
+	steps_array[6] = 100;
 
-	int min_newton = 2;
+
+	int min_newton = 1;
 	int max_newton = 4;
 	int newton_in_experiment = max_newton - min_newton;
 
@@ -506,7 +513,7 @@ int main()
 			// print experiment info
 			printf("num_stages %d \n", num_stages);
 
-				for (int num_steps = min_num_steps; num_steps < max_num_steps; num_steps++) {
+				for (int tested_steps = 0; tested_steps < steps_in_experiment; tested_steps++) {
 					for (int newton_iter = min_newton; newton_iter < max_newton; newton_iter++){
 					/* sim plan & config */
 						sim_solver_plan plan;
@@ -562,6 +569,7 @@ int main()
 
 						opts->newton_iter = newton_iter;        // number of newton iterations per integration step
 						opts->ns                = num_stages;   // number of stages in rk integrator
+						int num_steps = steps_array[tested_steps]; 
 						opts->num_steps         = num_steps;    // number of steps
 
 						opts->jac_reuse = jac_reuse;        	// jacobian reuse
@@ -745,7 +753,7 @@ int main()
 
 					/* store experiment results in array entries */
 						// int i_experiment = (num_stages - min_num_stages) * steps_in_experiment + (num_steps - min_num_steps);
-						int i_experiment = ((num_stages - min_num_stages) * steps_in_experiment + (num_steps - min_num_steps)) *
+						int i_experiment = ((num_stages - min_num_stages) * steps_in_experiment + (tested_steps)) *
 											newton_in_experiment + (newton_iter - min_newton); // maybe easier to increment :P
 						// options
 						experiment_solver[i_experiment] 		 	= nss;
@@ -799,7 +807,7 @@ int main()
 			strcat(export_filename, "erk");
 		}
 		// append date identifier
-		strcat(export_filename, "_september_3");
+		strcat(export_filename, "_september_3_1");
 		// append additional identifier
 		if (gnsf_init){
 			strcat(export_filename, "_init_eq");
