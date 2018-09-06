@@ -1002,16 +1002,12 @@ int sim_gnsf_memory_calculate_size(void *config, void *dims_, void *opts_)
 
         size += nxz2 * sizeof(int); // ipiv_ELO
 
-        make_int_multiple_of(8, &size);
-        size += 8;
+        size += 8;  // corresponds to memory alignment
 
         size += 9 * sizeof(struct blasfeo_dmat);  // Z0*, K0*, Y0*, *in {x,u,v}
         size += 2 * sizeof(struct blasfeo_dmat); // ELO_LU, ELO_inv_ALO
         size += 3 * sizeof(struct blasfeo_dmat); // Lx, Lxdot, Lz
     }
-
-    make_int_multiple_of(64, &size);
-    size += 1 * 64;
 
     // precomputed matrices
     size += blasfeo_memsize_dmat(nK1, nvv);  // KKv
@@ -1053,9 +1049,12 @@ int sim_gnsf_memory_calculate_size(void *config, void *dims_, void *opts_)
         size += blasfeo_memsize_dmat(ny, nz1);        // Lz
     }
 
-    size += blasfeo_memsize_dvec(nZ1);   // ZZ0
+    size += blasfeo_memsize_dvec(nZ1);  // ZZ0
     size += blasfeo_memsize_dvec(nK1);  // KK0
     size += blasfeo_memsize_dvec(nyy);  // YY0
+
+    size += 1 * 64;  // corresponds to memory alignment
+    make_int_multiple_of(64, &size);
 
     return size;
 }
@@ -1499,7 +1498,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
 
     int num_stages = opts->ns;
     int num_steps  = opts->num_steps;
-    int newton_max = opts->newton_iter;
+    int newton_iter = opts->newton_iter;
 
     int nvv = num_stages * n_out;
     int nyy = num_stages * ny;
@@ -1758,7 +1757,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
         f_lo_val_out.x = &f_LO_val;
         f_lo_jac_out.A = &f_LO_jac_traj[ss];
 
-        for (int iter = 0; iter < newton_max; iter++)
+        for (int iter = 0; iter < newton_iter; iter++)
         {  // NEWTON-ITERATION
             /* EVALUATE RESIDUAL FUNCTION & JACOBIAN */
 
