@@ -998,6 +998,8 @@ int sim_gnsf_memory_calculate_size(void *config, void *dims_, void *opts_)
     size += num_stages * num_stages * sizeof(double);  // A_dt
     size += 2 * num_stages * sizeof(double);           // b_dt, c_butcher;
 
+    size += n_out * sizeof(double); // phi_guess
+
     if (opts->sens_algebraic){
 
         size += nxz2 * sizeof(int); // ipiv_ELO
@@ -1092,10 +1094,19 @@ void *sim_gnsf_memory_assign(void *config, void *dims_, void *opts_, void *raw_m
     sim_gnsf_memory *mem = (sim_gnsf_memory *) c_ptr;
     c_ptr += sizeof(sim_gnsf_memory);
 
-    // assign scaled butcher table
+    // assign doubles
     assign_and_advance_double(num_stages * num_stages, &mem->A_dt, &c_ptr);
     assign_and_advance_double(num_stages, &mem->b_dt, &c_ptr);
     assign_and_advance_double(num_stages, &mem->c_butcher, &c_ptr);
+
+    assign_and_advance_double(n_out, &mem->phi_guess, &c_ptr);
+
+    // initialize with zeros for default initialization;
+    for (int ii = 0; ii < n_out; ii++) {
+        mem->phi_guess[ii] = 0.0;
+    }
+
+    // blasfeo_dmat structs
     if (opts->sens_algebraic){
         assign_and_advance_int(nxz2, &mem->ipiv_ELO, &c_ptr);
 
@@ -1632,11 +1643,13 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
     blasfeo_pack_dvec(nx + nu, &in->S_adj[0], &lambda_old, 0);
     blasfeo_pack_dmat(nx, nx + nu, &in->S_forw[0], nx, &S_forw, 0, 0);
 
-    // initialize vv_traj
-    for (int ss = 0; ss < num_steps; ss++)
+    // initialize vv for first step, for further steps initialize with last vv value in step loop
+    for (int i = 0; i < num_stages; i++)
     {
-        blasfeo_dvecse(nvv, 0, &vv_traj[ss], 0);
+        blasfeo_pack_dvec(n_out, mem->phi_guess, &vv_traj[0], i * n_out);
     }
+
+    // blasfeo_dvecse(nvv, 0.0, &vv_traj[0], 0);
 
     /************************************************
      * Set up function input & outputs
@@ -1742,7 +1755,12 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
      ************************************************/
 
     for (int ss = 0; ss < num_steps; ss++)
-    {  // STEP LOOP
+    {
+        // STEP LOOP
+        // initialize lifted variables vv with solution of previous step
+        if (ss > 0)
+            blasfeo_dveccp(nvv, &vv_traj[ss-1], 0, &vv_traj[ss], 0);
+
         blasfeo_dgemv_n(nyy, nx1, 1.0, &YYx, 0, 0, &x0_traj, ss * nx, 1.0, &yyu, 0, &yyss,
                         nyy * ss);  // yyss = YY0 + YYu * u + YYx * x0(at_stage)
         // printf("yyss =  \n");
