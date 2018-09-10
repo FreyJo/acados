@@ -14,7 +14,7 @@ function [ model ] = export_inverted_pendulum_dae_model()
         % old casadi versions
         error('Please download and install Casadi 3.4.0 to ensure compatibility with acados')
     end
-    model_name_prefix = 'inv_pendulum';
+    model_name_prefix = 'inv_pendulum_full_phi';
     
     %% Parameters (taken from Rien Quirynens Master Thesis)
     m = 2;
@@ -29,7 +29,7 @@ function [ model ] = export_inverted_pendulum_dae_model()
     vx      = SX.sym('vx');
     vy      = SX.sym('vy');
     valpha  = SX.sym('valpha');
-    x = vertcat(xpos, ypos, alpha, vx, vy, valpha);
+    x = vertcat(xpos, ypos, vx, vy, valpha, alpha);
     
     ax      = SX.sym('ax');     % Algebraic states
     ay      = SX.sym('ay');
@@ -48,7 +48,7 @@ function [ model ] = export_inverted_pendulum_dae_model()
     vy_dot      = SX.sym('vy_dot');
     valpha_dot  = SX.sym('valpha_dot');
     
-    xdot = [xpos_dot; ypos_dot; alpha_dot; vx_dot; vy_dot; valpha_dot];
+    xdot = [xpos_dot; ypos_dot; vx_dot; vy_dot; valpha_dot; alpha_dot];
     
     %% Dynamics: implicit DAE formulation (index-1)
     % x = vertcat(xpos, ypos, alpha, vx, vy, valpha);

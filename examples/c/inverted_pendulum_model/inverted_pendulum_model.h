@@ -125,6 +125,47 @@ const int *inv_pendulum_f_lo_fun_jac_x1k1uz_sparsity_out(int);
 int        inv_pendulum_f_lo_fun_jac_x1k1uz_n_in();
 int        inv_pendulum_f_lo_fun_jac_x1k1uz_n_out();
 
+/* GNSF Functions - FULL PHI TRANSCRIPTION */
+// used to import model matrices
+int        inv_pendulum_full_phi_get_matrices_fun(const double** arg, double** res, int* iw, double* w, void *mem);
+int        inv_pendulum_full_phi_get_matrices_fun_work(int *, int *, int *, int *);
+const int *inv_pendulum_full_phi_get_matrices_fun_sparsity_in(int);
+const int *inv_pendulum_full_phi_get_matrices_fun_sparsity_out(int);
+int        inv_pendulum_full_phi_get_matrices_fun_n_in();
+int        inv_pendulum_full_phi_get_matrices_fun_n_out();
+
+// phi_fun
+int        inv_pendulum_full_phi_phi_fun(const double** arg, double** res, int* iw, double* w, void *mem);
+int        inv_pendulum_full_phi_phi_fun_work(int *, int *, int *, int *);
+const int *inv_pendulum_full_phi_phi_fun_sparsity_in(int);
+const int *inv_pendulum_full_phi_phi_fun_sparsity_out(int);
+int        inv_pendulum_full_phi_phi_fun_n_in();
+int        inv_pendulum_full_phi_phi_fun_n_out();
+
+// phi_fun_jac_y
+int        inv_pendulum_full_phi_phi_fun_jac_y(const double** arg, double** res, int* iw, double* w, void *mem);
+int        inv_pendulum_full_phi_phi_fun_jac_y_work(int *, int *, int *, int *);
+const int *inv_pendulum_full_phi_phi_fun_jac_y_sparsity_in(int);
+const int *inv_pendulum_full_phi_phi_fun_jac_y_sparsity_out(int);
+int        inv_pendulum_full_phi_phi_fun_jac_y_n_in();
+int        inv_pendulum_full_phi_phi_fun_jac_y_n_out();
+
+// phi_jac_y_uhat
+int        inv_pendulum_full_phi_phi_jac_y_uhat(const double** arg, double** res, int* iw, double* w, void *mem);
+int        inv_pendulum_full_phi_phi_jac_y_uhat_work(int *, int *, int *, int *);
+const int *inv_pendulum_full_phi_phi_jac_y_uhat_sparsity_in(int);
+const int *inv_pendulum_full_phi_phi_jac_y_uhat_sparsity_out(int);
+int        inv_pendulum_full_phi_phi_jac_y_uhat_n_in();
+int        inv_pendulum_full_phi_phi_jac_y_uhat_n_out();
+
+// f_lo_fun_jac_x1k1uz
+int        inv_pendulum_full_phi_f_lo_fun_jac_x1k1uz(const double** arg, double** res, int* iw, double* w, void *mem);
+int        inv_pendulum_full_phi_f_lo_fun_jac_x1k1uz_work(int *, int *, int *, int *);
+const int *inv_pendulum_full_phi_f_lo_fun_jac_x1k1uz_sparsity_in(int);
+const int *inv_pendulum_full_phi_f_lo_fun_jac_x1k1uz_sparsity_out(int);
+int        inv_pendulum_full_phi_f_lo_fun_jac_x1k1uz_n_in();
+int        inv_pendulum_full_phi_f_lo_fun_jac_x1k1uz_n_out();
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

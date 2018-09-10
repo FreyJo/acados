@@ -169,6 +169,19 @@ file(GLOB INV_PENDULUM_SRC
     inverted_pendulum_model/inv_pendulum_get_matrices_fun.c
 )
 
+file(GLOB INV_PENDULUM_FULL_PHI_SRC
+    inverted_pendulum_model/inv_pendulum_impl_ode_fun.c
+    inverted_pendulum_model/inv_pendulum_impl_ode_fun_jac_x_xdot.c
+    inverted_pendulum_model/inv_pendulum_impl_ode_jac_x_xdot_u.c
+    inverted_pendulum_model/inv_pendulum_impl_ode_fun_jac_x_xdot_u.c
+    inverted_pendulum_model/inv_pendulum_impl_ode_hess.c
+    inverted_pendulum_model/inv_pendulum_full_phi_phi_fun.c
+    inverted_pendulum_model/inv_pendulum_full_phi_phi_fun_jac_y.c
+    inverted_pendulum_model/inv_pendulum_full_phi_phi_jac_y_uhat.c
+    inverted_pendulum_model/inv_pendulum_full_phi_f_lo_fun_jac_x1k1uz.c
+    inverted_pendulum_model/inv_pendulum_full_phi_get_matrices_fun.c
+)
+
 file(GLOB GNSF_CRANE_SRC
     gnsf_crane_model/phi_fun.c
     gnsf_crane_model/phi_fun_jac_y.c
@@ -238,6 +251,11 @@ add_test(integrator_experiment integrator_experiment)
 add_executable(integrator_experiment_inv_pendulum integrator_experiment_inv_pendulum.c ${INV_PENDULUM_SRC})
 target_link_libraries(integrator_experiment_inv_pendulum acados)
 add_test(integrator_experiment_inv_pendulum integrator_experiment_inv_pendulum)
+
+# -------------------- integrator_experiment_inv_pendulum_full_phi
+add_executable(integrator_experiment_inv_pendulum_full_phi integrator_experiment_inv_pendulum_full_phi.c ${INV_PENDULUM_FULL_PHI_SRC})
+target_link_libraries(integrator_experiment_inv_pendulum_full_phi acados)
+add_test(integrator_experiment_inv_pendulum_full_phi integrator_experiment_inv_pendulum_full_phi)
 
 # -------------------- sim_gnsf_crane
 add_executable(sim_gnsf_crane sim_gnsf_crane.c ${GNSF_CRANE_SRC})
