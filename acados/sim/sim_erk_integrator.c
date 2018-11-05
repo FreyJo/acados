@@ -38,6 +38,8 @@ int sim_erk_dims_calculate_size()
     return size;
 }
 
+
+
 void *sim_erk_dims_assign(void *config_, void *raw_memory)
 {
     char *c_ptr = raw_memory;
@@ -54,17 +56,23 @@ void *sim_erk_dims_assign(void *config_, void *raw_memory)
     return dims;
 }
 
+
+
 void sim_erk_set_nx(void *dims_, int nx)
 {
     sim_erk_dims *dims = (sim_erk_dims *) dims_;
     dims->nx = nx;
 }
 
+
+
 void sim_erk_set_nu(void *dims_, int nu)
 {
     sim_erk_dims *dims = (sim_erk_dims *) dims_;
     dims->nu = nu;
 }
+
+
 
 void sim_erk_set_nz(void *dims_, int nz)
 {
@@ -73,11 +81,14 @@ void sim_erk_set_nz(void *dims_, int nz)
 }
 
 
+
 void sim_erk_get_nx(void *dims_, int *nx)
 {
     sim_erk_dims *dims = (sim_erk_dims *) dims_;
     *nx = dims->nx;
 }
+
+
 
 void sim_erk_get_nu(void *dims_, int *nu)
 {
@@ -85,11 +96,15 @@ void sim_erk_get_nu(void *dims_, int *nu)
     *nu = dims->nu;
 }
 
+
+
 void sim_erk_get_nz(void *dims_, int *nz)
 {
     sim_erk_dims *dims = (sim_erk_dims *) dims_;
     *nz = dims->nz;
 }
+
+
 
 /************************************************
  * model
@@ -104,6 +119,8 @@ int sim_erk_model_calculate_size(void *config, void *dims)
     return size;
 }
 
+
+
 void *sim_erk_model_assign(void *config, void *dims, void *raw_memory)
 {
     char *c_ptr = (char *) raw_memory;
@@ -114,6 +131,8 @@ void *sim_erk_model_assign(void *config, void *dims, void *raw_memory)
     return model;
 }
 
+
+
 int sim_erk_model_set_function(void *model_, sim_function_t fun_type, void *fun)
 {
     erk_model *model = model_;
@@ -123,8 +142,7 @@ int sim_erk_model_set_function(void *model_, sim_function_t fun_type, void *fun)
         case EXPL_ODE_FUN:
             model->expl_ode_fun = (external_function_generic *) fun;
             break;
-        case EXPL_ODE_JAC:
-            model->expl_ode_jac = (external_function_generic *) fun;
+        case EXPL_ODE_JAC:  // TODO(oj): remove NOT used!
             break;
         case EXPL_ODE_HES:
             model->expl_ode_hes = (external_function_generic *) fun;
@@ -140,6 +158,8 @@ int sim_erk_model_set_function(void *model_, sim_function_t fun_type, void *fun)
     }
     return ACADOS_SUCCESS;
 }
+
+
 
 /************************************************
  * opts
@@ -160,6 +180,8 @@ int sim_erk_opts_calculate_size(void *config_, void *dims)
 
     return size;
 }
+
+
 
 void *sim_erk_opts_assign(void *config_, void *dims, void *raw_memory)
 {
@@ -184,6 +206,8 @@ void *sim_erk_opts_assign(void *config_, void *dims, void *raw_memory)
 
     return (void *) opts;
 }
+
+
 
 void sim_erk_opts_initialize_default(void *config_, void *dims_, void *opts_)
 {
@@ -278,6 +302,8 @@ void sim_erk_opts_initialize_default(void *config_, void *dims_, void *opts_)
     opts->sens_algebraic = false;
 }
 
+
+
 void sim_erk_opts_update(void *config_, void *dims, void *opts_)
 {
     sim_rk_opts *opts = opts_;
@@ -365,6 +391,8 @@ void sim_erk_opts_update(void *config_, void *dims, void *opts_)
 
     return;
 }
+
+
 
 /************************************************
  * memory
@@ -510,9 +538,9 @@ int sim_erk(void *config_, sim_in *in, sim_out *out, void *opts_, void *mem_, vo
     // assert - only use supported features
     assert(nz == 0 && "nz should be zero - DAEs are not supported for this integrator");
     assert(opts->output_z == false &&
-            "opts->output_z should be false - DAEs are not supported for this integrator");
+           "opts->output_z should be false - DAEs are not supported for this integrator");
     assert(opts->sens_algebraic == false &&
-       "opts->sens_algebraic should be false - DAEs are not supported for this integrator");
+           "opts->sens_algebraic should be false - DAEs are not supported for this integrator");
 
     int nf = opts->num_forw_sens;
     if (!opts->sens_forw) nf = 0;
@@ -739,30 +767,29 @@ int sim_erk(void *config_, sim_in *in, sim_out *out, void *opts_, void *mem_, vo
                     ext_fun_out[1] = adj_traj + s * nAdj + nx + nu;  // hess: (nx+nu)*(nx+nu)
 
                     model->expl_ode_hes->evaluate(model->expl_ode_hes, ext_fun_type_in, ext_fun_in,
-                                ext_fun_type_out, ext_fun_out);
-
+                                                  ext_fun_type_out, ext_fun_out);
                 }
                 timing_ad += acados_toc(&timer_ad);
             }
             for (s = 0; s < ns; s++)
-                for (i = 0; i < nAdj; i++)
-                    adj_tmp[i] += adj_traj[s * nAdj + i];  // ERK step
+                for (i = 0; i < nAdj; i++) adj_tmp[i] += adj_traj[s * nAdj + i];  // ERK step
         }
 
         // store adjoint sensitivities
-        for (i = 0; i < nx + nu; i++)
-            S_adj_out[i] = adj_tmp[i];
+        for (i = 0; i < nx + nu; i++) S_adj_out[i] = adj_tmp[i];
         // store hessian
         if (opts->sens_hess)
         {
             // former line for tridiagonal export was
             //            for (i = 0; i < nhess; i++) S_hess_out[i] = adj_tmp[nx + nu + i];
             int count_upper = 0;
-            for (int j = 0; j < nx + nu; j++) {
-                for (int i = j; i < nx + nu; i++){
-                    S_hess_out[i + (nf) * j] = adj_tmp[nx + nu + count_upper];
-                    S_hess_out[j + (nf) * i] = adj_tmp[nx + nu + count_upper];
-                                // copy to upper part
+            for (int j = 0; j < nx + nu; j++)
+            {
+                for (int i = j; i < nx + nu; i++)
+                {
+                    S_hess_out[i + (nf) *j] = adj_tmp[nx + nu + count_upper];
+                    S_hess_out[j + (nf) *i] = adj_tmp[nx + nu + count_upper];
+                    // copy to upper part
                     count_upper++;
                 }
             }
