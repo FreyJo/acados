@@ -63,6 +63,7 @@ int main()
 	/************************************************
 	* initialization
 	************************************************/
+	char model_name[50] = "wt_nx6_";
 
 	acados_timer test_timer;
 	acados_tic(&test_timer);
@@ -269,8 +270,8 @@ int main()
 
 	sim_rk_opts *opts = sim_opts_create(config, dims);
 
-	opts->ns = 10; // number of stages in rk integrator
-	opts->num_steps = 1000; // number of integration steps
+	opts->ns = 8; // number of stages in rk integrator
+	opts->num_steps = 400; // number of integration steps
 	opts->newton_iter = 5;
 	opts->jac_reuse = false;
 	opts->sens_adj = true;
@@ -347,16 +348,6 @@ int main()
 					sim_solver->mem, sim_solver->work, in->T);
 	}
 
-
-	// to avoid unstable behavior introduce a small pi-controller for rotor speed tracking
-	// double uctrl = 0.0;
-	// double uctrlI = 0.0;
-	// double kI = 1e-1;
-	// double kP = 10;
-	// double tmp, ctrlErr;
-
-
-
 	for (int ii = 0; ii < 1; ii++) // upper bound was nsim, but for error computation we just compare first simulation
 	{
 		// update initial state
@@ -403,14 +394,6 @@ int main()
 		// extract state at next time step
 		for (int jj = 0; jj < nx; jj++)
 			x_sim[(ii+1)*nx+jj] = out->xn[jj];
-
-		// update PI-controller
-		// ctrlErr = x_ref[nx*(ii+1)] - x_sim[nx*(ii+1)];
-		// uctrlI = uctrlI + kI*ctrlErr*T;
-		// uctrl = kP*ctrlErr + uctrlI;
-
-		// if (ii < nsim-1)
-		// 	printf("\nii = %d, sim error = %e\n", ii, ctrlErr);
 	}
 
 	/************************************************
@@ -462,7 +445,7 @@ int main()
 /************************************************
 * numerical experiment
 ************************************************/
-	int n_executions = 10;
+	int n_executions = 20;
 
 	bool jac_reuse 	= false;
 	bool sens_forw 	= true;
@@ -471,21 +454,24 @@ int main()
 	bool sens_alg  	= false;
 	bool sens_hess  = false;
 
-	int max_num_stages = 9;
+	int max_num_stages = 8;
 	int min_num_stages = 1;
 	int stages_in_experiment = max_num_stages - min_num_stages;
 
-	int steps_in_experiment = 7;
+	int steps_in_experiment = 10;
 	int steps_array[steps_in_experiment];
 	steps_array[0] = 1;
 	steps_array[1] = 2;
-	steps_array[2] = 5;
-	steps_array[3] = 10;
-	steps_array[4] = 20;
-	steps_array[5] = 50;
-	steps_array[6] = 100;
+	steps_array[2] = 3;
+	steps_array[3] = 4;
+	steps_array[4] = 5;
+	steps_array[5] = 7;
+	steps_array[6] = 10;
+	steps_array[7] = 20;
+	steps_array[8] = 50;
+	steps_array[9] = 100;
 
-	int min_newton = 1;
+	int min_newton = 0;
 	int max_newton = 4;
 	int newton_in_experiment = max_newton - min_newton;
 
@@ -673,13 +659,6 @@ int main()
 								sim_gnsf_import_matrices(gnsf_dim, model, get_model_matrices);
 								break;
 							}
-							// case NEW_LIFTED_IRK:  // new_lifted_irk
-							// {
-							//     sim_set_model(config, in, "impl_ode_fun", &impl_ode_fun);
-							//     sim_set_model(config, in, "impl_ode_fun_jac_x_xdot_u",
-							//              &impl_ode_fun_jac_x_xdot_u);
-							//     break;
-							// }
 							default :
 							{
 								printf("\nnot enough sim solvers implemented!\n");
@@ -763,6 +742,9 @@ int main()
 							ad_time[ii]  = out->info->ADtime;
 							la_time[ii]  = out->info->CPUtime - out->info->ADtime;;
 
+							if (plan.sim_solver == GNSF && newton_iter == min_newton && ii == 0) {
+								print_fat_matrices(model_name, sim_solver->mem, dims, opts_);
+							}
 							// extract state at next time step
 							for (int jj = 0; jj < nx; jj++)
 								x_sim[(ii+1)*nx+jj] = out->xn[jj];
@@ -887,7 +869,7 @@ int main()
 	/* print results to file */
 		char export_filename[150] = "/home/oj/Git/1Thesis/1Matlab_prototypes/evaluation/results/results_";
 		// append model name
-		strcat(export_filename, "wt_nx6_");
+        strcat(export_filename, model_name);
 		if (nss == 2){
 			strcat(export_filename, "irk");
 		}
@@ -898,7 +880,7 @@ int main()
 			strcat(export_filename, "erk");
 		}
 		// append date identifier
-		strcat(export_filename, "_september_3_1");
+		strcat(export_filename, "_FINAL");
 		// append additional identifier
 		if (gnsf_init){
 			strcat(export_filename, "_init_eq");
