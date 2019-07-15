@@ -1467,7 +1467,17 @@ int sim_gnsf_workspace_calculate_size(void *config, void *dims_, void *opts_)
     size += 2 * num_steps * sizeof(struct blasfeo_dvec);  // vv_traj, yy_traj
     size += num_steps * sizeof(struct blasfeo_dmat);  // f_LO_jac_traj
 
-    size += nvv * sizeof(int);  // ipiv
+    if (opts->sens_hess)
+    {
+        size += 2 * sizeof(struct blasfeo_dmat);  // Hess, H_vv
+        size += num_steps * sizeof(struct blasfeo_dmat);  // J_r_vv
+        size += num_steps * nvv * sizeof(int);  // ipiv
+    }
+    else
+    {
+        size += sizeof(struct blasfeo_dmat); // J_r_vv;
+        size += nvv * sizeof(int);  // ipiv
+    }
 
     make_int_multiple_of(8, &size);
     size += 1 * 8;
@@ -1506,7 +1516,15 @@ int sim_gnsf_workspace_calculate_size(void *config, void *dims_, void *opts_)
 
     size += num_steps * blasfeo_memsize_dmat(nK2, 2 * nx1 + nu + nz1);  // f_LO_jac_traj
 
-    size += blasfeo_memsize_dmat(nvv, nvv);       // J_r_vv
+    if (opts->sens_hess)
+    {
+        size += num_steps * blasfeo_memsize_dmat(nvv, nvv);  // J_r_vv
+    }
+    else
+    {
+        size += blasfeo_memsize_dmat(nvv, nvv);  // J_r_vv
+    }
+
     size += blasfeo_memsize_dmat(nvv, nx1 + nu);  // J_r_x1u
 
     if (opts->sens_algebraic){
@@ -1533,6 +1551,12 @@ int sim_gnsf_workspace_calculate_size(void *config, void *dims_, void *opts_)
     size += blasfeo_memsize_dmat(nx, nu);    // dPsi_du
 
     size += blasfeo_memsize_dmat(nvv, ny + nuhat);  // dPHI_dyuhat
+
+    if (opts->sens_hess)
+    {
+        size += blasfeo_memsize_dmat(nx+nu, nx+nu); // Hess
+        size += blasfeo_memsize_dmat(nvv, nvv); // H_vv
+    }
 
     make_int_multiple_of(8, &size);
     size += 1 * 8;
@@ -1579,12 +1603,29 @@ static void *sim_gnsf_cast_workspace(void *config, void *dims_, void *opts_, voi
     align_char_to(8, &c_ptr);
 
     assign_and_advance_double(num_stages, &workspace->Z_work, &c_ptr);
-
-    assign_and_advance_int(nvv, &workspace->ipiv, &c_ptr);
+    if (opts->sens_hess)
+    {
+        assign_and_advance_int(nvv * num_steps, &workspace->ipiv, &c_ptr);
+    }
+    else
+    {
+        assign_and_advance_int(nvv, &workspace->ipiv, &c_ptr);
+    }
 
     align_char_to(8, &c_ptr);
 
     assign_and_advance_blasfeo_dmat_structs(num_steps, &workspace->f_LO_jac_traj, &c_ptr);
+
+    if (opts->sens_hess)
+    {
+        assign_and_advance_blasfeo_dmat_structs(num_steps, &workspace->J_r_vv, &c_ptr);
+        assign_and_advance_blasfeo_dmat_structs(1, &workspace->Hess, &c_ptr);
+        assign_and_advance_blasfeo_dmat_structs(1, &workspace->H_vv, &c_ptr);
+    }
+    else
+    {
+        assign_and_advance_blasfeo_dmat_structs(1, &workspace->J_r_vv, &c_ptr);
+    }
 
     assign_and_advance_blasfeo_dvec_structs(num_steps, &workspace->vv_traj, &c_ptr);
     assign_and_advance_blasfeo_dvec_structs(num_steps, &workspace->yy_traj, &c_ptr);
@@ -1634,7 +1675,17 @@ static void *sim_gnsf_cast_workspace(void *config, void *dims_, void *opts_, voi
     }
 
     assign_and_advance_blasfeo_dmat_mem(nvv, nx1 + nu, &workspace->J_r_x1u, &c_ptr);
-    assign_and_advance_blasfeo_dmat_mem(nvv, nvv, &workspace->J_r_vv, &c_ptr);
+    if (opts->sens_hess)
+    {
+        assign_and_advance_blasfeo_dmat_mem(nx+nu, nx+nu, workspace->Hess, &c_ptr);
+        assign_and_advance_blasfeo_dmat_mem(nvv, nvv, workspace->H_vv, &c_ptr);
+        for (int ii = 0; ii < num_steps; ii++)
+            assign_and_advance_blasfeo_dmat_mem(nvv, nvv, &workspace->J_r_vv[ii], &c_ptr);
+    }
+    else
+    {
+        assign_and_advance_blasfeo_dmat_mem(nvv, nvv, workspace->J_r_vv, &c_ptr);
+    }
 
     if (opts->sens_algebraic){
         assign_and_advance_blasfeo_dmat_mem(nz1, nx1 + nu, &workspace->dz10_dx1u, &c_ptr);
@@ -1726,8 +1777,11 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
     double *Z_work = workspace->Z_work;
 
     struct blasfeo_dmat *J_r_vv =
-        &workspace->J_r_vv;  // store the the jacobian of the residual w.r.t. vv
+        workspace->J_r_vv;  // store the the jacobian of the residual w.r.t. vv
+    struct blasfeo_dmat *J_r_vv_ss = J_r_vv;
+
     int *ipiv = workspace->ipiv;
+    int *ipiv_ss = ipiv;
     struct blasfeo_dmat *J_r_x1u = &workspace->J_r_x1u;  // needed for sensitivity propagation
 
     struct blasfeo_dmat *dK1_dx1 = &workspace->dK1_dx1;
@@ -1786,6 +1840,8 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
     double *b_dt = mem->b_dt;
 
     int *ipivM2 = mem->ipivM2;
+    int *ipiv_x = model->ipiv_x;
+    int *ipiv_z = model->ipiv_z;
 
     struct blasfeo_dmat *KKv = &mem->KKv;
     struct blasfeo_dmat *KKx = &mem->KKx;
@@ -1833,10 +1889,11 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
 
     int *ipiv_ELO = mem->ipiv_ELO;
     int *ipiv_vv0 = workspace->ipiv_vv0;
-    int *ipiv_x = model->ipiv_x;
-    int *ipiv_z = model->ipiv_z;
 
     struct blasfeo_dmat *dr0_dvv0 = &workspace->dr0_dvv0;
+
+    // ONLY available for sens_hess = true
+    struct blasfeo_dmat *Hess = workspace->Hess;
 
     // transform inputs to blasfeo and apply permutation ipiv_x
     blasfeo_pack_dvec(nu, in->u, u0, 0);
@@ -1846,7 +1903,6 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
     blasfeo_pack_dvec(nx + nu, &in->S_adj[0], lambda_old, 0);
     blasfeo_dvecpe(nx, ipiv_x, lambda, 0);
     blasfeo_dvecpe(nx, ipiv_x, lambda_old, 0);
-
 
     if (model->fully_linear && !mem->first_call)
     {
@@ -1864,7 +1920,6 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
             blasfeo_pack_dmat(nx, nx + nu, &in->S_forw[0], nx, dxf_dwn, 0, 0);
             blasfeo_drowpe(nx, ipiv_x, dxf_dwn);
             blasfeo_dcolpe(nx, ipiv_x, dxf_dwn);
-
 
             // S_forw_new_x = S_forw_x * dxf_dx
             blasfeo_dgemm_nn(nx, nx, nx, 1.0, S_forw, 0, 0, dxf_dwn, 0, 0, 0.0, S_forw_new, 0, 0,
@@ -2011,6 +2066,12 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
 
         for (int ss = 0; ss < num_steps; ss++)
         {
+            if (opts->sens_hess)
+            {
+                // set pointers to store J_r_vv for each step
+                J_r_vv_ss = &J_r_vv[ss];
+                ipiv_ss = &ipiv[nvv*ss];
+            }
             // STEP LOOP
             // initialize lifted variables vv with solution of previous step
             if (ss > 0)
@@ -2033,10 +2094,10 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                     if ((opts->jac_reuse && (ss == 0) && (iter == 0)) || (!opts->jac_reuse))
                     {
                         // set J_r_vv to unit matrix
-                        blasfeo_dgese(nvv, nvv, 0.0, J_r_vv, 0, 0);
+                        blasfeo_dgese(nvv, nvv, 0.0, J_r_vv_ss, 0, 0);
                         for (int ii = 0; ii < nvv; ii++)
                         {
-                            blasfeo_dgein1(1.0, J_r_vv, ii, ii);
+                            blasfeo_dgein1(1.0, J_r_vv_ss, ii, ii);
                         }
                     }
 
@@ -2055,7 +2116,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
 
                             // build jacobian J_r_vv
                             blasfeo_dgemm_nn(n_out, nvv, ny, -1.0, dPHI_dyuhat, ii * n_out, 0, YYv,
-                                            ii * ny, 0, 1.0, J_r_vv, ii * n_out, 0, J_r_vv, ii * n_out,
+                                            ii * ny, 0, 1.0, J_r_vv_ss, ii * n_out, 0, J_r_vv_ss, ii * n_out,
                                             0);
                         }
                         else
@@ -2077,13 +2138,13 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                     // factorize J_r_vv
                     if ((opts->jac_reuse && (ss == 0) & (iter == 0)) || (!opts->jac_reuse))
                     {
-                        blasfeo_dgetrf_rp(nvv, nvv, J_r_vv, 0, 0, J_r_vv, 0, 0, ipiv);
+                        blasfeo_dgetrf_rp(nvv, nvv, J_r_vv_ss, 0, 0, J_r_vv_ss, 0, 0, ipiv_ss);
                     }
 
                     /* Solve linear system and update vv */
-                    blasfeo_dvecpe(nvv, ipiv, res_val, 0);  // permute r.h.s.
-                    blasfeo_dtrsv_lnu(nvv, J_r_vv, 0, 0, res_val, 0, res_val, 0);
-                    blasfeo_dtrsv_unn(nvv, J_r_vv, 0, 0, res_val, 0, res_val, 0);
+                    blasfeo_dvecpe(nvv, ipiv_ss, res_val, 0);  // permute r.h.s.
+                    blasfeo_dtrsv_lnu(nvv, J_r_vv_ss, 0, 0, res_val, 0, res_val, 0);
+                    blasfeo_dtrsv_unn(nvv, J_r_vv_ss, 0, 0, res_val, 0, res_val, 0);
                     out->info->LAtime += acados_toc(&la_timer);
 
                     blasfeo_daxpy(nvv, -1.0, res_val, 0, &vv_traj[ss], 0, &vv_traj[ss], 0);
@@ -2185,10 +2246,10 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                     blasfeo_dgemv_n(nyy, nvv, 1.0, YYv, 0, 0, &vv_traj[ss], 0, 1.0, yyss, nyy * ss,
                                     &yy_traj[ss], 0);
                     // set J_r_vv to unit matrix
-                    blasfeo_dgese(nvv, nvv, 0.0, J_r_vv, 0, 0);
+                    blasfeo_dgese(nvv, nvv, 0.0, J_r_vv_ss, 0, 0);
                     for (int ii = 0; ii < nvv; ii++)
                     {
-                        blasfeo_dgein1(1.0, J_r_vv, ii, ii);
+                        blasfeo_dgein1(1.0, J_r_vv_ss, ii, ii);
                     }
 
                     for (int ii = 0; ii < num_stages; ii++)
@@ -2204,7 +2265,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
 
                         // build J_r_vv
                         blasfeo_dgemm_nn(n_out, nvv, ny, -1.0, dPHI_dyuhat, ii * n_out, 0, YYv, ii * ny,
-                                        0, 1.0, J_r_vv, ii * n_out, 0, J_r_vv, ii * n_out, 0);
+                                        0, 1.0, J_r_vv_ss, ii * n_out, 0, J_r_vv_ss, ii * n_out, 0);
                         // build J_r_x1u
                         blasfeo_dgemm_nn(n_out, nx1, ny, -1.0, dPHI_dyuhat, ii * n_out, 0, YYx, ii * ny,
                                         0, 0.0, J_r_x1u, ii * n_out, 0, J_r_x1u, ii * n_out,
@@ -2217,14 +2278,14 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                                         nx1);  // + dPhi_duhat * L_u;
                     }
                     acados_tic(&la_timer);
-                    blasfeo_dgetrf_rp(nvv, nvv, J_r_vv, 0, 0, J_r_vv, 0, 0,
-                                            ipiv);        // factorize J_r_vv
+                    blasfeo_dgetrf_rp(nvv, nvv, J_r_vv_ss, 0, 0, J_r_vv_ss, 0, 0,
+                                            ipiv_ss);        // factorize J_r_vv
                     // printf("dPHI_dyuhat = (forward, ss = %d) \n", ss);
                     // blasfeo_print_exp_dmat(nvv, ny+nuhat, dPHI_dyuhat, 0, 0);
 
-                    blasfeo_drowpe(nvv, ipiv, J_r_x1u);  // permute also rhs
-                    blasfeo_dtrsm_llnu(nvv, nx1 + nu, 1.0, J_r_vv, 0, 0, J_r_x1u, 0, 0, J_r_x1u, 0, 0);
-                    blasfeo_dtrsm_lunn(nvv, nx1 + nu, 1.0, J_r_vv, 0, 0, J_r_x1u, 0, 0, J_r_x1u, 0, 0);
+                    blasfeo_drowpe(nvv, ipiv_ss, J_r_x1u);  // permute also rhs
+                    blasfeo_dtrsm_llnu(nvv, nx1 + nu, 1.0, J_r_vv_ss, 0, 0, J_r_x1u, 0, 0, J_r_x1u, 0, 0);
+                    blasfeo_dtrsm_lunn(nvv, nx1 + nu, 1.0, J_r_vv_ss, 0, 0, J_r_x1u, 0, 0, J_r_x1u, 0, 0);
                     out->info->LAtime += acados_toc(&la_timer);
 
                     blasfeo_dgemm_nn(nK1, nx1, nvv, -1.0, KKv, 0, 0, J_r_x1u, 0, 0, 1.0, KKx, 0, 0,
@@ -2545,9 +2606,12 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
     /************************************************
      * ADJOINT SENSITIVITY PROPAGATION
      ************************************************/
+        if (opts->sens_hess)
+            blasfeo_dgese(nx+nu, nx+nu, 0.0, Hess, 0, 0);
 
         if (opts->sens_adj)
         {
+            // TODO: if (opts->sens_forw), perform multiplication with S_forw instead of this!
             for (int ss = num_steps - 1; ss >= 0; ss--)
             {
                 /*  SET UP Right Hand Sides for LINEAR SYSTEMS and J_G2_K1 */
@@ -2712,6 +2776,13 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
         blasfeo_dvecpei(nx, ipiv_x, lambda, 0);
         blasfeo_unpack_dvec(nx + nu, lambda, 0, out->S_adj);
     }
+    if (opts->sens_hess)
+    {
+        blasfeo_drowpei(nx, ipiv_x, Hess);
+        blasfeo_dcolpei(nx, ipiv_x, Hess);
+        blasfeo_unpack_dmat(nx+nu, nx+nu, Hess, 0, 0, out->S_hess, nx+nu);
+    }
+
 
     out->info->CPUtime = acados_toc(&tot_timer);
     return 0;

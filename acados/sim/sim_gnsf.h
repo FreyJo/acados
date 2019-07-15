@@ -192,7 +192,7 @@ typedef struct
 
     struct blasfeo_dvec uhat;
 
-    struct blasfeo_dmat J_r_vv;
+    struct blasfeo_dmat* J_r_vv;
     struct blasfeo_dmat J_r_x1u;
 
     struct blasfeo_dmat dK1_dx1;
@@ -222,6 +222,10 @@ typedef struct
     struct blasfeo_dmat f_LO_jac0; // (nx2+nz2) * (2*nx1 + nz1 + nu)
     struct blasfeo_dmat sens_z2_rhs; // (nx2 + nz2) * (nx1 + nu)
     int *ipiv_vv0;
+
+    // memory only available if (opts->sens_hess)
+    struct blasfeo_dmat* Hess; // (nx+nu, nx+nu)
+    struct blasfeo_dmat* H_vv; // nvv * nvv
 
 } gnsf_workspace;
 

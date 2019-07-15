@@ -57,18 +57,18 @@ typedef struct
 {
     void *dims;
 
-    double *x;  // x[NX] - initial state value for simulation
-    double *u;  // u[NU] - control - constant over simulation time
+    double *x;  // x[nx] - initial state value for simulation
+    double *u;  // u[nu] - control - constant over simulation time
 
-    double *xdot;  // xdot[NX] - initialization for state derivatives k within the integrator
-    double *z;     // z[NZ] - initialization for algebraic variables z
+    double *xdot;  // xdot[nx] - initialization for state derivatives k within the integrator
+    double *z;     // z[nz] - initialization for algebraic variables z
 
     double *S_forw;  // forward seed [Sx, Su]
     double *S_adj;   // backward seed
 
-    bool identity_seed; // indicating if S_forw = [eye(nx), zeros(nx x nu)]
+    bool identity_seed; // indicating if S_forw = [eye(nx), zeros(nx,nu)]
 
-    void *model;
+    void *model; // model struct different for integrators
 
     double T;  // simulation time
 
@@ -78,19 +78,22 @@ typedef struct
 
 typedef struct
 {
-    double CPUtime;  // in seconds
-    double LAtime;   // in seconds
-    double ADtime;   // in seconds
+    // times in seconds
+    double CPUtime;  // total
+    double LAtime;   // linear system solutions
+    double ADtime;   // time in external functions
+
 } sim_info;
 
 
 
 typedef struct
 {
-    double *xn;      // xn[NX]
-    double *S_forw;  // S_forw[NX*(NX+NU)]
-    double *S_adj;   //
-    double *S_hess;  //
+    double *xn;      // xn[nx]
+    double *S_forw;  // S_forw[nx*(nx+nu)]
+    double *S_adj;   // adjoint sensitivities
+    double *S_hess;  // second order sensitivities \in (nx+nu) * (nx+nu);
+                    // weighted sum with adjoint seed
 
     double *zn;           // z - algebraic variables - reported at start of simulation interval
     double *S_algebraic;  // sensitivities of reported value of algebraic variables w.r.t.
@@ -99,6 +102,7 @@ typedef struct
     double *grad;  // gradient correction
 
     sim_info *info;
+
 } sim_out;
 
 
@@ -108,7 +112,7 @@ typedef struct
     int ns;  // number of integration stages
 
     int num_steps;
-    int num_forw_sens;
+    int num_forw_sens; // TODO: implement or remove!
 
     int tableau_size;  // check that is consistent with ns
             // only update when butcher tableau is changed
@@ -153,7 +157,6 @@ typedef struct
     void *(*model_assign)(void *config, void *dims, void *raw_memory);
     int (*model_set)(void *model, const char *field, void *value);
     void (*config_initialize_default)(void *config);
-//    int (*dims_calculate_size)(void *config);
     int (*dims_calculate_size)();
     void *(*dims_assign)(void *config, void *raw_memory);
     void (*dims_set)(void *config, void *dims, const char *field, const int *value);
