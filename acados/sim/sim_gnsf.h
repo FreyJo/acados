@@ -224,7 +224,7 @@ typedef struct
 
     struct blasfeo_dmat dK2_dx1;
     struct blasfeo_dmat dK2_dvv;
-    struct blasfeo_dmat dxf_dwn;
+    struct blasfeo_dmat* dxf_dwn;
     struct blasfeo_dmat S_forw_new;
     struct blasfeo_dmat S_algebraic_aux;
 
