@@ -75,15 +75,15 @@ typedef struct
 {
     void *dims;
 
-    double *x;  // x[NX] - initial state value for simulation
-    double *u;  // u[NU] - control - constant over simulation time
+    double *x;  // x[nx] - initial state value for simulation
+    double *u;  // u[nu] - control - constant over simulation time
 
     double *S_forw;  // forward seed [Sx, Su]
     double *S_adj;   // backward seed
 
-    bool identity_seed; // indicating if S_forw = [eye(nx), zeros(nx x nu)]
+    bool identity_seed; // indicating if S_forw = [eye(nx), zeros(nx,nu)]
 
-    void *model;
+    void *model; // model struct different for integrators
 
     double T;  // simulation time
 
@@ -93,9 +93,10 @@ typedef struct
 
 typedef struct
 {
-    double CPUtime;  // in seconds
-    double LAtime;   // in seconds
-    double ADtime;   // in seconds
+    // times in seconds
+    double CPUtime;  // total
+    double LAtime;   // linear system solutions
+    double ADtime;   // time in external functions
 
 } sim_info;
 
@@ -103,10 +104,11 @@ typedef struct
 
 typedef struct
 {
-    double *xn;      // xn[NX]
-    double *S_forw;  // S_forw[NX*(NX+NU)]
-    double *S_adj;   //
-    double *S_hess;  //
+    double *xn;      // xn[nx]
+    double *S_forw;  // S_forw[nx*(nx+nu)]
+    double *S_adj;   // adjoint sensitivities
+    double *S_hess;  // second order sensitivities \in (nx+nu) * (nx+nu);
+                    // weighted sum with adjoint seed
 
     double *zn;           // z - algebraic variables - reported at start of simulation interval
     double *S_algebraic;  // sensitivities of reported value of algebraic variables w.r.t.
@@ -125,7 +127,7 @@ typedef struct
     int ns;  // number of integration stages
 
     int num_steps;
-    int num_forw_sens;
+    int num_forw_sens; // TODO: implement or remove!
 
     int tableau_size;  // check that is consistent with ns
             // only update when butcher tableau is changed
