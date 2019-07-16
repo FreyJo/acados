@@ -1773,6 +1773,11 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
         printf("ERROR sim_gnsf: mem->dt n!= in->T/opts->num_steps, check initialization\n");
         return ACADOS_FAILURE;
     }
+    if (opts->sens_hess && !model->fully_linear)
+    {
+        printf("GNSF_IRK with HESSIAN SENSITIVITIES - NOT IMPLEMENTED YET - EXITING.");
+        exit(1);
+    }
 
     // assign variables from workspace
     double *Z_work = workspace->Z_work;
@@ -1933,7 +1938,6 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
         else // copy into S_forw_new and unpack from there later
             blasfeo_dgecp(nx, nx + nu, S_forw, 0, 0, S_forw_new, 0, 0);
 
-        
 
         // adjoint
         blasfeo_dgemv_t(nx, nx+nu, 1.0, S_forw, 0, 0, lambda_old, 0, 0.0, lambda_old, 0, lambda, 0);

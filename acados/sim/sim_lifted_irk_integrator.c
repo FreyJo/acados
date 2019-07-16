@@ -616,7 +616,11 @@ int sim_lifted_irk(void *config_, sim_in *in, sim_out *out, void *opts_, void *m
         printf("LIFTED_IRK with ADJOINT SENSITIVITIES - NOT IMPLEMENTED YET - EXITING.");
         exit(1);
     }
-
+    if (opts->sens_hess)
+    {
+        printf("LIFTED_IRK with HESSIAN SENSITIVITIES - NOT IMPLEMENTED YET - EXITING.");
+        exit(1);
+    }
 
     blasfeo_dgese(nx, nx, 0.0, J_temp_x, 0, 0);
     blasfeo_dgese(nx, nx, 0.0, J_temp_xdot, 0, 0);
