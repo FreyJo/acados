@@ -16,13 +16,14 @@ end
 %% arguments
 compile_mex = 'true';
 codgen_model = 'true';
+gnsf_detect_struct = 'true';
 %method = 'erk';
 %method = 'irk';
 method = 'irk_gnsf';
-gnsf_detect_struct = 'true';
-sens_forw = 'false';
+sens_forw = 'true';
 num_stages = 4;
 num_steps = 4;
+model_name = 'sim_pendulum';
 
 h = 0.1;
 x0 = [0; 1e-1; 0; 0e0];
@@ -40,6 +41,7 @@ nu = model.nu;
 
 %% acados sim model
 sim_model = acados_sim_model();
+sim_model.set('name', model_name);
 sim_model.set('T', h);
 if (strcmp(method, 'erk'))
 	sim_model.set('dyn_type', 'explicit');
@@ -119,17 +121,17 @@ simulation_time = toc
 
 
 % xn
-%xn = sim.get('xn');
-%xn
+xn = sim.get('xn');
+xn
 % S_forw
-%S_forw = sim.get('S_forw');
-%S_forw
+S_forw = sim.get('S_forw');
+S_forw
 % Sx
-%Sx = sim.get('Sx');
-%Sx
+Sx = sim.get('Sx');
+Sx
 % Su
-%Su = sim.get('Su');
-%Su
+Su = sim.get('Su');
+Su
 
 %x_sim
 

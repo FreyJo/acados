@@ -41,27 +41,13 @@ classdef acados_sim < handle
 
 			% generate and compile casadi functions
 			if (strcmp(obj.opts_struct.codgen_model, 'true'))
-				sim_compile_casadi_functions(obj.model_struct, obj.opts_struct)
+				sim_generate_casadi_ext_fun(obj.model_struct, obj.opts_struct)
 			end
 
 			obj.C_sim_ext_fun = sim_create_ext_fun();
 
-			% compile mex with model dependency
-			if (strcmp(obj.opts_struct.compile_mex, 'true'))
-				sim_compile_mex_model_dep(obj.model_struct, obj.opts_struct);
-			end
-
-			% get pointers for external functions in model
-			if (strcmp(obj.opts_struct.method, 'erk'))
-				obj.C_sim_ext_fun = sim_set_ext_fun_dyn_expl(obj.C_sim, obj.C_sim_ext_fun, obj.model_struct, obj.opts_struct);
-			elseif (strcmp(obj.opts_struct.method, 'irk'))
-				obj.C_sim_ext_fun = sim_set_ext_fun_dyn_impl(obj.C_sim, obj.C_sim_ext_fun, obj.model_struct, obj.opts_struct);
-			elseif (strcmp(obj.opts_struct.method, 'irk_gnsf'))
-				obj.C_sim_ext_fun = sim_set_ext_fun_dyn_gnsf(obj.C_sim, obj.C_sim_ext_fun, obj.model_struct, obj.opts_struct);
-			else
-				fprintf('\ncodegen_model: method not supported: %s\n', obj.opts_struct.method);
-				return;
-			end
+			% compile mex with model dependency & set pointers for external functions in model
+			obj.C_sim_ext_fun = sim_set_ext_fun(obj.C_sim, obj.C_sim_ext_fun, obj.model_struct, obj.opts_struct);
 
 			% precompute
 			sim_precompute(obj.C_sim);
