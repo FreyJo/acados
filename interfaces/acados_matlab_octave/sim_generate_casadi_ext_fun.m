@@ -73,6 +73,9 @@ elseif (strcmp(opts_struct.method, 'irk_gnsf'))
         c_files{end+1} = [model_name, '_dyn_gnsf_phi_fun.c'];
         c_files{end+1} = [model_name, '_dyn_gnsf_phi_fun_jac_y.c'];
         c_files{end+1} = [model_name, '_dyn_gnsf_phi_jac_y_uhat.c'];
+        if strcmp(opts_struct.sens_hess, 'true')
+            c_files{end+1} = [model_name, '_dyn_gnsf_phi_hess.c'];
+        end
     end
 else
     fprintf('\nsim_generate_casadi_ext_fun: method not supported: %s\n', opts_struct.method);
