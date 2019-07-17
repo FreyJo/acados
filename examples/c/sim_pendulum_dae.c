@@ -277,6 +277,9 @@ int main()
         opts->sens_algebraic    = true;
         opts->sens_hess         = false;
 
+        if (plan.sim_solver == GNSF)
+            opts->sens_hess = false;
+
     /* sim in / out */
 
 		sim_in *in   = sim_in_create(config, dims);
