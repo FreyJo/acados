@@ -69,6 +69,7 @@ typedef struct
     external_function_generic *phi_fun;
     external_function_generic *phi_fun_jac_y;
     external_function_generic *phi_jac_y_uhat;
+    external_function_generic *phi_hess;
 
     // f_lo: linear output function
     external_function_generic *f_lo_fun_jac_x1_x1dot_u_z;
@@ -192,8 +193,8 @@ typedef struct
 
     struct blasfeo_dvec uhat;
 
-    struct blasfeo_dmat* J_r_vv;
-    struct blasfeo_dmat J_r_x1u;
+    struct blasfeo_dmat* dr_dvv;
+    struct blasfeo_dmat* dvv_dx1u;
 
     struct blasfeo_dmat dK1_dx1;
     struct blasfeo_dmat dK1_du;
@@ -221,11 +222,14 @@ typedef struct
     struct blasfeo_dmat dr0_dvv0;  // (n_out * n_out)
     struct blasfeo_dmat f_LO_jac0; // (nx2+nz2) * (2*nx1 + nz1 + nu)
     struct blasfeo_dmat sens_z2_rhs; // (nx2 + nz2) * (nx1 + nu)
+    struct blasfeo_dmat dr0_dxn1u; // n_out * (nx1 + nu)
     int *ipiv_vv0;
 
     // memory only available if (opts->sens_hess)
     struct blasfeo_dmat* Hess; // (nx+nu, nx+nu)
+    struct blasfeo_dmat* Hess_old; // (nx+nu, nx+nu)
     struct blasfeo_dmat* H_vv; // nvv * nvv
+    struct blasfeo_dmat* dr_dx1u; // nvv * (nx1+nu)
 
 } gnsf_workspace;
 

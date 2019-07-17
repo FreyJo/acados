@@ -28,6 +28,8 @@ else % old casadi versions
 	error('Please download and install CasADi version 3.4.x to ensure compatibility with acados')
 end
 
+
+
 %% import models
 % model matrices
 A  = model.dyn_gnsf_A;
@@ -104,6 +106,7 @@ end
 y = model.sym_gnsf_y;
 % uhat
 uhat = model.sym_gnsf_uhat;
+y_uhat = [y; uhat];
 
 % expressions
 phi = model.dyn_gnsf_expr_phi;
@@ -116,13 +119,25 @@ purely_linear = model.dyn_gnsf_purely_linear;
 model_name = model.name;
 model_name = [model_name, '_dyn'];
 
-% generate functions
+%% Set up functions
 jac_phi_y = jacobian(phi,y);
 jac_phi_uhat = jacobian(phi,uhat);
+
+nout = model.dim_gnsf_nout;
+% hessian
+if isSX
+    multiplier = SX.sym('multiplier', nout);
+else
+    multiplier = MX.sym('multiplier', nout);
+end
+phi_ADJ = jtimes(phi, y_uhat, multiplier, true);
+phi_HESS = jacobian(phi_ADJ, y_uhat);
+
 
 phi_fun = Function([model_name,'_gnsf_phi_fun'], {y, uhat, p}, {phi});
 phi_fun_jac_y = Function([model_name,'_gnsf_phi_fun_jac_y'], {y, uhat, p}, {phi, jac_phi_y});
 phi_jac_y_uhat = Function([model_name,'_gnsf_phi_jac_y_uhat'], {y, uhat, p}, {jac_phi_y, jac_phi_uhat});
+phi_hess = Function([model_name,'_gnsf_phi_hess'], {y, uhat, multiplier, p}, {phi_HESS});
 
 f_lo_fun_jac_x1k1uz = Function([model_name,'_gnsf_f_lo_fun_jac_x1k1uz'], {x1, x1dot, z1, u, p}, ...
 	{f_lo, [jacobian(f_lo,x1), jacobian(f_lo,x1dot), jacobian(f_lo,u), jacobian(f_lo,z1)]});
@@ -141,5 +156,10 @@ phi_fun.generate([model_name,'_gnsf_phi_fun'], casadi_opts);
 phi_fun_jac_y.generate([model_name,'_gnsf_phi_fun_jac_y'], casadi_opts);
 phi_jac_y_uhat.generate([model_name,'_gnsf_phi_jac_y_uhat'], casadi_opts);
 get_matrices_fun.generate([model_name,'_gnsf_get_matrices_fun'], casadi_opts);
+
+% generate_hess = 'true'; % TODO remove when not needed any more !!!?
+% if strcmp(generate_hess, 'true')
+    phi_hess.generate([model_name,'_gnsf_phi_hess'], casadi_opts);
+% end
 
 end
