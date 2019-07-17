@@ -52,7 +52,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
     // field names of output struct
-    char *fieldnames[24];
+    char *fieldnames[25];
     fieldnames[0] = (char*)mxMalloc(50);
     fieldnames[1] = (char*)mxMalloc(50);
     fieldnames[2] = (char*)mxMalloc(50);
@@ -77,6 +77,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     fieldnames[21] = (char*)mxMalloc(50);
     fieldnames[22] = (char*)mxMalloc(50);
     fieldnames[23] = (char*)mxMalloc(50);
+    fieldnames[24] = (char*)mxMalloc(50);
+
 
     memcpy(fieldnames[0],"dyn_expl_ode_fun",sizeof("dyn_expl_ode_fun"));
     memcpy(fieldnames[1],"dyn_expl_vde_forw",sizeof("dyn_expl_vde_forw"));
@@ -102,6 +104,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     memcpy(fieldnames[21],"cost_y_hess",sizeof("cost_y_hess"));
     memcpy(fieldnames[22],"cost_ext_cost_fun",sizeof("cost_ext_cost_fun"));
     memcpy(fieldnames[23],"cost_ext_cost_fun_jac_hess",sizeof("cost_ext_cost_fun_jac_hess"));
+    memcpy(fieldnames[24],"dyn_gnsf_phi_hess",sizeof("dyn_gnsf_phi_hess"));
 
     // create output struct
     plhs[0] = mxCreateStructMatrix(1, 1, 24, (const char **) fieldnames);
@@ -130,6 +133,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree( fieldnames[21] );
     mxFree( fieldnames[22] );
     mxFree( fieldnames[23] );
+    mxFree( fieldnames[24] );
 
     // populate struct with empty vectors with number of phases length
     int Nf = 1;
@@ -158,6 +162,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxSetField(plhs[0], 0, "cost_y_hess", mxCreateNumericMatrix(1, Nf+1, mxINT64_CLASS, mxREAL));
     mxSetField(plhs[0], 0, "cost_ext_cost_fun", mxCreateNumericMatrix(1, Nf+1, mxINT64_CLASS, mxREAL));
     mxSetField(plhs[0], 0, "cost_ext_cost_fun_jac_hess", mxCreateNumericMatrix(1, Nf+1, mxINT64_CLASS, mxREAL));
+    mxSetField(plhs[0], 0, "dyn_gnsf_phi_hess", mxCreateNumericMatrix(1, Nf, mxINT64_CLASS, mxREAL));
 
     return;
 
