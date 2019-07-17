@@ -371,6 +371,8 @@ if print_info
     disp(gnsf.B_LO);
     disp('c_LO =');
     disp(gnsf.c_LO);
+    disp('f_LO =');
+    print_casadi_expression(gnsf.f_lo_expr);
 end
 
 end
