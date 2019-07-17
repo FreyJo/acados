@@ -76,6 +76,7 @@ elseif (strcmp(model_struct.dyn_type, 'implicit'))
             c_files{end+1} = [model_name, '_dyn_gnsf_phi_fun.c'];
             c_files{end+1} = [model_name, '_dyn_gnsf_phi_fun_jac_y.c'];
             c_files{end+1} = [model_name, '_dyn_gnsf_phi_jac_y_uhat.c'];
+            c_files{end+1} = [model_name, '_dyn_gnsf_phi_hess.c'];
         end
     else
         fprintf('\nocp_generate_casadi_ext_fun: sim_method not supported: %s\n', opts_struct.sim_method);
