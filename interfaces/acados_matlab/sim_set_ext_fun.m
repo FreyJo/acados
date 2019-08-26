@@ -204,7 +204,6 @@ end
 for ii=1:length(mex_names)
 	C_sim_ext_fun = eval([mex_names{ii}, '(C_sim, C_sim_ext_fun, model_struct, opts_struct)']);
 %	fprintf(fileID, [mex_names{ii}, '(C_sim, C_sim_ext_fun, model_struct, opts_struct);\n']);
-    fprintf('sim_set_ext_fun %d of %d\n', ii, length(mex_names));
 end
 %fclose(fileID);
 

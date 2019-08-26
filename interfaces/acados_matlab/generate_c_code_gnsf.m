@@ -146,8 +146,14 @@ if isSX
 else
     multiplier = MX.sym('multiplier', nout);
 end
-phi_ADJ = jtimes(phi, y_uhat, multiplier, true);
-phi_HESS = jacobian(phi_ADJ, y_uhat);
+
+if ~phi.is_empty()
+    phi_ADJ = jtimes(phi, y_uhat, multiplier, true);
+    phi_HESS = jacobian(phi_ADJ, y_uhat);
+else
+    phi_ADJ = [];
+    phi_HESS = [];
+end
 
 
 phi_fun = Function([model_name,'_gnsf_phi_fun'], {y, uhat, p}, {phi});
