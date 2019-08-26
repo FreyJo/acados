@@ -35,9 +35,9 @@
 clear all
 
 addpath('../pendulum_on_cart_model/');
-
+addpath('../linear_mass_spring_model/');
 % TODO: include irk_gnsf, as soon as hessians are implemented
-for integrator = {'erk', 'irk'} %, 'irk_gnsf'}
+for integrator = {'irk_gnsf'}%, 'irk'} %, 'irk_gnsf'}
 	%% arguments
 	compile_interface = 'auto';
 	codgen_model = 'true';
@@ -49,14 +49,19 @@ for integrator = {'erk', 'irk'} %, 'irk_gnsf'}
 	num_steps = 3;
 
 	Ts = 0.1;
-	x0 = [1e-1; 1e0; 2e-1; 2e0];
-	u = 0;
 	FD_epsilon = 1e-6;
 
 	%% model
-	model = pendulum_on_cart_model;
+% 	model = pendulum_on_cart_model;
+% 	model_name = ['pendulum_' method];
+%   x0 = [1e-1; 1e0; 2e-1; 2e0];
+% 	u = 0;
 
-	model_name = ['pendulum_' method];
+    model = linear_mass_spring_model;
+    model_name = ['lin_mass_' method];
+    x0 = ones(model.nx, 1); %x0(1) = 2.0;
+    u = ones(model.nu, 1);
+
 	nx = model.nx;
 	nu = model.nu;
 
@@ -126,7 +131,7 @@ for integrator = {'erk', 'irk'} %, 'irk_gnsf'}
 		sim.solve();
 
 		% S_hess
-		S_hess = sim.get('S_hess');
+		S_hess = sim.get('S_hess')
 		S_hess_ind(:, :, jj) = S_hess;
 
 		% S_adj
