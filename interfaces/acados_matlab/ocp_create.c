@@ -627,12 +627,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 			ns, nsbx, nsg_e, nsh_e);
         mexErrMsgTxt(buffer);
 	}
+
+	i_ptr = (int *) malloc((N+1)*sizeof(int));
     // TODO fix stage 0 !!!!!!!!
     i_ptr[0] = nsbu+nsg+nsh; // XXX not nsbx !!!!!!!!!!
     for (ii=1; ii<N; ii++)
         i_ptr[ii] = ns;
     i_ptr[N] = ns_e;
     ocp_nlp_dims_set_opt_vars(config, dims, "ns", i_ptr);
+	free(i_ptr);
 
 
     /* opts */
@@ -654,6 +657,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int qp_solver_warm_start;                bool set_qp_solver_warm_start = false;
     int sim_method_num_stages;                bool set_sim_method_num_stages = false;
     int sim_method_num_steps;                bool set_sim_method_num_steps = false;
+
+
 
     // param_scheme_shooting_nodes
     if (mxGetField( matlab_opts, 0, "param_scheme_shooting_nodes" )!=NULL)
@@ -1283,10 +1288,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     else if (!strcmp(param_scheme, "multiple_shooting"))
     {
         if (!set_param_scheme_shooting_nodes)
-       {
+        {
             mexPrintf("\nerror: ocp_create: param_scheme_shooting_nodes not set for param_scheme multiple_shooting!\n");
             return;
-       }
+        }
         double scale = T/(param_scheme_shooting_nodes[N]-param_scheme_shooting_nodes[0]);
         for (ii=0; ii<N; ii++)
        {
