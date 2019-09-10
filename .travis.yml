@@ -39,10 +39,10 @@ matrix:
       env:
         - DEPLOY_NAME="osx-python"
 
-    - name: Linux Gcc6 - Octave interface
+    - name: Linux Gcc7.2 - Octave interface
       env:
         - DEPLOY_NAME="linux-python-gcc6"
-        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+        - MATRIX_EVAL="CC=gcc-7.2 && CXX=g++-7.2"
         - ACADOS_OCTAVE="ON"
         - ACADOS_EXAMPLES="OFF"
 
