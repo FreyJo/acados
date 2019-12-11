@@ -86,6 +86,7 @@ elif [ "${SECTION}" = 'install' ]; then
     if [[ "${ACADOS_DOCS}" = 'ON' ]] ;
     then
         pushd docs;
+            sudo apt-get install doxygen graphviz;
             pip install -r requirements.txt;
             make;
         popd;
