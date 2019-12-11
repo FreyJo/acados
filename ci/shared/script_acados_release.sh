@@ -93,7 +93,7 @@ function build_acados {
     fi
 
 	# Run ctest
-	# TODO: test matlab/python
+	# TODO: test matlab
 	cmake -E chdir build ctest -V; # use -V for full output # --output-on-failure for less
 
 	[ $? -ne 0 ] && exit 100;
