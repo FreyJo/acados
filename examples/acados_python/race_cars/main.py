@@ -85,7 +85,11 @@ for i in range(Nsim):
 
     # solve ocp 
     t = time.time()
+
     status=acados_solver.solve()
+    if status != 0:
+        raise Exception('acados returned status {}. Exiting.'.format(status))
+
     elapsed = time.time() - t
     
     # manage timings
