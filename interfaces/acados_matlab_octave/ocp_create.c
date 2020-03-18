@@ -999,6 +999,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
     }
 
+    // levenberg_marquadt regularization
+    if (mxGetField( matlab_opts, 0, "levenberg_marquadt" )!=NULL)
+    {
+        double levenberg_marquadt = mxGetScalar( mxGetField( matlab_opts, 0, "levenberg_marquadt" ) );
+        ocp_nlp_solver_opts_set(config, opts, "levenberg_marquadt", &levenberg_marquadt);
+    }
+
+
     /* in */
     ocp_nlp_in *in = ocp_nlp_in_create(config, dims);
 
