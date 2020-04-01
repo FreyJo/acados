@@ -94,11 +94,11 @@ else
     fprintf('\ncodegen_model: dyn_type not supported: %s\n', model_struct.dyn_type);
     return;
 end
-% nonlinear constraints
-if (strcmp(model_struct.constr_type, 'bgh') && (isfield(model_struct, 'constr_expr_h') || isfield(model_struct, 'constr_expr_h_e')))
+% nonlinear constraints BGH
+if (strcmp(model_struct.constr_type, 'bgh') || strcmp(model_struct.constr_type_e, 'bgh'))
     % generate c for function and derivatives using casadi
     if (strcmp(opts_struct.codgen_model, 'true'))
-        generate_c_code_nonlinear_constr(model_struct, opts_struct);
+        generate_c_code_nonlinear_constraint(model_struct, opts_struct);
     end
     % sources list
     if isfield(model_struct, 'constr_expr_h')
@@ -112,6 +112,22 @@ if (strcmp(model_struct.constr_type, 'bgh') && (isfield(model_struct, 'constr_ex
         c_files{end+1} = [model_name, '_constr_h_e_fun_jac_uxt_zt_hess.c'];
     end
 end
+
+% nonlinear constraints BGP
+if (strcmp(model_struct.constr_type, 'bgp') || strcmp(model_struct.constr_type_e, 'bgp'))
+    % generate c for function and derivatives using casadi
+    if (strcmp(opts_struct.codgen_model, 'true'))
+        generate_c_code_nonlinear_constraint(model_struct, opts_struct);
+    end
+    % sources list
+    if isfield(model_struct, 'constr_expr_phi')
+        c_files{end+1} = [model_name, '_constr_phi.c'];
+    end
+    if isfield(model_struct, 'constr_expr_phi_e')
+        c_files{end+1} = [model_name, '_constr_phi_e.c'];
+    end
+end
+
 % nonlinear least squares
 if (strcmp(model_struct.cost_type, 'nonlinear_ls') || strcmp(model_struct.cost_type_e, 'nonlinear_ls'))
     % generate c for function and derivatives using casadi
@@ -156,14 +172,14 @@ end
 lib_name = ['lib', model_name];
 
 if (strcmp(opts_struct.codgen_model, 'true'))
-	for k=1:length(c_files)
-		movefile(c_files{k}, opts_struct.output_dir);
-	end
+    for k=1:length(c_files)
+        movefile(c_files{k}, opts_struct.output_dir);
+    end
 end
 
 c_files_path = {};
 for k=1:length(c_files)
-	c_files_path{k} = fullfile(opts_struct.output_dir, c_files{k});
+    c_files_path{k} = fullfile(opts_struct.output_dir, c_files{k});
 end
 
 if ispc

@@ -96,6 +96,7 @@
 #define NPHI   {{ dims.nphi }}
 #define NHN    {{ dims.nh_e }}
 #define NPHIN  {{ dims.nphi_e }}
+// TODO: NRN?!
 #define NR     {{ dims.nr }}
 
 
