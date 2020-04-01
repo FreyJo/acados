@@ -672,34 +672,35 @@ class AcadosOcpSolver:
     """
     class to interact with the acados ocp solver C object
     """
-    def __init__(self, acados_ocp, json_file='acados_ocp_nlp.json'):
+    def __init__(self, acados_ocp, json_file='acados_ocp_nlp.json', use_compiled_solver=False):
 
         self.solver_created = False
         model = acados_ocp.model
 
-        # make dims consistent
-        make_ocp_dims_consistent(acados_ocp)
+        if use_compiled_solver == False:
+            # make dims consistent
+            make_ocp_dims_consistent(acados_ocp)
 
-        if acados_ocp.solver_options.integrator_type == 'GNSF':
-            set_up_imported_gnsf_model(acados_ocp)
+            if acados_ocp.solver_options.integrator_type == 'GNSF':
+                set_up_imported_gnsf_model(acados_ocp)
 
-        # set integrator time automatically
-        acados_ocp.solver_options.Tsim = acados_ocp.solver_options.time_steps[0]
+            # set integrator time automatically
+            acados_ocp.solver_options.Tsim = acados_ocp.solver_options.time_steps[0]
 
-        # generate external functions
-        ocp_generate_external_functions(acados_ocp, model)
+            # generate external functions
+            ocp_generate_external_functions(acados_ocp, model)
 
-        # dump to json
-        ocp_formulation_json_dump(acados_ocp, json_file)
+            # dump to json
+            ocp_formulation_json_dump(acados_ocp, json_file)
 
-        # render templates
-        ocp_render_templates(acados_ocp, json_file)
+            # render templates
+            ocp_render_templates(acados_ocp, json_file)
 
-        ## Compile solver
-        os.chdir('c_generated_code')
-        os.system('make clean_ocp_shared_lib')
-        os.system('make ocp_shared_lib')
-        os.chdir('..')
+            ## Compile solver
+            os.chdir('c_generated_code')
+            os.system('make clean_ocp_shared_lib')
+            os.system('make ocp_shared_lib')
+            os.chdir('..')
 
         self.shared_lib_name = 'c_generated_code/libacados_ocp_solver_' + model.name + '.so'
 
