@@ -590,6 +590,9 @@
         "nlp_solver_step_length": [
             "float"
         ],
+        "levenberg_marquadt": [
+            "float"
+        ],
         "qp_solver": [
             "str"
         ],

@@ -171,6 +171,25 @@ function [model, opts] = detect_dims_ocp(model, opts)
     end
     model.dim_nh = nh;
 
+    if isfield(model, 'constr_expr_phi') && ...
+        isfield(model, 'constr_lphi') && isfield(model, 'constr_uphi')
+        nphi = length(model.constr_lphi);
+        if nphi ~= length(model.constr_uphi) || nphi ~= length(model.constr_expr_phi)
+            error('inconsistent dimension nphi, regarding expr_phi, lphi, uphi.');
+        end
+        if isfield(model, 'constr_expr_r')
+            model.dim_nr = length(model.constr_expr_r);
+        else
+            error('external constraint function phi: need expr_phi, constr_expr_r, at least one missing.');
+        end
+    elseif isfield(model, 'constr_expr_phi') || ...
+            isfield(model, 'constr_lphi') || isfield(model, 'constr_uphi')
+        error('setting external constraint function phi: need expr_phi, lphi, uphi at least one missing.');
+    else
+        nphi = 0;
+    end
+    model.dim_nphi = nphi;
+
     % terminal
     if isfield(model, 'constr_Jbx_e') && isfield(model, 'constr_lbx_e') && isfield(model, 'constr_ubx_e')
         nbx_e = length(model.constr_lbx_e);

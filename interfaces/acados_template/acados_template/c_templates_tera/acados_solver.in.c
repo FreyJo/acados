@@ -96,6 +96,7 @@
 #define NPHI   {{ dims.nphi }}
 #define NHN    {{ dims.nh_e }}
 #define NPHIN  {{ dims.nphi_e }}
+// TODO: NRN?!
 #define NR     {{ dims.nr }}
 
 
@@ -1352,6 +1353,9 @@ int acados_create()
 
     double nlp_solver_step_length = {{ solver_options.nlp_solver_step_length }};
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "step_length", &nlp_solver_step_length);
+
+    double levenberg_marquadt = {{ solver_options.levenberg_marquadt }};
+    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "levenberg_marquadt", &levenberg_marquadt);
 
     /* options QP solver */
 {%- if solver_options.qp_solver is starting_with("PARTIAL_CONDENSING") %}

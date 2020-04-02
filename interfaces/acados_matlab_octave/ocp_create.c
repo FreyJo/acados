@@ -288,6 +288,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             plan->nlp_constraints[ii] = BGH;
         }
     }
+    // else if (!strcmp(constr_type, "bgp"))
+    // {
+    //     for (int ii=0; ii<N; ii++)
+    //     {
+    //         plan->nlp_constraints[ii] = BGP;
+    //     }
+    // }
     else
     {
         MEX_FIELD_VALUE_NOT_SUPPORTED_SUGGEST(fun_name, "constr_type", constr_type, "bgh");
@@ -408,6 +415,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int ng_e;
     int nh;
     int nh_e;
+    int nphi;
+    int nphi_e;
+    int nr;
+    int nr_e;
     int ns = 0;
     int ns_e = 0;
     int nsbu = 0;
@@ -585,7 +596,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     // nh
-    if (mxGetField( matlab_model, 0, "dim_nh" )!=NULL)
+    if (mxGetField( matlab_model, 0, "dim_nh" )!=NULL && !strcmp(constr_type, "bgh"))
     {
         nh = mxGetScalar( mxGetField( matlab_model, 0, "dim_nh" ) );
         for (int ii=0; ii<N; ii++)
@@ -594,10 +605,42 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
     }
     // nh_e
-    if (mxGetField( matlab_model, 0, "dim_nh_e" )!=NULL)
+    if (mxGetField( matlab_model, 0, "dim_nh_e" )!=NULL && !strcmp(constr_type_e, "bgh"))
     {
         nh_e = mxGetScalar( mxGetField( matlab_model, 0, "dim_nh_e" ) );
         ocp_nlp_dims_set_constraints(config, dims, N, "nh", &nh_e);
+    }
+
+    /* BGP */
+    // nphi
+    if (mxGetField( matlab_model, 0, "dim_nphi" )!=NULL && !strcmp(constr_type, "bgp"))
+    {
+        nphi = mxGetScalar( mxGetField( matlab_model, 0, "dim_nphi" ) );
+        for (int ii=0; ii<N; ii++)
+        {
+            ocp_nlp_dims_set_constraints(config, dims, ii, "nphi", &nphi);
+        }
+    }
+    // nphi_e
+    if (mxGetField( matlab_model, 0, "dim_nphi_e" )!=NULL && !strcmp(constr_type_e, "bgp"))
+    {
+        nphi_e = mxGetScalar( mxGetField( matlab_model, 0, "dim_nphi_e" ) );
+        ocp_nlp_dims_set_constraints(config, dims, N, "nphi", &nphi_e);
+    }
+    // nr
+    if (mxGetField( matlab_model, 0, "dim_nr" )!=NULL)
+    {
+        nr = mxGetScalar( mxGetField( matlab_model, 0, "dim_nr" ) );
+        for (int ii=0; ii<N; ii++)
+        {
+            ocp_nlp_dims_set_constraints(config, dims, ii, "nr", &nr);
+        }
+    }
+    // nr_e
+    if (mxGetField( matlab_model, 0, "dim_nr_e" )!=NULL)
+    {
+        nr_e = mxGetScalar( mxGetField( matlab_model, 0, "dim_nr_e" ) );
+        ocp_nlp_dims_set_constraints(config, dims, N, "nr", &nr_e);
     }
 
     // slack dims
@@ -694,7 +737,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         nbxe_0 = mxGetScalar( mxGetField( matlab_model, 0, "dim_nbxe_0" ) );
         ocp_nlp_dims_set_constraints(config, dims, 0, "nbxe", &nbxe_0);
     }
-
 
     /* opts */
     void *opts = ocp_nlp_solver_opts_create(config, dims);
@@ -998,6 +1040,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             }
         }
     }
+
+    // levenberg_marquadt regularization
+    if (mxGetField( matlab_opts, 0, "levenberg_marquadt" )!=NULL)
+    {
+        double levenberg_marquadt = mxGetScalar( mxGetField( matlab_opts, 0, "levenberg_marquadt" ) );
+        ocp_nlp_solver_opts_set(config, opts, "levenberg_marquadt", &levenberg_marquadt);
+    }
+
 
     /* in */
     ocp_nlp_in *in = ocp_nlp_in_create(config, dims);
@@ -1786,6 +1836,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             ocp_nlp_constraints_model_set(config, dims, in, ii, "uh", uh);
         }
     }
+    // lphi
+    if (mxGetField( matlab_model, 0, "constr_lphi" )!=NULL)
+    {
+        int matlab_size = (int) mxGetNumberOfElements( mxGetField( matlab_model, 0, "constr_lphi" ) );
+        int acados_size = nphi;
+        MEX_DIM_CHECK_VEC(fun_name, "constr_lphi", matlab_size, acados_size);
+        double *lphi = mxGetPr( mxGetField( matlab_model, 0, "constr_lphi" ) );
+        for (int ii=0; ii<N; ii++)
+        {
+            ocp_nlp_constraints_model_set(config, dims, in, ii, "lphi", lphi);
+        }
+    }
+    // uphi
+    if (mxGetField( matlab_model, 0, "constr_uphi" )!=NULL)
+    {
+        int matlab_size = (int) mxGetNumberOfElements( mxGetField( matlab_model, 0, "constr_uphi" ) );
+        int acados_size = nphi;
+        MEX_DIM_CHECK_VEC(fun_name, "constr_uphi", matlab_size, acados_size);
+        double *uphi = mxGetPr( mxGetField( matlab_model, 0, "constr_uphi" ) );
+        for (int ii=0; ii<N; ii++)
+        {
+            ocp_nlp_constraints_model_set(config, dims, in, ii, "uphi", uphi);
+        }
+    }
+
     // lh_e
     if (mxGetField( matlab_model, 0, "constr_lh_e" )!=NULL)
     {

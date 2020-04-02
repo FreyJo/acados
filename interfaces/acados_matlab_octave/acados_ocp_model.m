@@ -267,6 +267,17 @@ classdef acados_ocp_model < handle
     %                obj.model_struct.constr_lsh_e = value;
     %            elseif (strcmp(field, 'constr_ush_e'))
     %                obj.model_struct.constr_ush_e = value;
+                %% BGP
+                elseif (strcmp(field, 'constr_expr_r_in_phi'))
+                    obj.model_struct.constr_expr_r_in_phi = value;
+                elseif (strcmp(field, 'constr_expr_r'))
+                    obj.model_struct.constr_expr_r = value;
+                elseif (strcmp(field, 'constr_expr_phi'))
+                    obj.model_struct.constr_expr_phi = value;
+                elseif (strcmp(field, 'constr_lphi'))
+                    obj.model_struct.constr_lphi = value;
+                elseif (strcmp(field, 'constr_uphi'))
+                    obj.model_struct.constr_uphi = value;
                 else
                     disp(['acados_ocp_model: set: wrong field: ', field]);
                     keyboard;
@@ -301,6 +312,10 @@ classdef acados_ocp_model < handle
                     obj.model_struct.dim_nh = value;
                 elseif (strcmp(field, 'dim_nh_e'))
                     obj.model_struct.dim_nh_e = value;
+                elseif (strcmp(field, 'dim_nphi'))
+                    obj.model_struct.dim_nphi = value;
+                elseif (strcmp(field, 'dim_nphi_e'))
+                    obj.model_struct.dim_nphi_e = value;
                 elseif (strcmp(field, 'dim_ns'))
                     obj.model_struct.dim_ns = value;
                 elseif (strcmp(field, 'dim_ns_e'))

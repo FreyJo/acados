@@ -32,7 +32,7 @@
 %
 
 
-function generate_c_code_nonlinear_constr( model, opts, target_dir )
+function generate_c_code_nonlinear_constraint( model, opts, target_dir )
 
 %% import casadi
 import casadi.*
@@ -93,6 +93,7 @@ if nargin > 2
     chdir(target_dir)
 end
 
+%% BGH
 if isfield(model, 'constr_expr_h')
     h = model.constr_expr_h;
     % multipliers for hessian
@@ -143,6 +144,38 @@ if isfield(model, 'constr_expr_h_e')
     h_e_fun_jac_uxt_zt.generate([model_name,'_constr_h_e_fun_jac_uxt_zt'], casadi_opts);
     h_e_fun_jac_uxt_zt_hess.generate([model_name,'_constr_h_e_fun_jac_uxt_zt_hess'], casadi_opts);
 end
+
+% BGP
+if isfield(model, 'constr_expr_phi')
+    fun_name = [model_name, '_constr_phi'];
+    r = model.constr_expr_r_in_phi;
+    constr_expr_r = model.constr_expr_r;
+    constr_expr_phi = model.constr_expr_phi;
+    nphi = length(model.constr_expr_phi);
+    con_phi_expr_x_u_z = substitute(constr_expr_phi, r, constr_expr_r);
+    phi_jac_u = jacobian(con_phi_expr_x_u_z, u);
+    phi_jac_x = jacobian(con_phi_expr_x_u_z, x);
+    phi_jac_z = jacobian(con_phi_expr_x_u_z, z);
+
+    hess = hessian(constr_expr_phi, r);
+    for i = 2:nphi
+        hess = vertcat(hess, hessian(constr_expr_phi, r));
+    end
+    
+    r_jac_u = jacobian(constr_expr_r, u);
+    r_jac_x = jacobian(constr_expr_r, x);
+
+    constraint_phi = Function(fun_name, {x, u, z, p},...
+                            {con_phi_expr_x_u_z,...
+                             vertcat(transpose(phi_jac_u), transpose(phi_jac_x)),...
+                             transpose(phi_jac_z), hess, ...
+                             vertcat(transpose(r_jac_u), transpose(r_jac_x))});
+    constraint_phi.generate(fun_name);
+end
+% TODO: terminal BGP
+
+
+
 
 if nargin > 2
     chdir(original_dir)

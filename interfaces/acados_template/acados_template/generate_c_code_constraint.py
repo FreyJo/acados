@@ -139,14 +139,12 @@ def generate_c_code_constraint( model, con_name, is_terminal ):
             r_jac_u = jacobian(con_r_expr, u)
             r_jac_x = jacobian(con_r_expr, x)
 
-            constraint_phi = \
-                Function(fun_name, [x, u, z, p], \
-                    [con_phi_expr_x_u_z, \
-                    vertcat(transpose(phi_jac_u), \
-                    transpose(phi_jac_x)), \
-                    transpose(phi_jac_z), \
-                    hess, vertcat(transpose(r_jac_u), \
-                    transpose(r_jac_x))])
+            constraint_phi = Function(fun_name, [x, u, z, p], \
+                    [con_phi_expr_x_u_z,
+                     vertcat(transpose(phi_jac_u), transpose(phi_jac_x)), \
+                     transpose(phi_jac_z), \
+                     hess,
+                     vertcat(transpose(r_jac_u), transpose(r_jac_x))])
 
             constraint_phi.generate(fun_name, casadi_opts)
 
