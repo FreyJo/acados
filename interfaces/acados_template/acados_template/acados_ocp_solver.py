@@ -86,6 +86,21 @@ def make_ocp_dims_consistent(acados_ocp):
         raise Exception('inconsistent dimension np, regarding model.p and parameter_values.')
 
     ## cost
+    # optional
+    if is_empty(cost.qx):
+        cost.qx = np.zeros((dims.nx,))
+    if is_empty(cost.qu):
+        cost.qu = np.zeros((dims.nu,))
+    if is_empty(cost.qx_e):
+        cost.qx_e = np.zeros((dims.nx,))
+
+    if cost.qx.shape[0] != dims.nx:
+        raise Exception('inconsistent dimension: qx should be numpy array of dimension nx.')
+    if cost.qu.shape[0] != dims.nu:
+        raise Exception('inconsistent dimension: qu should be numpy array of dimension nu.')
+    if cost.qx_e.shape[0] != dims.nx:
+        raise Exception('inconsistent dimension: qx_e should be numpy array of dimension nx.')
+
     # path
     if cost.cost_type == 'LINEAR_LS':
         ny = cost.W.shape[0]

@@ -454,6 +454,8 @@ class AcadosOcpCost:
         self.__Vx          = np.zeros((0,0))
         self.__Vu          = np.zeros((0,0))
         self.__Vz          = np.zeros((0,0))
+        self.__qx          = np.array([])
+        self.__qu          = np.array([])
         self.__yref        = np.array([])
         self.__Zl          = np.array([])
         self.__Zu          = np.array([])
@@ -468,6 +470,8 @@ class AcadosOcpCost:
         self.__Zu_e        = np.array([])
         self.__zl_e        = np.array([])
         self.__zu_e        = np.array([])
+        self.__qx_e        = np.array([])
+
 
     # Lagrange term
     @property
@@ -519,6 +523,17 @@ class AcadosOcpCost:
     def zu(self):
         """:math:`z_u` - gradient wrt upper slack"""
         return self.__zu
+
+    @property
+    def qx(self):
+        """:math:`q_x` - linear coefficient wrt x (optional: zero by default)"""
+        return self.__qx
+
+    @property
+    def qu(self):
+        """:math:`q_u` - linear coefficient wrt u (optional: zero by default)"""
+        return self.__qu
+
 
     @cost_type.setter
     def cost_type(self, cost_type):
@@ -598,6 +613,21 @@ class AcadosOcpCost:
         else:
             raise Exception('Invalid zu value, expected numpy array. Exiting.')
 
+    @qx.setter
+    def qx(self, qx):
+        if isinstance(qx, np.ndarray):
+            self.__qx = qx
+        else:
+            raise Exception('Invalid qx value, expected numpy array. Exiting.')
+
+    @qu.setter
+    def qu(self, qu):
+        if isinstance(qu, np.ndarray):
+            self.__qu = qu
+        else:
+            raise Exception('Invalid qu value, expected numpy array. Exiting.')
+
+
     # Mayer term
     @property
     def cost_type_e(self):
@@ -618,6 +648,11 @@ class AcadosOcpCost:
     def yref_e(self):
         """:math:`V_x^e` - x matrix coefficient for Mayer term"""
         return self.__yref_e
+
+    @property
+    def qx_e(self):
+        """:math:`q_x^e` - linear coefficient wrt x (optional: zero by default)"""
+        return self.__qx_e
 
     @property
     def Zl_e(self):
@@ -698,6 +733,13 @@ class AcadosOcpCost:
             self.__zu_e = zu_e
         else:
             raise Exception('Invalid zu_e value, expected numpy array. Exiting.')
+
+    @qx_e.setter
+    def qx_e(self, qx_e):
+        if isinstance(qx_e, np.ndarray):
+            self.__qx_e = qx_e
+        else:
+            raise Exception('Invalid qx_e value, expected numpy array. Exiting.')
 
     def set(self, attr, value):
         setattr(self, attr, value)

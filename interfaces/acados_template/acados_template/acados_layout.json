@@ -358,6 +358,24 @@
         "cost_type_e": [
             "str"
         ],
+        "qu": [
+            "ndarray",
+            [
+                "nu"
+            ]
+        ],
+        "qx": [
+            "ndarray",
+            [
+                "nx"
+            ]
+        ],
+        "qx_e": [
+            "ndarray",
+            [
+                "nx"
+            ]
+        ],
         "Vu": [
             "ndarray",
             [

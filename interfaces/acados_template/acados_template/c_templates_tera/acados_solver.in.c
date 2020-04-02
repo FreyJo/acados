@@ -751,6 +751,25 @@ int acados_create()
 {% endif %}
 
 {%- if cost.cost_type == "LINEAR_LS" %}
+
+    double qx[NX];
+    {%- for k in range(end=dims.nx) %}
+    qx[{{ k }}] = {{ cost.qx[k] }};
+    {%- endfor %}
+    for (int i = 0; i < N; i++)
+    {
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "qx", qx);
+    }
+
+    double qu[NU];
+    {%- for k in range(end=dims.nu) %}
+    qu[{{ k }}] = {{ cost.qu[k] }};
+    {%- endfor %}
+    for (int i = 0; i < N; i++)
+    {
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "qu", qu);
+    }
+
     double Vx[NY*NX];
     {% for j in range(end=dims.ny) %}
         {%- for k in range(end=dims.nx) %}
@@ -855,6 +874,12 @@ int acados_create()
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "W", W_e);
 
     {%- if cost.cost_type_e == "LINEAR_LS" %}
+    double qx_e[NX];
+    {%- for k in range(end=dims.nx) %}
+    qx_e[{{ k }}] = {{ cost.qx_e[k] }};
+    {%- endfor %}
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "qx", qx_e);
+
     double Vx_e[NYN*NX];
     {% for j in range(end=dims.ny_e) %}
         {%- for k in range(end=dims.nx) %}
