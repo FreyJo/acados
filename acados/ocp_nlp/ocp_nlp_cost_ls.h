@@ -38,7 +38,7 @@
 /// @{
 /// \addtogroup ocp_nlp_cost_ls ocp_nlp_cost_ls
 /// \brief This module implements linear-least squares costs of the form
-/// \f$\min_{x,u,z} \| V_x x + V_u u + V_z z - y_{\text{ref}}\|_W^2\f$.
+/// \f$\min_{x,u,z} \| V_x x + V_u u + V_z z - y_{\text{ref}}\|_W^2\f + q_ux^T * [u; x] $.
 /// @{
 
 
@@ -121,12 +121,13 @@ void ocp_nlp_cost_ls_dims_get(void *config_, void *dims_, const char *field, int
 typedef struct
 {
     // slack penalty has the form z^T * s + .5 * s^T * Z * s
-    struct blasfeo_dmat Cyt;            ///< output matrix: Cy * [x, u] = y; in transposed form
-    struct blasfeo_dmat Vz;             ///< Vz in ls cost Vx*x + Vu*u + Vz*z
-    struct blasfeo_dmat W;              ///< ls norm corresponding to this matrix
-    struct blasfeo_dvec y_ref;          ///< yref
-    struct blasfeo_dvec Z;              ///< diagonal Hessian of slacks as vector (lower and upper)
-    struct blasfeo_dvec z;              ///< gradient of slacks as vector (lower and upper)
+    struct blasfeo_dmat Cyt;     ///< output matrix: Cy * [u, x] = y; in transposed form
+    struct blasfeo_dmat Vz;      ///< Vz in ls cost Vx*x + Vu*u + Vz*z
+    struct blasfeo_dmat W;       ///< ls norm corresponding to this matrix
+    struct blasfeo_dvec y_ref;   ///< yref
+    struct blasfeo_dvec Z;       ///< diagonal Hessian of slacks as vector (lower and upper)
+    struct blasfeo_dvec z;       ///< gradient of slacks as vector (lower and upper)
+    struct blasfeo_dvec q_ux;    ///< gradient term of [u, x]
     double scaling;
 } ocp_nlp_cost_ls_model;
 

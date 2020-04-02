@@ -238,6 +238,7 @@ int ocp_nlp_cost_ls_model_calculate_size(void *config_, void *dims_)
     size += 1 * blasfeo_memsize_dmat(ny, ny);           // W
     size += 1 * blasfeo_memsize_dmat(nu + nx, ny);      // Cyt
     size += 1 * blasfeo_memsize_dmat(nz, ny);           // Vz
+    size += 1 * blasfeo_memsize_dvec(nx+nu);            // q_ux
     size += 1 * blasfeo_memsize_dvec(ny);               // y_ref
     size += 2 * blasfeo_memsize_dvec(2 * ns);           // Z, z
 
@@ -281,6 +282,10 @@ void *ocp_nlp_cost_ls_model_assign(void *config_, void *dims_, void *raw_memory)
     // y_ref
     assign_and_advance_blasfeo_dvec_mem(ny, &model->y_ref, &c_ptr);
     blasfeo_dvecse(ny, 0.0, &model->y_ref, 0);
+
+    // q_ux
+    assign_and_advance_blasfeo_dvec_mem(nx+nu, &model->q_ux, &c_ptr);
+    blasfeo_dvecse(nx+nu, 0.0, &model->q_ux, 0);
 
     // Z
     assign_and_advance_blasfeo_dvec_mem(2 * ns, &model->Z, &c_ptr);
@@ -384,6 +389,16 @@ int ocp_nlp_cost_ls_model_set(void *config_, void *dims_, void *model_,
     {
         double *zu = (double *) value_;
         blasfeo_pack_dvec(ns, zu, &model->z, ns);
+    }
+    else if (!strcmp(field, "qu"))
+    {
+        double *qu = (double *) value_;
+        blasfeo_pack_dvec(nu, qu, &model->q_ux, 0);
+    }
+    else if (!strcmp(field, "qx"))
+    {
+        double *qx = (double *) value_;
+        blasfeo_pack_dvec(nx, qx, &model->q_ux, nu);
     }
     else if (!strcmp(field, "scaling"))
     {
@@ -760,6 +775,7 @@ void ocp_nlp_cost_ls_update_qp_matrices(void *config_, void *dims_,
     int ny = dims->ny;
     int ns = dims->ns;
 
+    blasfeo_dveccp(nx+nu, &model->q_ux, 0, &memory->grad, 0);
     if (nz > 0)
     { // eliminate algebraic variables and update Cyt and y_ref
 
@@ -797,9 +813,9 @@ void ocp_nlp_cost_ls_update_qp_matrices(void *config_, void *dims_,
         blasfeo_dsymv_l(ny, ny, 1.0, &model->W, 0, 0, &memory->res,
                 0, 0.0, &work->tmp_ny, 0, &work->tmp_ny, 0);
 
-        // grad = Cyt_tilde * tmp_ny
-        blasfeo_dgemv_n(nu + nx, ny, 1.0, &work->Cyt_tilde,
-                0, 0, &work->tmp_ny, 0, 0.0, &memory->grad, 0, &memory->grad, 0);
+        // grad += Cyt_tilde * tmp_ny
+        blasfeo_dgemv_n(nu + nx, ny, 1.0, &work->Cyt_tilde, 0, 0, &work->tmp_ny, 0,
+                        1.0, &memory->grad, 0, &memory->grad, 0);
 
         memory->fun = 0.5 * blasfeo_ddot(ny, &work->tmp_ny, 0, &memory->res, 0);
         // TODO what about the exact hessian in the case of nz>0 ???
@@ -810,7 +826,7 @@ void ocp_nlp_cost_ls_update_qp_matrices(void *config_, void *dims_,
         blasfeo_dgead(nx + nu, nx + nu, 1.0, &memory->hess, 0, 0, memory->RSQrq, 0, 0);
 
         // compute gradient, function
-        // res = Cyt * ux - y_ref
+        // res = Cy * ux - y_ref
         blasfeo_dgemv_t(nu + nx, ny, 1.0, &model->Cyt, 0, 0, memory->ux, 0,
                         -1.0, &model->y_ref, 0, &memory->res, 0);
 
@@ -818,9 +834,9 @@ void ocp_nlp_cost_ls_update_qp_matrices(void *config_, void *dims_,
         blasfeo_dsymv_l(ny, ny, 1.0, &model->W, 0, 0, &memory->res, 0,
                         0.0, &work->tmp_ny, 0, &work->tmp_ny, 0);
 
-        // grad = Cyt * tmp_ny
+        // grad += Cyt * tmp_ny
         blasfeo_dgemv_n(nu + nx, ny, 1.0, &model->Cyt, 0, 0, &work->tmp_ny, 0,
-                        0.0, &memory->grad, 0, &memory->grad, 0);
+                        1.0, &memory->grad, 0, &memory->grad, 0);
 
         memory->fun = 0.5 * blasfeo_ddot(ny, &work->tmp_ny, 0, &memory->res, 0);
     }
