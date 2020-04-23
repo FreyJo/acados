@@ -160,6 +160,7 @@ dense_qp_in *dense_qp_in_assign(dense_qp_dims *dims, void *raw_memory)
     qp_in->dim = (dense_qp_dims *) c_ptr;
     c_ptr += sizeof(dense_qp_dims);
 
+    // initialize
     qp_in->dim->nv = dims->nv;
     qp_in->dim->ne = dims->ne;
     qp_in->dim->nb = dims->nb;

@@ -60,6 +60,7 @@ int dense_qp_hpipm_opts_calculate_size(void *config_, void *dims_)
     size += sizeof(dense_qp_hpipm_opts);
     size += sizeof(struct d_dense_qp_ipm_arg);
     size += d_dense_qp_ipm_arg_memsize(dims);
+    make_int_multiple_of(8, &size);
 
     return size;
 }
@@ -147,6 +148,7 @@ int dense_qp_hpipm_memory_calculate_size(void *config_, void *dims_, void *opts_
     size += sizeof(struct d_dense_qp_ipm_ws);
 
     size += d_dense_qp_ipm_ws_memsize(dims, opts->hpipm_opts);
+    make_int_multiple_of(8, &size);
 
     return size;
 }
