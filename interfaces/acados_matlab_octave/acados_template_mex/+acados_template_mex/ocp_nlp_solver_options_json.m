@@ -55,6 +55,7 @@ classdef ocp_nlp_solver_options_json < handle
         print_level
         initialize_t_slacks
         levenberg_marquardt
+        ext_cost_custom_hessian
     end
     methods
         function obj = ocp_nlp_solver_options_json()
@@ -76,6 +77,7 @@ classdef ocp_nlp_solver_options_json < handle
             obj.time_steps = [];
             obj.initialize_t_slacks = 0;
             obj.levenberg_marquardt = 0.0;
+            obj.ext_cost_custom_hessian = 0;
         end
     end
 end
