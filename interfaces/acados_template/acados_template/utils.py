@@ -407,6 +407,10 @@ def set_up_imported_gnsf_model(acados_formulation):
     acados_formulation.model.phi_jac_y_uhat = phi_jac_y_uhat
     acados_formulation.model.get_matrices_fun = get_matrices_fun
 
+    if "phi_hess" in gnsf:
+        phi_hess = Function.deserialize(gnsf['phi_hess'])
+        acados_formulation.model.phi_hess = phi_hess
+
     if "f_lo_fun_jac_x1k1uz" in gnsf:
         f_lo_fun_jac_x1k1uz = Function.deserialize(gnsf['f_lo_fun_jac_x1k1uz'])
         acados_formulation.model.f_lo_fun_jac_x1k1uz = f_lo_fun_jac_x1k1uz
@@ -414,13 +418,11 @@ def set_up_imported_gnsf_model(acados_formulation):
         dummy_var_x1 = SX.sym('dummy_var_x1', acados_formulation.dims.gnsf_nx1)
         dummy_var_x1dot = SX.sym('dummy_var_x1dot', acados_formulation.dims.gnsf_nx1)
         dummy_var_z1 = SX.sym('dummy_var_z1', acados_formulation.dims.gnsf_nz1)
-        dummy_var_u = SX.sym('dummy_var_z1', acados_formulation.dims.nu)
-        dummy_var_p = SX.sym('dummy_var_z1', acados_formulation.dims.np)
+        dummy_var_u = SX.sym('dummy_var_u', acados_formulation.dims.nu)
+        dummy_var_p = SX.sym('dummy_var_p', acados_formulation.dims.np)
         empty_var = SX.sym('empty_var', 0, 0)
 
-        empty_fun = Function('empty_fun', \
-            [dummy_var_x1, dummy_var_x1dot, dummy_var_z1, dummy_var_u, dummy_var_p],
-                [empty_var])
+        empty_fun = Function('empty_fun', [dummy_var_x1, dummy_var_x1dot, dummy_var_z1, dummy_var_u, dummy_var_p], [empty_var])
         acados_formulation.model.f_lo_fun_jac_x1k1uz = empty_fun
 
     del acados_formulation.gnsf_model
