@@ -121,6 +121,9 @@ MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_impl_dae_hess.o
 MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_gnsf_phi_fun.o
 MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_gnsf_phi_fun_jac_y.o
 MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_gnsf_phi_jac_y_uhat.o
+{%- if hessian_approx == "EXACT" %}
+MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_gnsf_phi_hess.o
+{%- endif %}
 MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_gnsf_f_lo_fun_jac_x1k1uz.o
 MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_gnsf_get_matrices_fun.o
 {%- endif %}
@@ -217,6 +220,9 @@ CASADI_MODEL_SOURCE+= {{ model.name }}_impl_dae_hess.c
 CASADI_MODEL_SOURCE+= {{ model.name }}_gnsf_phi_fun.c
 CASADI_MODEL_SOURCE+= {{ model.name }}_gnsf_phi_fun_jac_y.c
 CASADI_MODEL_SOURCE+= {{ model.name }}_gnsf_phi_jac_y_uhat.c
+{%- if hessian_approx == "EXACT" %}
+CASADI_MODEL_SOURCE+= {{ model.name }}_gnsf_phi_hess.c
+{%- endif %}
 CASADI_MODEL_SOURCE+= {{ model.name }}_gnsf_f_lo_fun_jac_x1k1uz.c
 CASADI_MODEL_SOURCE+= {{ model.name }}_gnsf_get_matrices_fun.c
 {%- endif %}

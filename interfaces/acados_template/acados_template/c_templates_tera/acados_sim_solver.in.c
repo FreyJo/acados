@@ -82,6 +82,9 @@ external_function_param_casadi * sim_impl_dae_hess;
 external_function_param_casadi * sim_gnsf_phi_fun;
 external_function_param_casadi * sim_gnsf_phi_fun_jac_y;
 external_function_param_casadi * sim_gnsf_phi_jac_y_uhat;
+{%- if hessian_approx == "EXACT" %}
+external_function_param_casadi * sim_gnsf_phi_hess;
+{%- endif %}
 external_function_param_casadi * sim_gnsf_f_lo_jac_x1_x1dot_u_z;
 external_function_param_casadi * sim_gnsf_get_matrices_fun;
 {%- endif %}
@@ -119,7 +122,6 @@ int {{ model.name }}_acados_sim_create()
     sim_impl_dae_fun_jac_x_xdot_z->casadi_n_out = &{{ model.name }}_impl_dae_fun_jac_x_xdot_z_n_out;
     external_function_param_casadi_create(sim_impl_dae_fun_jac_x_xdot_z, {{ dims.np }});
 
-    // external_function_param_casadi impl_dae_jac_x_xdot_u_z;
     sim_impl_dae_jac_x_xdot_u_z->casadi_fun = &{{ model.name }}_impl_dae_jac_x_xdot_u_z;
     sim_impl_dae_jac_x_xdot_u_z->casadi_work = &{{ model.name }}_impl_dae_jac_x_xdot_u_z_work;
     sim_impl_dae_jac_x_xdot_u_z->casadi_sparsity_in = &{{ model.name }}_impl_dae_jac_x_xdot_u_z_sparsity_in;
@@ -130,7 +132,6 @@ int {{ model.name }}_acados_sim_create()
 
 {%- if hessian_approx == "EXACT" %}
     sim_impl_dae_hess = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi));
-    // external_function_param_casadi impl_dae_jac_x_xdot_u_z;
     sim_impl_dae_hess->casadi_fun = &{{ model.name }}_impl_dae_hess;
     sim_impl_dae_hess->casadi_work = &{{ model.name }}_impl_dae_hess_work;
     sim_impl_dae_hess->casadi_sparsity_in = &{{ model.name }}_impl_dae_hess_sparsity_in;
@@ -163,7 +164,6 @@ int {{ model.name }}_acados_sim_create()
 
 {%- if hessian_approx == "EXACT" %}
     sim_expl_ode_hess = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi));
-    // external_function_param_casadi impl_dae_jac_x_xdot_u_z;
     sim_expl_ode_hess->casadi_fun = &{{ model.name }}_expl_ode_hess;
     sim_expl_ode_hess->casadi_work = &{{ model.name }}_expl_ode_hess_work;
     sim_expl_ode_hess->casadi_sparsity_in = &{{ model.name }}_expl_ode_hess_sparsity_in;
@@ -219,6 +219,17 @@ int {{ model.name }}_acados_sim_create()
     sim_gnsf_get_matrices_fun->casadi_sparsity_out = &{{ model.name }}_gnsf_get_matrices_fun_sparsity_out;
     sim_gnsf_get_matrices_fun->casadi_work = &{{ model.name }}_gnsf_get_matrices_fun_work;
     external_function_param_casadi_create(sim_gnsf_get_matrices_fun, {{ dims.np }});
+
+    {%- if hessian_approx == "EXACT" %}
+    sim_gnsf_phi_hess = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi));
+    sim_gnsf_phi_hess->casadi_fun = &{{ model.name }}_gnsf_phi_hess;
+    sim_gnsf_phi_hess->casadi_work = &{{ model.name }}_gnsf_phi_hess_work;
+    sim_gnsf_phi_hess->casadi_sparsity_in = &{{ model.name }}_gnsf_phi_hess_sparsity_in;
+    sim_gnsf_phi_hess->casadi_sparsity_out = &{{ model.name }}_gnsf_phi_hess_sparsity_out;
+    sim_gnsf_phi_hess->casadi_n_in = &{{ model.name }}_gnsf_phi_hess_n_in;
+    sim_gnsf_phi_hess->casadi_n_out = &{{ model.name }}_gnsf_phi_hess_n_out;
+    external_function_param_casadi_create(sim_gnsf_phi_hess, {{ dims.np }});
+    {%- endif %}
     {% endif %}
 
     // sim plan & config
@@ -308,6 +319,10 @@ int {{ model.name }}_acados_sim_create()
                  "phi_fun_jac_y", sim_gnsf_phi_fun_jac_y);
     {{ model.name }}_sim_config->model_set({{ model.name }}_sim_in->model,
                  "phi_jac_y_uhat", sim_gnsf_phi_jac_y_uhat);
+  {%- if hessian_approx == "EXACT" %}
+    {{ model.name }}_sim_config->model_set({{ model.name }}_sim_in->model,
+                "phi_hess", sim_gnsf_phi_hess);
+  {%- endif %}
     {{ model.name }}_sim_config->model_set({{ model.name }}_sim_in->model,
                  "f_lo_jac_x1_x1dot_u_z", sim_gnsf_f_lo_jac_x1_x1dot_u_z);
     {{ model.name }}_sim_config->model_set({{ model.name }}_sim_in->model,
@@ -343,6 +358,9 @@ int {{ model.name }}_acados_sim_create()
     sim_gnsf_phi_fun[0].set_param(sim_gnsf_phi_fun, p);
     sim_gnsf_phi_fun_jac_y[0].set_param(sim_gnsf_phi_fun_jac_y, p);
     sim_gnsf_phi_jac_y_uhat[0].set_param(sim_gnsf_phi_jac_y_uhat, p);
+{%- if hessian_approx == "EXACT" %}
+    sim_gnsf_phi_hess[0].set_param(sim_gnsf_phi_hess, p);
+{%- endif %}
     sim_gnsf_f_lo_jac_x1_x1dot_u_z[0].set_param(sim_gnsf_f_lo_jac_x1_x1dot_u_z, p);
     sim_gnsf_get_matrices_fun[0].set_param(sim_gnsf_get_matrices_fun, p);
 {% endif %}
@@ -423,6 +441,9 @@ int {{ model.name }}_acados_sim_free()
     external_function_param_casadi_free(sim_gnsf_phi_fun);
     external_function_param_casadi_free(sim_gnsf_phi_fun_jac_y);
     external_function_param_casadi_free(sim_gnsf_phi_jac_y_uhat);
+{%- if hessian_approx == "EXACT" %}
+    external_function_param_casadi_free(sim_gnsf_phi_hess);
+{%- endif %}
     external_function_param_casadi_free(sim_gnsf_f_lo_jac_x1_x1dot_u_z);
     external_function_param_casadi_free(sim_gnsf_get_matrices_fun);
 {% endif %}
@@ -453,6 +474,9 @@ int {{ model.name }}_acados_sim_update_params(double *p, int np)
     sim_gnsf_phi_fun[0].set_param(sim_gnsf_phi_fun, p);
     sim_gnsf_phi_fun_jac_y[0].set_param(sim_gnsf_phi_fun_jac_y, p);
     sim_gnsf_phi_jac_y_uhat[0].set_param(sim_gnsf_phi_jac_y_uhat, p);
+  {%- if hessian_approx == "EXACT" %}
+    sim_gnsf_phi_hess[0].set_param(sim_gnsf_phi_hess, p);
+  {%- endif %}
     sim_gnsf_f_lo_jac_x1_x1dot_u_z[0].set_param(sim_gnsf_f_lo_jac_x1_x1dot_u_z, p);
     sim_gnsf_get_matrices_fun[0].set_param(sim_gnsf_get_matrices_fun, p);
 {% endif %}
