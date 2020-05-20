@@ -154,15 +154,13 @@ def sim_generate_casadi_functions(acados_sim):
 
     integrator_type = acados_sim.solver_options.integrator_type
     # generate external functions
+    opts = dict(generate_hess=1)
     if integrator_type == 'ERK':
-        # explicit model -- generate C code
         generate_c_code_explicit_ode(model)
     elif integrator_type == 'IRK':
-        # implicit model -- generate C code
-        opts = dict(generate_hess=1)
         generate_c_code_implicit_ode(model, opts)
     elif integrator_type == 'GNSF':
-        generate_c_code_gnsf(model)
+        generate_c_code_gnsf(model, opts)
 
 class AcadosSimSolver:
     def __init__(self, acados_sim_, json_file='acados_sim.json'):
@@ -177,7 +175,7 @@ class AcadosSimSolver:
             acados_sim.dims.np = acados_sim_.dims.np
             acados_sim.solver_options.integrator_type = acados_sim_.solver_options.integrator_type
 
-        elif isinstance(acados_sim_, AcadosSim):
+        if isinstance(acados_sim_, AcadosSim):
             acados_sim = acados_sim_
 
         acados_sim.__problem_class = 'SIM'

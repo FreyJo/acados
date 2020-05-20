@@ -35,7 +35,7 @@ import os
 from casadi import *
 from .utils import ALLOWED_CASADI_VERSIONS, is_empty
 
-def generate_c_code_gnsf( model ):
+def generate_c_code_gnsf( model, opts ):
 
     casadi_version = CasadiMeta.version()
     casadi_opts = dict(mex=False, casadi_int='int', casadi_real='double')
@@ -44,6 +44,8 @@ def generate_c_code_gnsf( model ):
         msg += 'to ensure compatibility with acados.\n'
         msg += 'Version {} currently in use.'.format(casadi_version)
         raise Exception(msg)
+
+    generate_hess = opts["generate_hess"]
 
     model_name = model.name
 
@@ -83,6 +85,7 @@ def generate_c_code_gnsf( model ):
         z1 = MX.sym("gnsf_z1", gnsf_nz1, 1)
         dummy = MX.sym("gnsf_dummy", 1, 1)
         empty_var = MX.sym("gnsf_empty_var", 0, 0)
+        multiplier = MX.sym("multiplier", gnsf_nout, 1)
 
     else:
         y = SX.sym("y", gnsf_ny, 1)
@@ -93,6 +96,7 @@ def generate_c_code_gnsf( model ):
         z1 = SX.sym("gnsf_z1", gnsf_nz1, 1)
         dummy = SX.sym("gnsf_dummy", 1, 1)
         empty_var = SX.sym("gnsf_empty_var", 0, 0)
+        multiplier = SX.sym("multiplier", gnsf_nout, 1)
 
     ## generate C code
     fun_name = model_name + '_gnsf_phi_fun'
@@ -109,9 +113,16 @@ def generate_c_code_gnsf( model ):
     phi_jac_y_uhat_ = Function(fun_name, [y, uhat, p], phi_jac_y_uhat(y, uhat, p))
     phi_jac_y_uhat_.generate(fun_name, casadi_opts)
 
+    if generate_hess:
+        fun_name = model_name + '_gnsf_phi_hess'
+        phi_hess = model.phi_hess
+        phi_hess_ = Function(fun_name, [y, uhat, multiplier, p], [phi_hess(y, uhat, multiplier, p)])
+        phi_hess_.generate(fun_name, casadi_opts)
+
     fun_name = model_name + '_gnsf_f_lo_fun_jac_x1k1uz'
     f_lo_fun_jac_x1k1uz = model.f_lo_fun_jac_x1k1uz
     f_lo_fun_jac_x1k1uz_eval = f_lo_fun_jac_x1k1uz(x1, x1dot, z1, u, p)
+
 
     # avoid codegeneration issue
     if not isinstance(f_lo_fun_jac_x1k1uz_eval, tuple) and is_empty(f_lo_fun_jac_x1k1uz_eval):
@@ -129,6 +140,8 @@ def generate_c_code_gnsf( model ):
     del model.phi_fun
     del model.phi_fun_jac_y
     del model.phi_jac_y_uhat
+    if 'phi_hess' in model.__dict__.keys():
+        del model.phi_hess
     del model.f_lo_fun_jac_x1k1uz
     del model.get_matrices_fun
 
