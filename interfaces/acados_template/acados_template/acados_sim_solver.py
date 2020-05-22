@@ -154,15 +154,13 @@ def sim_generate_casadi_functions(acados_sim):
 
     integrator_type = acados_sim.solver_options.integrator_type
     # generate external functions
+    opts = dict(generate_hess=1)
     if integrator_type == 'ERK':
-        # explicit model -- generate C code
         generate_c_code_explicit_ode(model)
     elif integrator_type == 'IRK':
-        # implicit model -- generate C code
-        opts = dict(generate_hess=1)
         generate_c_code_implicit_ode(model, opts)
     elif integrator_type == 'GNSF':
-        generate_c_code_gnsf(model)
+        generate_c_code_gnsf(model, opts)
 
 class AcadosSimSolver:
     def __init__(self, acados_sim_, json_file='acados_sim.json'):
@@ -177,19 +175,20 @@ class AcadosSimSolver:
             acados_sim.dims.np = acados_sim_.dims.np
             acados_sim.solver_options.integrator_type = acados_sim_.solver_options.integrator_type
 
-        elif isinstance(acados_sim_, AcadosSim):
+        if isinstance(acados_sim_, AcadosSim):
             acados_sim = acados_sim_
-            if acados_sim.solver_options.integrator_type == 'GNSF':
-                set_up_imported_gnsf_model(acados_sim)
-        model_name = acados_sim.model.name
 
+        acados_sim.__problem_class = 'SIM'
+
+        model_name = acados_sim.model.name
         make_sim_dims_consistent(acados_sim)
 
-        # generate casadi functions
-        sim_generate_casadi_functions(acados_sim)
-
-        # use existing json when creating integrator from ocp
+        # reuse existing json and casadi functions, when creating integrator from ocp
         if isinstance(acados_sim_, AcadosSim):
+            if acados_sim.solver_options.integrator_type == 'GNSF':
+                set_up_imported_gnsf_model(acados_sim)
+
+            sim_generate_casadi_functions(acados_sim)
             sim_formulation_json_dump(acados_sim, json_file)
 
         # render templates

@@ -39,6 +39,8 @@
 
 {%- if solver_options.hessian_approx %}
 	{%- set hessian_approx = solver_options.hessian_approx %}
+{%- elif solver_options.sens_hess %}
+	{%- set hessian_approx = "EXACT" %}
 {%- else %}
 	{%- set hessian_approx = "GAUSS_NEWTON" %}
 {%- endif %}
@@ -119,6 +121,9 @@ MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_impl_dae_hess.o
 MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_gnsf_phi_fun.o
 MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_gnsf_phi_fun_jac_y.o
 MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_gnsf_phi_jac_y_uhat.o
+{%- if hessian_approx == "EXACT" %}
+MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_gnsf_phi_hess.o
+{%- endif %}
 MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_gnsf_f_lo_fun_jac_x1k1uz.o
 MODEL_OBJ+= {{ model.name }}_model/{{ model.name }}_gnsf_get_matrices_fun.o
 {%- endif %}
@@ -215,6 +220,9 @@ CASADI_MODEL_SOURCE+= {{ model.name }}_impl_dae_hess.c
 CASADI_MODEL_SOURCE+= {{ model.name }}_gnsf_phi_fun.c
 CASADI_MODEL_SOURCE+= {{ model.name }}_gnsf_phi_fun_jac_y.c
 CASADI_MODEL_SOURCE+= {{ model.name }}_gnsf_phi_jac_y_uhat.c
+{%- if hessian_approx == "EXACT" %}
+CASADI_MODEL_SOURCE+= {{ model.name }}_gnsf_phi_hess.c
+{%- endif %}
 CASADI_MODEL_SOURCE+= {{ model.name }}_gnsf_f_lo_fun_jac_x1k1uz.c
 CASADI_MODEL_SOURCE+= {{ model.name }}_gnsf_get_matrices_fun.c
 {%- endif %}
@@ -328,13 +336,11 @@ example:
 
 
 example_sim: sim_solver main_sim
-	gcc $(ACADOS_FLAGS) -o main_sim_{{ model.name}} $(EX_SIM_OBJ) $(OBJ) -L $(LIB_PATH) \
+	gcc $(ACADOS_FLAGS) -o main_sim_{{ model.name}} $(EX_SIM_OBJ) $(MODEL_OBJ) $(SIM_OBJ) -L $(LIB_PATH) \
 	-L $(LIB_PATH) \
 	-lacados -lhpipm -lblasfeo \
 	-lm \
 	-I $(INCLUDE_PATH)/blasfeo/include/ \
-	-I $(INCLUDE_PATH)/hpipm/include/ \
-	-I $(INCLUDE_PATH) \
 	-I $(INCLUDE_PATH)/acados/ \
 
 

@@ -40,6 +40,8 @@ extern "C" {
 
 {%- if solver_options.hessian_approx %}
 	{%- set hessian_approx = solver_options.hessian_approx %}
+{%- elif solver_options.sens_hess %}
+	{%- set hessian_approx = "EXACT" %}
 {%- else %}
 	{%- set hessian_approx = "GAUSS_NEWTON" %}
 {%- endif %}
@@ -119,6 +121,15 @@ const int *{{ model.name }}_gnsf_phi_jac_y_uhat_sparsity_in(int);
 const int *{{ model.name }}_gnsf_phi_jac_y_uhat_sparsity_out(int);
 int        {{ model.name }}_gnsf_phi_jac_y_uhat_n_in();
 int        {{ model.name }}_gnsf_phi_jac_y_uhat_n_out();
+
+{%- if hessian_approx == "EXACT" %}
+int {{ model.name }}_gnsf_phi_hess(const real_t** arg, real_t** res, int* iw, real_t* w, void *mem);
+int {{ model.name }}_gnsf_phi_hess_work(int *, int *, int *, int *);
+const int *{{ model.name }}_gnsf_phi_hess_sparsity_in(int);
+const int *{{ model.name }}_gnsf_phi_hess_sparsity_out(int);
+int {{ model.name }}_gnsf_phi_hess_n_in();
+int {{ model.name }}_gnsf_phi_hess_n_out();
+{%- endif %}
 
 // f_lo_fun_jac_x1k1uz
 int        {{ model.name }}_gnsf_f_lo_fun_jac_x1k1uz(const double** arg, double** res, int* iw, double* w, void *mem);

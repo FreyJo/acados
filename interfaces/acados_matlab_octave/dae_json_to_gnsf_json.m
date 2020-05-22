@@ -88,7 +88,9 @@ model.dyn_expr_f = impl_dae_fun(model.sym_x, model.sym_xdot,...
                                 model.sym_u, model.sym_z, model.sym_p);
 
 %%
-model = detect_gnsf_structure(model);
+transcribe_opts = struct();
+transcribe_opts.detect_LOS = 0;
+model = detect_gnsf_structure(model, transcribe_opts);
 
 %%
 dump_gnsf_functions(model)
