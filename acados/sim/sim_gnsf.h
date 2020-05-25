@@ -256,6 +256,9 @@ typedef struct
     struct blasfeo_dmat* tmp_nx1_nx1;
     struct blasfeo_dmat* tmp_nx1_ny;
     struct blasfeo_dmat* tmp_nu_ny;
+    struct blasfeo_dmat* tmp_nvv_nvv;
+    struct blasfeo_dmat* tmp_nout_ny;
+    struct blasfeo_dmat* tmp_nvv_nout;
 
 } gnsf_workspace;
 

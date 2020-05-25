@@ -1607,7 +1607,8 @@ int sim_gnsf_workspace_calculate_size(void *config, void *dims_, void *opts_)
     if (opts->sens_hess)
     {
         size += 4 * sizeof(struct blasfeo_dmat);  // Hess, Hess_old, H_vv, tmp_nyuhat_nyuhat
-        size += 4 * sizeof(struct blasfeo_dmat);  // tmp_nx1nu_nvv, tmp_nx1_ny, tmp_nx1_nx1, tmp_nu_ny
+        size += 5 * sizeof(struct blasfeo_dmat);  // tmp_nx1nu_nvv, tmp_nx1_ny, tmp_nx1_nx1, tmp_nu_ny, tmp_nvv_nvv
+        size += 1 * sizeof(struct blasfeo_dmat);  // tmp_nvv_nout, tmp_nout_ny
 
         size += 4 * num_steps * sizeof(struct blasfeo_dmat);  // dr_dvv, dvv_dx1u, dxf_dwn, dr_dx1u
         size += num_steps * nvv * sizeof(int);  // ipiv
@@ -1695,6 +1696,9 @@ int sim_gnsf_workspace_calculate_size(void *config, void *dims_, void *opts_)
         size += 1 * blasfeo_memsize_dmat(nx1, ny);  // tmp_nx1_ny
         size += 1 * blasfeo_memsize_dmat(nx1, nx1);  // tmp_nx1_nx1
         size += 1 * blasfeo_memsize_dmat(nu, ny);  // tmp_nu_ny
+        size += blasfeo_memsize_dmat(nvv, nvv);  // tmp_nvv_nvv
+        size += blasfeo_memsize_dmat(nvv, n_out); // tmp_nvv_nout
+        size += blasfeo_memsize_dmat(n_out, ny); // tmp_nout_ny
     }
     else
     {
@@ -1775,6 +1779,9 @@ static void *sim_gnsf_cast_workspace(void *config, void *dims_, void *opts_, voi
         assign_and_advance_blasfeo_dmat_structs(1, &workspace->tmp_nx1_ny, &c_ptr);
         assign_and_advance_blasfeo_dmat_structs(1, &workspace->tmp_nx1_nx1, &c_ptr);
         assign_and_advance_blasfeo_dmat_structs(1, &workspace->tmp_nu_ny, &c_ptr);
+        assign_and_advance_blasfeo_dmat_structs(1, &workspace->tmp_nvv_nvv, &c_ptr);
+        assign_and_advance_blasfeo_dmat_structs(1, &workspace->tmp_nvv_nout, &c_ptr);
+        assign_and_advance_blasfeo_dmat_structs(1, &workspace->tmp_nout_ny, &c_ptr);
     }
     else
     {
@@ -1839,7 +1846,9 @@ static void *sim_gnsf_cast_workspace(void *config, void *dims_, void *opts_, voi
         assign_and_advance_blasfeo_dmat_mem(nx1, ny, workspace->tmp_nx1_ny, &c_ptr);
         assign_and_advance_blasfeo_dmat_mem(nx1, nx1, workspace->tmp_nx1_nx1, &c_ptr);
         assign_and_advance_blasfeo_dmat_mem(nu, ny, workspace->tmp_nu_ny, &c_ptr);
-
+        assign_and_advance_blasfeo_dmat_mem(nvv, nvv, workspace->tmp_nvv_nvv, &c_ptr);
+        assign_and_advance_blasfeo_dmat_mem(nvv, n_out, workspace->tmp_nvv_nout, &c_ptr);
+        assign_and_advance_blasfeo_dmat_mem(n_out, ny, workspace->tmp_nout_ny, &c_ptr);
 
         for (int ii = 0; ii < num_steps; ii++)
         {
@@ -2087,6 +2096,10 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
     struct blasfeo_dmat *tmp_nx1_ny = workspace->tmp_nx1_ny;
     struct blasfeo_dmat *tmp_nu_ny = workspace->tmp_nu_ny;
     struct blasfeo_dmat *tmp_nx1_nx1 = workspace->tmp_nx1_nx1;
+    struct blasfeo_dmat *tmp_nvv_nvv = workspace->tmp_nvv_nvv;
+    struct blasfeo_dmat *tmp_nout_ny = workspace->tmp_nout_ny;
+    struct blasfeo_dmat *tmp_nvv_nout = workspace->tmp_nvv_nout;
+
 
 
     // transform inputs to blasfeo and apply permutation ipiv_x
@@ -2219,6 +2232,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
         phi_hess_in[0] = &y_in;
         phi_hess_in[1] = uhat;
         phi_hess_in[2] = &lambda_in;
+        lambda_in.x = res_val;
 
         // output
         phi_hess_type_out[0] = BLASFEO_DMAT;
@@ -2939,16 +2953,10 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
             }
             else if (opts->sens_hess)
             {
-                lambda_in.x = res_val;
-                // TODO: rm following 2 lines
-                // printf("segfault here?!\n");
-                // blasfeo_print_exp_dmat(nx, nx+nu, S_forw, 0, 0);
-
                 // calculate adjoint sens using the forward result
                 blasfeo_dgemv_t(nx, nx+nu, 1.0, S_forw, 0, 0, lambda_old, 0, 0.0, lambda_old, 0, lambda, 0);
 
-                /* propagate Hessian and adjoint sensitivities */
-                // TODO!!!
+                /* propagate Hessian sensitivities */
                 for (int ss = num_steps - 1; ss >= 0; ss--)
                 {
                     dr_dvv_ss = &dr_dvv[ss];
@@ -2982,6 +2990,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                         lambda_in.xi = ii * n_out;
 
                         // set output
+                        // always tmp_nyuhat_nyuhat
 
                         // evaluate
                         acados_tic(&casadi_timer);
@@ -2991,11 +3000,21 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
 
                         // SET UP matrices
                         // 3.1.2
+
                         blasfeo_dgemm_tn(nx1, ny, ny, -1.0, YYx, ny*ii, 0, tmp_nyuhat_nyuhat, 0, 0,
                                          0.0, tmp_nx1_ny, 0, 0, tmp_nx1_ny, 0, 0);
                         blasfeo_dgemm_nn(nx1, nx1, ny, 1.0, tmp_nx1_ny, 0, 0, YYx, ny*ii, 0, 
                                          1.0, tmp_nx1_nx1, 0, 0, tmp_nx1_nx1, 0, 0);
+                        
+
                         // TODO: same for u
+                        blasfeo_dgemm_tn(nu, ny, ny, -1.0, YYu, ny*ii, 0, tmp_nyuhat_nyuhat, 0, 0,
+                                         0.0, tmp_nu_ny, 0, 0, tmp_nu_ny, 0, 0);
+                        // blasfeo_dgemm_nn(nu, nu, ny, 1.0, tmp_nu_ny, 0, 0, YYx, ny*ii, 0, 
+                        //                  1.0, tmp_nu_nu, 0, 0, tmp_nu_nu, 0, 0);
+
+
+
                         // tmp_nu_ny = YYu_i' * d2phi_d2y
                         blasfeo_dgemm_tn(nu, ny, ny, -1.0, YYu, ny*ii, 0, tmp_nyuhat_nyuhat, 0, 0,
                                          0.0, tmp_nu_ny, 0, 0, tmp_nu_ny, 0, 0);
@@ -3012,16 +3031,43 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                         // tmp_nx1nu_nvv[nu:, :] += tmp_nu_ny * YYv
                         blasfeo_dgemm_nn(nu, n_out, ny, 1.0, tmp_nu_ny, 0, 0, YYv, ny*ii, 0,
                                          0.0, tmp_nx1nu_nvv, nx1, 0, tmp_nx1nu_nvv, nx1, n_out*ii);
-                        
-
+                        // i 3.2.2
+                        // lambda_v * d2r_d2vv
+                        blasfeo_dgemm_tn(n_out, ny, ny, 1.0, YYv, ii*ny, ii*n_out, tmp_nyuhat_nyuhat, 0, 0,
+                                        0.0, tmp_nout_ny, 0, 0, tmp_nout_ny, 0, 0);
+                        blasfeo_dgemm_nn(n_out, n_out, ny, 1.0, tmp_nout_ny, 0, 0, YYv, ii*ny, ii*n_out,
+                                        0.0, tmp_nvv_nout, ii*n_out, 0, tmp_nvv_nout, ii*n_out, 0);
                     }
 
-                    // solve implicit equation
-                    // rhs
-                    // H_vv = tmp_nx1nu_nvv' * Sforw (TODO: or dxf_dxn?)
-                    // blasfeo_dgemm_nn(nvv, nx1, nx, )
-                    // dxf_dwn_ss
+                    /* solve implicit equation */
+                    // Set up rhs
+                    // H_vv = tmp_nx1nu_nvv' * Sx (TODO: or dxf_dxn?)
+                    blasfeo_dgemm_tn(nvv, nx1, nx, 1.0, tmp_nx1nu_nvv, 0, 0, dxf_dwn_ss, 0, 0,
+                                     0.0, H_vv, 0, 0, H_vv, 0, 0);
+                    
+                    // H_vv += tmp_nvv_nout * dvv_dx1u_ss
+                    for (int ii = 0; ii < num_stages; ii++)
+                    {
+                        blasfeo_dgemm_nn(n_out, nx1+nu, n_out, 1.0, tmp_nvv_nout, ii*n_out, 0,
+                             dvv_dx1u_ss, ii*n_out, 0, 1.0, H_vv, ii*n_out, 0, H_vv, ii*n_out, 0);
+                    }
 
+                    //  TODO: no u contribution?
+                    // blasfeo_dgemm_tn(nvv, nu, nu, 1.0, tmp_nx1nu_nvv, nx1, 0, dxf_dwn_ss, 0, 0,
+                    //                  0.0, H_vv, 0, 0, H_vv, 0, 0);
+
+                    acados_tic(&la_timer);
+                    /* backsolve */
+                    // blasfeo_dtrsm_lutn(nvv, nx1+nu, 1.0, dr_dvv_ss, 0, 0, H_vv, 0, 0, H_vv, 0, 0);
+                    // blasfeo_dtrsm_lltu(nvv, nx1+nu, 1.0, dr_dvv_ss, 0, 0, H_vv, 0, 0, H_vv, 0, 0);
+                    // blasfeo_drowpei(nvv, ipiv_ss, H_vv);
+
+                    // Since blasfeo_dtrsm_lutn, blasfeo_dtrsm_lltu not implemented, use tmp_nvv_nvv to transpose:
+                    blasfeo_dgetr(nvv, nvv, dr_dvv_ss, 0, 0, tmp_nvv_nvv, 0, 0);
+                    blasfeo_dtrsm_llnn(nvv, nx1+nu, 1.0, tmp_nvv_nvv, 0, 0, H_vv, 0, 0, H_vv, 0, 0);
+                    blasfeo_dtrsm_lunu(nvv, nx1+nu, 1.0, tmp_nvv_nvv, 0, 0, H_vv, 0, 0, H_vv, 0, 0);
+                    blasfeo_drowpei(nvv, ipiv_ss, H_vv);
+                    out->info->LAtime += acados_toc(&la_timer);
 
                     // update Hess
                     // Hess = dPsi_tilde_dxu ^T * Hess + dr_dw * H_vv
@@ -3034,7 +3080,10 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                              H_vv, ii*n_out, nx1, 0.0, Hess, 0, 0, Hess, 0, nx1);
                     }
                     // Hess += tmp_nx1_nx1 * dxn1_dw0
-                    // 
+                    //
+                    blasfeo_dgemm_nn(nx1, nx1+nu, nx1, 1.0, tmp_nx1_nx1, 0, 0, dxf_dwn_ss, 0, 0,
+                                 0.0, Hess, 0, 0, Hess, 0, 0);
+
                     // tmp_nx1nu_nx1nu = tmp_nx1nu_nvv * dvv_dx1u_ss
                     // using Hess_old instead of tmp_nx1nu_nx1nu
                     for (int ii = 0; ii < num_stages; ii++)
@@ -3042,6 +3091,10 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                         blasfeo_dgemm_nn(nx1+nu, nx1+nu, n_out, 1.0, tmp_nx1nu_nvv, 0, n_out*ii,
                                     dvv_dx1u_ss, n_out*ii, 0, 1.0, Hess_old, 0, 0, Hess_old, 0, 0);
                     }
+
+                    printf("Hessian contribution:\n");
+                    blasfeo_print_exp_dmat(nx1+nu, nx1+nu, Hess_old, 0, 0);
+
 
                     // Hess += tmp_nx1nu_nx1nu (on right components)
                     blasfeo_dgead(nx1, nx1, 1.0, Hess_old, 0, 0, Hess, 0, 0);
@@ -3169,8 +3222,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                                             nx1);  // + dPhi_duhat * L_u;
                         }
                         acados_tic(&la_timer);
-                        blasfeo_dgetrf_rp(nvv, nvv, dr_dvv, 0, 0, dr_dvv, 0, 0,
-                                                ipiv);  // factorize dr_dvv
+                        blasfeo_dgetrf_rp(nvv, nvv, dr_dvv, 0, 0, dr_dvv, 0, 0, ipiv);  // factorize dr_dvv
                         out->info->LAtime += acados_toc(&la_timer);
 
                         // compute lambda_vv:
