@@ -248,17 +248,17 @@ typedef struct
     // memory only available if (opts->sens_hess)
     struct blasfeo_dmat* Hess; // (nx+nu, nx+nu)
     struct blasfeo_dmat* Hess_old; // (nx+nu, nx+nu)
-    struct blasfeo_dmat* H_vv; // nvv * nvv
     struct blasfeo_dmat* dr_dx1u; // nvv * (nx1+nu)
     struct blasfeo_dmat* tmp_nyuhat_nyuhat; // ny * ny
 
     struct blasfeo_dmat* tmp_nx1nu_nvv;
+    struct blasfeo_dmat* tmp_nx1nu_nx1;
     struct blasfeo_dmat* tmp_nx1_nx1;
     struct blasfeo_dmat* tmp_nx1_ny;
     struct blasfeo_dmat* tmp_nu_ny;
     struct blasfeo_dmat* tmp_nvv_nvv;
-    struct blasfeo_dmat* tmp_nout_ny;
-    struct blasfeo_dmat* tmp_nvv_nout;
+    struct blasfeo_dmat* tmp_nvv_nyy;
+    struct blasfeo_dmat* tmp_nx1_nvv;
 
 } gnsf_workspace;
 
