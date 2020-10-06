@@ -38,7 +38,7 @@
 
 #### matlab interface
 - [x] detect dimensions
-- [ ] detect slack dimensions
+- [x] detect slack dimensions
 - [x] structure detections for constraints
 - [x] getting started folder
 - [x] add Mex templating support for: ( in prioritized order )
