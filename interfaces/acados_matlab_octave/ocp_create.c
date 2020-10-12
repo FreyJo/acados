@@ -1523,7 +1523,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // Jbx_0
     tmp_idx = malloc(nbx_0*sizeof(int));
-
     double *Jbx_0;
     const mxArray *Jbx_0_matlab = mxGetField( matlab_model, 0, "constr_Jbx_0" );
     if (Jbx_0_matlab!=NULL)
@@ -1554,10 +1553,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
         ocp_nlp_constraints_model_set(config, dims, in, 0, "idxbx", tmp_idx);
     }
-    else
-    {
-        MEX_MISSING_ARGUMENT(fun_name, "constr_Jbx_0");
-    }
+    // else
+    // {
+    //     MEX_MISSING_ARGUMENT(fun_name, "constr_Jbx_0");
+    // }
     free(tmp_idx);
 
 
@@ -1609,10 +1608,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         ocp_nlp_constraints_model_set(config, dims, in, 0, "lbx", lbx_0);
     }
-    else
-    {
-        MEX_MISSING_ARGUMENT_NOTE(fun_name, "constr_lbx_0", "can be updated after creation");
-    }
+    // else
+    // {
+    //     MEX_MISSING_ARGUMENT_NOTE(fun_name, "constr_lbx_0", "can be updated after creation");
+    // }
     // ubx_0
     if (mxGetField( matlab_model, 0, "constr_ubx_0" )!=NULL)
     {
@@ -1623,10 +1622,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         ocp_nlp_constraints_model_set(config, dims, in, 0, "ubx", ubx_0);
     }
-    else
-    {
-        MEX_MISSING_ARGUMENT_NOTE(fun_name, "constr_ubx_0", "can be updated after creation");
-    }
+    // else
+    // {
+    //     MEX_MISSING_ARGUMENT_NOTE(fun_name, "constr_ubx_0", "can be updated after creation");
+    // }
 
     // Jbx_e
     tmp_idx = malloc(nbx_e*sizeof(int));
