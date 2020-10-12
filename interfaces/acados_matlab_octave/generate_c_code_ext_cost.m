@@ -103,7 +103,7 @@ if isfield(model, 'cost_expr_ext_cost_e')
     % generate jacobians
     jac_x_e = jacobian(ext_cost_e, x);
     % generate hessians
-    hes_xx_e = jacobian(jac_x', x);
+    hes_xx_e = jacobian(jac_x_e', x);
     % Set up functions
     ext_cost_e_fun = Function([model_name,'_cost_ext_cost_e_fun'], {x, p}, {ext_cost_e});
     ext_cost_e_fun_jac = Function([model_name,'_cost_ext_cost_e_fun_jac'], {x, p}, {ext_cost_e, jac_x_e'});
