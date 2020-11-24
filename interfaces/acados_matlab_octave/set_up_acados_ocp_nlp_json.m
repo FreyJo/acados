@@ -37,6 +37,9 @@ function ocp_json = set_up_acados_ocp_nlp_json(obj)
     % create
     ocp_json = acados_template_mex.acados_ocp_nlp_json();
 
+    % here set problem class
+    % copy from non code gen object.
+
     % general
     ocp_json.dims.N = obj.opts_struct.param_scheme_N;
     ocp_json.solver_options.tf = model.T;

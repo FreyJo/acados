@@ -229,6 +229,8 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     }
 {%- endif %}
 
+    // W in column major
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "W", W);
 
 {% if dims.ny_e > 0 %}
     // y_ref_e
