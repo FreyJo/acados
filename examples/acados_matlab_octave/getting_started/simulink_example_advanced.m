@@ -11,12 +11,15 @@ minimal_example_ocp;
 simulink_opts = get_acados_simulink_opts;
 
 % manipulate simulink_opts to [de]activate in- & outputs (preliminary)
+simulink_opts.inputs.cost_W_0 = 1;
+simulink_opts.inputs.cost_W = 1;
+simulink_opts.inputs.cost_W_e = 1;
+
 % simulink_opts.outputs.sqp_iter = 0;
 % simulink_opts.outputs.utraj = 1;
 % simulink_opts.outputs.xtraj = 1;
 
-simulink_opts.inputs.cost_W_0 = 1;
-simulink_opts.inputs.cost_W = 1;
+
 
 ocp.generate_c_code(simulink_opts);
 
