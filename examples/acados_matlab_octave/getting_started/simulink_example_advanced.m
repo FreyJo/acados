@@ -16,6 +16,7 @@ simulink_opts = get_acados_simulink_opts;
 % simulink_opts.outputs.xtraj = 1;
 
 simulink_opts.inputs.cost_W_0 = 1;
+simulink_opts.inputs.cost_W = 1;
 
 ocp.generate_c_code(simulink_opts);
 
