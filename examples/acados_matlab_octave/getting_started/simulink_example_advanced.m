@@ -17,8 +17,8 @@ simulink_opts.inputs.cost_W = 1;
 simulink_opts.inputs.cost_W_e = 1;
 
 % outputs
-% simulink_opts.outputs.utraj = 1;
-% simulink_opts.outputs.xtraj = 1;
+simulink_opts.outputs.utraj = 1;
+simulink_opts.outputs.xtraj = 1;
 
 simulink_opts.samplingtime = '-1';
     % 't0' (default) - use time step between shooting node 0 and 1
