@@ -24,6 +24,10 @@ simulink_opts.samplingtime = '-1';
     % 't0' (default) - use time step between shooting node 0 and 1
     % '-1' - inherit sampling time from other parts of simulink model
 
+% set time step for code generated integrator - default is length of first
+% time step of ocp object
+ocp.opts_struct.Tsim = 0.05;
+
 
 %% Render templated Code for the model contained in ocp object
 ocp.generate_c_code(simulink_opts);
