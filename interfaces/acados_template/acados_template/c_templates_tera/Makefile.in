@@ -415,7 +415,7 @@ example_sim: sim_solver main_sim
 {%- if solver_options.integrator_type != "DISCRETE" %}
 
 bundled_shared_lib: casadi_fun ocp_solver sim_solver
-	gcc $(ACADOS_FLAGS) -shared -o libacados_solver_{{ model.name }}.so $(OBJ) \
+	gcc $(ACADOS_FLAGS) -shared -o libacados_solver_{{ model.name }}.lib $(OBJ) \
 	-I $(INCLUDE_PATH)/blasfeo/include/ \
 	-I $(INCLUDE_PATH)/hpipm/include/ \
 	-I $(INCLUDE_PATH) \
@@ -425,7 +425,7 @@ bundled_shared_lib: casadi_fun ocp_solver sim_solver
 	-lm \
 
 ocp_shared_lib: casadi_fun ocp_solver
-	gcc $(ACADOS_FLAGS) -shared -o libacados_ocp_solver_{{ model.name }}.so $(OCP_OBJ) $(MODEL_OBJ) \
+	gcc $(ACADOS_FLAGS) -shared -o libacados_ocp_solver_{{ model.name }}.lib $(OCP_OBJ) $(MODEL_OBJ) \
 	-I $(INCLUDE_PATH)/blasfeo/include/ \
 	-I $(INCLUDE_PATH)/hpipm/include/ \
 	-I $(INCLUDE_PATH) \
@@ -437,7 +437,7 @@ ocp_shared_lib: casadi_fun ocp_solver
 {%- else %}
 
 ocp_shared_lib: casadi_fun ocp_solver
-	gcc $(ACADOS_FLAGS) -shared -o libacados_ocp_solver_{{ model.name }}.so $(OCP_OBJ) $(MODEL_OBJ) \
+	gcc $(ACADOS_FLAGS) -shared -o libacados_ocp_solver_{{ model.name }}.lib $(OCP_OBJ) $(MODEL_OBJ) \
 	-I $(INCLUDE_PATH)/blasfeo/include/ \
 	-I $(INCLUDE_PATH)/hpipm/include/ \
 	-I $(INCLUDE_PATH) \
@@ -449,7 +449,7 @@ ocp_shared_lib: casadi_fun ocp_solver
 {%- endif %}
 
 sim_shared_lib: casadi_fun sim_solver
-	gcc $(ACADOS_FLAGS) -shared -o libacados_sim_solver_{{ model.name }}.so $(SIM_OBJ) $(MODEL_OBJ) -L$(EXTERNAL_DIR) -l$(EXTERNAL_LIB) \
+	gcc $(ACADOS_FLAGS) -shared -o libacados_sim_solver_{{ model.name }}.lib $(SIM_OBJ) $(MODEL_OBJ) -L$(EXTERNAL_DIR) -l$(EXTERNAL_LIB) \
 	-L $(LIB_PATH) -lacados -lhpipm -lblasfeo \
 	{{ link_libs }} \
 	-lm \
@@ -458,22 +458,22 @@ sim_shared_lib: casadi_fun sim_solver
 
 clean:
 	del \Q *.o 2>nul
-	del \Q *.so 2>nul
+	del \Q *.lib 2>nul
 	del \Q main_{{ model.name }} 2>nul
 
 clean_ocp_shared_lib:
-	del \Q libacados_ocp_solver_{{ model.name }}.so 2>nul
+	del \Q libacados_ocp_solver_{{ model.name }}.lib 2>nul
 	del \Q acados_solver_{{ model.name }}.o 2>nul
 
 {%- else %}
 
 clean:
 	rm -f *.o
-	rm -f *.so
+	rm -f *.lib
 	rm -f main_{{ model.name }}
 
 clean_ocp_shared_lib:
-	rm -f libacados_ocp_solver_{{ model.name }}.so
+	rm -f libacados_ocp_solver_{{ model.name }}.lib
 	rm -f acados_solver_{{ model.name }}.o
 
 {%- endif %}

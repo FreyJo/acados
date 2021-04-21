@@ -40,7 +40,8 @@ function make_mex_{{ model.name }}()
 
     % set paths
     acados_include = ['-I' fullfile(acados_folder, 'include')];
-    template_lib_include = ['-l' 'acados_ocp_solver_{{ model.name }}'];
+    template_lib = ['-L' 'acados_ocp_solver_{{ model.name }}'];
+    template_lib_include = ['-I', fullfile(pwd)];
     template_lib_path = ['-L' fullfile(pwd)];
 
     acados_lib_path = ['-L' fullfile(acados_folder, 'lib')];
@@ -93,7 +94,7 @@ function make_mex_{{ model.name }}()
         disp(['compiling ', mex_files{ii}])
         if is_octave()
     %        mkoctfile -p CFLAGS
-            mex(acados_include, template_lib_include, external_include, blasfeo_include, hpipm_include,...
+            mex(acados_include, template_lib, external_include, blasfeo_include, hpipm_include,...
             acados_lib_path, template_lib_path, mex_include, '-lacados', '-lhpipm', '-lblasfeo', mex_files{ii})
         else
             if ismac()
@@ -101,7 +102,11 @@ function make_mex_{{ model.name }}()
             else
                 FLAGS = 'CFLAGS=$CFLAGS -std=c99 -fopenmp';
             end
-            mex(FLAGS, acados_include, template_lib_include, external_include, blasfeo_include, hpipm_include,...
+            keyboard
+            % attempt to make templated mex work on windows
+            % mex(FLAGS, acados_include, template_lib_include, external_include, blasfeo_include, hpipm_include,...
+            %     acados_lib_path, template_lib_path, mex_include, template_lib, '-lacados', '-lhpipm', '-lblasfeo', mex_files{ii})
+            mex(FLAGS, acados_include, template_lib, template_lib_include, external_include, blasfeo_include, hpipm_include,...
                 acados_lib_path, template_lib_path, mex_include, '-lacados', '-lhpipm', '-lblasfeo', mex_files{ii})
         end
     end
