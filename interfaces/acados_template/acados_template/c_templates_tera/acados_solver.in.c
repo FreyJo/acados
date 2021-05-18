@@ -2056,6 +2056,10 @@ int {{ model.name }}_acados_create(nlp_solver_capsule * capsule)
     ocp_nlp_out * nlp_out = ocp_nlp_out_create(nlp_config, nlp_dims);
     capsule->nlp_out = nlp_out;
 
+    /* sens_out */
+    ocp_nlp_out *sens_out = ocp_nlp_out_create(nlp_config, nlp_dims);
+    capsule->sens_out = sens_out;
+
     // initialize primal solution
     double* xu0 = calloc(NX+NU, sizeof(double));
     double* x0 = xu0;
@@ -2243,6 +2247,7 @@ int {{ model.name }}_acados_free(nlp_solver_capsule * capsule)
     ocp_nlp_solver_opts_destroy(capsule->nlp_opts);
     ocp_nlp_in_destroy(capsule->nlp_in);
     ocp_nlp_out_destroy(capsule->nlp_out);
+    ocp_nlp_out_destroy(capsule->sens_out);
     ocp_nlp_solver_destroy(capsule->nlp_solver);
     ocp_nlp_dims_destroy(capsule->nlp_dims);
     ocp_nlp_config_destroy(capsule->nlp_config);
@@ -2405,6 +2410,7 @@ int {{ model.name }}_acados_free(nlp_solver_capsule * capsule)
 
 ocp_nlp_in *{{ model.name }}_acados_get_nlp_in(nlp_solver_capsule * capsule) { return capsule->nlp_in; }
 ocp_nlp_out *{{ model.name }}_acados_get_nlp_out(nlp_solver_capsule * capsule) { return capsule->nlp_out; }
+ocp_nlp_out *{{ model.name }}_acados_get_sens_out(nlp_solver_capsule * capsule) { return capsule->sens_out; }
 ocp_nlp_solver *{{ model.name }}_acados_get_nlp_solver(nlp_solver_capsule * capsule) { return capsule->nlp_solver; }
 ocp_nlp_config *{{ model.name }}_acados_get_nlp_config(nlp_solver_capsule * capsule) { return capsule->nlp_config; }
 void *{{ model.name }}_acados_get_nlp_opts(nlp_solver_capsule * capsule) { return capsule->nlp_opts; }
