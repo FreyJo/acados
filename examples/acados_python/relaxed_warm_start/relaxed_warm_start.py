@@ -125,29 +125,40 @@ tol_relax = 1e-2
 # closed loop
 for i in range(Nsim):
 
-    # ocp
+    # set new ocp constraints
     acados_ocp_solver.set(0, "lbx", xcurrent)
     acados_ocp_solver.set(0, "ubx", xcurrent)
 
     if RELAXED:
-        # solve relaxed
-        acados_ocp_solver.options_set('tol_comp', tol_relax)
-        acados_ocp_solver.options_set('tol_stat', tol_relax)
-        acados_ocp_solver.options_set('tol_ineq', tol_relax)
+        compute_new_relaxed = True
         if i > 0:
+            # check if relaxed solution has to be recomputed
             acados_ocp_solver.load_iterate(filename=relaxed_iterate)
-        status = acados_ocp_solver.solve()
-        acados_ocp_solver.print_statistics()
-        if status != 0:
-            raise Exception('acados acados_ocp_solver returned status {}. Exiting.'.format(status))
-        acados_ocp_solver.store_iterate(filename=relaxed_iterate, overwrite=True)
-        qp_iter_relaxed[i] = sum(acados_ocp_solver.get_stats('qp_iter'))
-        time_tot_relaxed[i] = sum(acados_ocp_solver.get_stats('time_tot'))
+            residuals = acados_ocp_solver.get_residuals(recompute=True)
+            if residuals[0] < tol_relax and all(residuals[2:4] < tol_relax):
+                compute_new_relaxed = False
+
+        if compute_new_relaxed:
+            # solve relaxed
+            acados_ocp_solver.options_set('tol_comp', tol_relax)
+            acados_ocp_solver.options_set('tol_stat', tol_relax)
+            acados_ocp_solver.options_set('tol_ineq', tol_relax)
+            # acados_ocp_solver.options_set('tol_eq', tol_relax)
+            if i > 0:
+                acados_ocp_solver.load_iterate(filename=relaxed_iterate)
+            status = acados_ocp_solver.solve()
+            acados_ocp_solver.print_statistics()
+            if status != 0:
+                raise Exception('acados acados_ocp_solver returned status {}. Exiting.'.format(status))
+            acados_ocp_solver.store_iterate(filename=relaxed_iterate, overwrite=True)
+            qp_iter_relaxed[i] = sum(acados_ocp_solver.get_stats('qp_iter'))
+            time_tot_relaxed[i] = sum(acados_ocp_solver.get_stats('time_tot'))
 
     # solve exact
     acados_ocp_solver.options_set('tol_comp', 1e-6)
     acados_ocp_solver.options_set('tol_stat', 1e-6)
     acados_ocp_solver.options_set('tol_ineq', 1e-6)
+    # acados_ocp_solver.options_set('tol_eq', 1e-6)
     status = acados_ocp_solver.solve()
     if status != 0:
         raise Exception('acados acados_ocp_solver returned status {}. Exiting.'.format(status))
@@ -170,8 +181,6 @@ for i in range(Nsim):
     xcurrent = acados_integrator.get("x")
     simX[i+1,:] = xcurrent
 
-# plot results
-plot_pendulum(np.linspace(0, Tf/N*Nsim, Nsim+1), Fmax, simU, simX)
 
 
 print(f'qp_iter relaxed solver: {sum(qp_iter_relaxed)}, exact: {sum(qp_iter_exact)}, total: {sum(qp_iter_relaxed) + sum(qp_iter_exact)}')
@@ -180,3 +189,8 @@ print(f'time_tot relaxed solver: {sum(time_tot_relaxed):.3f}, exact: {sum(time_t
 print(f'sum qp_iter: {qp_iter_relaxed + qp_iter_exact}')
 print(f'qp_iter relaxed: {qp_iter_relaxed}')
 print(f'qp_iter exact: {qp_iter_exact}')
+
+import pdb; pdb.set_trace()
+
+# plot results
+plot_pendulum(np.linspace(0, Tf/N*Nsim, Nsim+1), Fmax, simU, simX)
