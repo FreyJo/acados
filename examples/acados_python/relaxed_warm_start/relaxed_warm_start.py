@@ -48,6 +48,7 @@ ocp = AcadosOcp()
 # set model
 model = export_pendulum_ode_model()
 ocp.model = model
+print(f"model {model.__dict__}")
 
 Tf = 1.0
 nx = model.x.size()[0]
@@ -119,9 +120,12 @@ qp_iter_exact = np.zeros((Nsim,))
 time_tot_relaxed = np.zeros((Nsim,))
 time_tot_exact = np.zeros((Nsim,))
 
+RELAXED = False
 RELAXED = True
 
-tol_relax = 1e-2
+tol_relax = 1e-3
+tol_exact = 1e-6
+tau_tol_factor = 1e-2
 # closed loop
 for i in range(Nsim):
 
@@ -143,10 +147,18 @@ for i in range(Nsim):
             acados_ocp_solver.options_set('tol_comp', tol_relax)
             acados_ocp_solver.options_set('tol_stat', tol_relax)
             acados_ocp_solver.options_set('tol_ineq', tol_relax)
+            acados_ocp_solver.options_set('qp_tol_ineq', tol_relax)
             # acados_ocp_solver.options_set('tol_eq', tol_relax)
+            # acados_ocp_solver.options_set('qp_warm_start', 2)
+            acados_ocp_solver.options_set('qp_tau_min', tol_relax*tau_tol_factor) # minimum value of barrier parameter in HPIPM
+
+            # acados_ocp_solver.options_set('qp_mu0', 1e-2) # initial value for complementarity slackness
+
             if i > 0:
                 acados_ocp_solver.load_iterate(filename=relaxed_iterate)
             status = acados_ocp_solver.solve()
+
+            print("stats relaxed OCP")
             acados_ocp_solver.print_statistics()
             if status != 0:
                 raise Exception('acados acados_ocp_solver returned status {}. Exiting.'.format(status))
@@ -155,11 +167,15 @@ for i in range(Nsim):
             time_tot_relaxed[i] = sum(acados_ocp_solver.get_stats('time_tot'))
 
     # solve exact
-    acados_ocp_solver.options_set('tol_comp', 1e-6)
-    acados_ocp_solver.options_set('tol_stat', 1e-6)
-    acados_ocp_solver.options_set('tol_ineq', 1e-6)
+    acados_ocp_solver.options_set('tol_comp', tol_exact)
+    acados_ocp_solver.options_set('tol_stat', tol_exact)
+    acados_ocp_solver.options_set('tol_ineq', tol_exact)
+    acados_ocp_solver.options_set('qp_warm_start', 0)
+    acados_ocp_solver.options_set('qp_tol_ineq', tol_exact)
+    acados_ocp_solver.options_set('qp_tau_min', tol_exact*tau_tol_factor)
     # acados_ocp_solver.options_set('tol_eq', 1e-6)
     status = acados_ocp_solver.solve()
+    acados_ocp_solver.print_statistics()
     if status != 0:
         raise Exception('acados acados_ocp_solver returned status {}. Exiting.'.format(status))
     qp_iter_exact[i] = sum(acados_ocp_solver.get_stats('qp_iter'))
@@ -167,7 +183,6 @@ for i in range(Nsim):
 
     simU[i,:] = acados_ocp_solver.get(0, "u")
     print("stats exact OCP")
-    acados_ocp_solver.print_statistics()
 
     # simulate system
     acados_integrator.set("x", xcurrent)
