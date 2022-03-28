@@ -67,7 +67,7 @@ ocp.cost.cost_type = 'LINEAR_LS'
 ocp.cost.cost_type_e = 'LINEAR_LS'
 
 Q = 2*np.diag([1e3, 1e3, 1e-2, 1e-2])
-R = 2*np.diag([1e-2])
+R = 2*np.diag([1e-0])
 
 ocp.cost.W = scipy.linalg.block_diag(Q, R)
 
@@ -86,13 +86,21 @@ ocp.cost.yref  = np.zeros((ny, ))
 ocp.cost.yref_e = np.zeros((ny_e, ))
 
 # set constraints
-Fmax = 80
-x0 = np.array([0.0, np.pi, 0.0, 0.0])
+Fmax = 10
+x0 = np.array([0.0, np.pi/8, 0.0, 0.0])
 ocp.constraints.constr_type = 'BGH'
+ocp.constraints.x0 = x0
+
 ocp.constraints.lbu = np.array([-Fmax])
 ocp.constraints.ubu = np.array([+Fmax])
-ocp.constraints.x0 = x0
 ocp.constraints.idxbu = np.array([0])
+
+ocp.solver_options.levenberg_marquardt = 1e0
+
+xmax = 1.1
+ocp.constraints.lbx = np.array([-xmax])
+ocp.constraints.ubx = np.array([+xmax])
+ocp.constraints.idxbx = np.array([0])
 
 ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM' # FULL_CONDENSING_QPOASES
 ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
