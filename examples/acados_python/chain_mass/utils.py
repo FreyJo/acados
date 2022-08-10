@@ -114,18 +114,18 @@ def sampleFromEllipsoid(w, Z):
 
     return y
 
-def get_results_filename_from_params(chain_params):
-    json_file = os.path.join('results', f'nm_{chain_params["n_mass"]}_N_{chain_params["N"]}_seed_{chain_params["seed"]}_nlpiter_{chain_params["nlp_iter"]}_qpSolver_{chain_params["qp_solver"]}.json')
+def get_results_filename_from_params(chain_params, id=''):
+    json_file = os.path.join('results', f'{id}nm_{chain_params["n_mass"]}_N_{chain_params["N"]}_seed_{chain_params["seed"]}_nlpiter_{chain_params["nlp_iter"]}_qpSolver_{chain_params["qp_solver"]}.json')
     return json_file
 
 
-def save_closed_loop_results_as_json(results: dict, chain_params: dict):
+def save_closed_loop_results_as_json(results: dict, chain_params: dict, id=''):
     results["chain_params"] = chain_params
 
     if not os.path.exists('results'):
         os.mkdir('results')
 
-    json_file = get_results_filename_from_params(chain_params)
+    json_file = get_results_filename_from_params(chain_params, id=id)
 
     with open(json_file, 'w') as f:
         json.dump(results, f, default=np_array_to_list, indent=4, sort_keys=True)
@@ -133,8 +133,8 @@ def save_closed_loop_results_as_json(results: dict, chain_params: dict):
     return
 
 
-def load_results_from_json(chain_params: dict):
-    json_file = get_results_filename_from_params(chain_params)
+def load_results_from_json(chain_params: dict, id=''):
+    json_file = get_results_filename_from_params(chain_params, id=id)
 
     with open(json_file, 'r') as f:
         results = json.load(f)

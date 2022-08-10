@@ -283,6 +283,6 @@ def run_nominal_control(chain_params):
         plt.show()
 
     if save_results:
-        save_closed_loop_results_as_json(results, chain_params)
+        save_closed_loop_results_as_json(results, chain_params, id='closed_loop')
 
     return

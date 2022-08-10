@@ -64,6 +64,7 @@ def run_benchmark():
 def eval_benchmark():
     plt.figure()
     latexify()
+    id = 'closed_loop'
     for qp_solver in QP_SOLVERS:
         timings_qp = np.zeros(len(N_MASSES))
         sqp_iter = np.zeros(len(N_MASSES))
@@ -72,7 +73,7 @@ def eval_benchmark():
             chain_params["n_mass"] = n_mass
             chain_params["qp_solver"] = qp_solver
 
-            results = load_results_from_json(chain_params)
+            results = load_results_from_json(chain_params, id=id)
             timings_qp[i] = np.mean(np.array(results['timings_qp']) / np.array(results['sqp_iter']))
             # sqp_iter[i] = results['sqp_iter']
             # print(f"sqp_iter {results['sqp_iter']}")
