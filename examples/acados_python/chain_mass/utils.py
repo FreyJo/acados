@@ -115,7 +115,7 @@ def sampleFromEllipsoid(w, Z):
     return y
 
 def get_results_filename_from_params(chain_params, id=''):
-    json_file = os.path.join('results', f'{id}nm_{chain_params["n_mass"]}_N_{chain_params["N"]}_seed_{chain_params["seed"]}_nlpiter_{chain_params["nlp_iter"]}_qpSolver_{chain_params["qp_solver"]}.json')
+    json_file = os.path.join('results', f'{id}nm_{chain_params["n_mass"]}_N_{chain_params["N"]}_seed_{chain_params["seed"]}_nlpiter_{chain_params["nlp_iter"]}_qpSolver_{chain_params["qp_solver"]}_nlptol_{chain_params["nlp_tol"]}.json')
     return json_file
 
 
