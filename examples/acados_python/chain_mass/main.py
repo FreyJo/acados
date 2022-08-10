@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.;
 
 from run_nominal_control import run_nominal_control
-from utils import *
+from utils import get_chain_params
 
 chain_params = get_chain_params()
 

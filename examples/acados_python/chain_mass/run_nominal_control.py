@@ -55,7 +55,7 @@ from export_disturbed_chain_mass_model import export_disturbed_chain_mass_model
 from export_chain_mass_integrator import export_chain_mass_integrator
 
 from plot_utils import *
-from utils import *
+from utils import compute_steady_state, sampleFromEllipsoid, save_closed_loop_results_as_json
 import matplotlib.pyplot as plt
 
 def run_nominal_control(chain_params):
@@ -81,6 +81,7 @@ def run_nominal_control(chain_params):
     save_results = chain_params["save_results"]
     show_plots = chain_params["show_plots"]
     seed = chain_params["seed"]
+    qp_solver = chain_params["qp_solver"]
 
     np.random.seed(seed)
 
@@ -178,7 +179,8 @@ def run_nominal_control(chain_params):
 
 
     # solver options
-    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM' # FULL_CONDENSING_QPOASES
+    ocp.solver_options.qp_solver = qp_solver
+    ocp.solver_options.qp_solver_iter_max = 1000
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
     ocp.solver_options.integrator_type = 'IRK'
     ocp.solver_options.nlp_solver_type = 'SQP' # SQP_RTI
@@ -186,7 +188,7 @@ def run_nominal_control(chain_params):
 
     ocp.solver_options.sim_method_num_stages = 2
     ocp.solver_options.sim_method_num_steps = 2
-    ocp.solver_options.qp_solver_cond_N = N
+    ocp.solver_options.qp_solver_cond_N = N//4
     ocp.solver_options.qp_tol = nlp_tol
     ocp.solver_options.tol = nlp_tol
     # ocp.solver_options.nlp_solver_tol_eq = 1e-9
@@ -219,7 +221,9 @@ def run_nominal_control(chain_params):
     wall_dist = np.zeros((N_sim,))
 
     timings = np.zeros((N_sim,))
-
+    timings_qp = np.zeros((N_sim,))
+    timings_lin = np.zeros((N_sim,))
+    sqp_iter = np.zeros((N_sim,))
     simX[0,:] = xcurrent
 
     # closed loop
@@ -231,8 +235,12 @@ def run_nominal_control(chain_params):
 
         status = acados_ocp_solver.solve()
         timings[i] = acados_ocp_solver.get_stats("time_tot")[0]
+        timings_qp[i] = acados_ocp_solver.get_stats("time_qp")[0]
+        timings_lin[i] = acados_ocp_solver.get_stats("time_lin")[0]
+        sqp_iter[i] = acados_ocp_solver.get_stats("sqp_iter")[0]
 
         if status != 0:
+            acados_ocp_solver.print_statistics()
             raise Exception('acados acados_ocp_solver returned status {} in time step {}. Exiting.'.format(status, i))
 
         simU[i,:] = acados_ocp_solver.get(0, "u")
@@ -261,14 +269,20 @@ def run_nominal_control(chain_params):
 
     print("dist2wall (minimum over simulation) ", str(np.min(wall_dist)))
 
+    results = {"simX": simX, "simU": simU, "timings": timings, "timings_qp": timings_qp, "timings_lin": timings_lin, "sqp_iter": sqp_iter}
+
     #%% plot results
     if os.environ.get('ACADOS_ON_CI') is None and show_plots:
         plot_chain_control_traj(simU)
         plot_chain_position_traj(simX, yPosWall=yPosWall)
         plot_chain_velocity_traj(simX)
 
-        animate_chain_position(simX, xPosFirstMass, yPosWall=yPosWall)
+        # animate_chain_position(simX, xPosFirstMass, yPosWall=yPosWall)
         # animate_chain_position_3D(simX, xPosFirstMass)
 
         plt.show()
 
+    if save_results:
+        save_closed_loop_results_as_json(results, chain_params)
+
+    return

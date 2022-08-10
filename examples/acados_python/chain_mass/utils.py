@@ -30,11 +30,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.;
 
-import scipy, json
+import scipy, json, os
 import numpy as np
 import casadi as ca
 from export_chain_mass_model import export_chain_mass_model
-
+from acados_template import np_array_to_list
 
 def get_chain_params():
     params = dict()
@@ -50,12 +50,14 @@ def get_chain_params():
     params["D"] = 1.0 # spring constant
     params["L"] = 0.033 # rest length of spring
     params["perturb_scale"] = 1e-2
+    params["perturb_scale"] = 5e-3
 
     params["save_results"] = True
     params["show_plots"] = True
     params["nlp_iter"] = 50
     params["seed"] = 50
-    params["nlp_tol"] = 1e-5
+    params["nlp_tol"] = 1e-6
+    params["qp_solver"] = "PARTIAL_CONDENSING_HPIPM"
 
     return params
 
@@ -70,7 +72,7 @@ def compute_steady_state(n_mass, m, D, L, xPosFirstMass, xEndRef):
     pos0_x = np.linspace(xPosFirstMass[0], xEndRef[0], n_mass)
     x0 = np.zeros((nx, 1))
     x0[:3*(M+1):3] = pos0_x[1:].reshape((M+1,1))
-    
+
     # decision variables
     w = [model.x, model.xdot, model.u]
     # initial guess
@@ -81,7 +83,7 @@ def compute_steady_state(n_mass, m, D, L, xPosFirstMass, xEndRef):
     g += [model.f_impl_expr]                        # steady state
     g += [model.x[3*M:3*(M+1)]  - xEndRef]          # fix position of last mass
     g += [model.u]                                  # don't actuate controlled mass
-    
+
     # misuse IPOPT as nonlinear equation solver
     nlp = {'x': ca.vertcat(*w), 'f': 0, 'g': ca.vertcat(*g)}
     
@@ -111,3 +113,30 @@ def sampleFromEllipsoid(w, Z):
     y = v @ (np.sqrt(lam) * x) + w
 
     return y
+
+def get_results_filename_from_params(chain_params):
+    json_file = os.path.join('results', f'nm_{chain_params["n_mass"]}_N_{chain_params["N"]}_seed_{chain_params["seed"]}_nlpiter_{chain_params["nlp_iter"]}_qpSolver_{chain_params["qp_solver"]}.json')
+    return json_file
+
+
+def save_closed_loop_results_as_json(results: dict, chain_params: dict):
+    results["chain_params"] = chain_params
+
+    if not os.path.exists('results'):
+        os.mkdir('results')
+
+    json_file = get_results_filename_from_params(chain_params)
+
+    with open(json_file, 'w') as f:
+        json.dump(results, f, default=np_array_to_list, indent=4, sort_keys=True)
+
+    return
+
+
+def load_results_from_json(chain_params: dict):
+    json_file = get_results_filename_from_params(chain_params)
+
+    with open(json_file, 'r') as f:
+        results = json.load(f)
+
+    return results

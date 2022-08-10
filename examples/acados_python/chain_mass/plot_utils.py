@@ -37,19 +37,20 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
 
 
-def get_latex_plot_params():
-    params = {'backend': 'ps',
-            'text.latex.preamble': r"\usepackage{gensymb} \usepackage{amsmath}",
-            'axes.labelsize': 12,
-            'axes.titlesize': 12,
-            'legend.fontsize': 12,
-            'xtick.labelsize': 12,
-            'ytick.labelsize': 12,
-            'text.usetex': True,
-            'font.family': 'serif'
+def latexify():
+    params = {
+        "backend": "ps",
+        "text.latex.preamble": r"\usepackage{gensymb} \usepackage{amsmath}",
+        "axes.labelsize": 10,
+        "axes.titlesize": 10,
+        "legend.fontsize": 10,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "text.usetex": True,
+        "font.family": "serif",
     }
 
-    return params
+    matplotlib.rcParams.update(params)
 
 
 def plot_chain_position_traj(simX, yPosWall=None):
@@ -105,7 +106,7 @@ def plot_chain_velocity_traj(simX):
 
 def plot_chain_control_traj(simU):
     plt.figure()
-    # plt.title('Chain control trajectory, velocities of last mass')
+    plt.title('Chain control trajectory, velocities of last mass')
     simU = np.vstack((simU[0,:], simU))
 
     t = np.array(range(simU.shape[0]))
