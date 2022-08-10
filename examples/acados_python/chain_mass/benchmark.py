@@ -32,7 +32,10 @@
 
 # TODO:
 # - shift in closed loop
-# - vary tolerances
+# - vary tolerances?
+# - test on single problem
+#   - without slacks to use more QP solvers
+#   - vary horizon length!
 
 import numpy as np
 
