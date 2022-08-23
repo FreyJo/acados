@@ -31,11 +31,12 @@
 # POSSIBILITY OF SUCH DAMAGE.;
 
 # TODO:
-# - shift in closed loop
-# - vary tolerances?
 # - test on single problem
 #   - without slacks to use more QP solvers
 #   - vary horizon length!
+
+# - shift in closed loop
+# - vary tolerances?
 
 import numpy as np
 

@@ -45,11 +45,11 @@
 
 
 
-import sys, os
+import os
 import numpy as np
 import scipy.linalg
 
-from acados_template import AcadosOcp, AcadosOcpSolver, AcadosSimSolver
+from acados_template import AcadosOcp, AcadosOcpSolver
 
 from export_disturbed_chain_mass_model import export_disturbed_chain_mass_model
 from export_chain_mass_integrator import export_chain_mass_integrator
@@ -97,14 +97,12 @@ def run_nominal_control(chain_params):
     nx = model.x.size()[0]
     nu = model.u.size()[0]
     ny = nx + nu
-    ny_e = nx
     Tf = N * Ts
 
     # initial state
     xPosFirstMass = np.zeros((3,1))
     xEndRef = np.zeros((3,1))
     xEndRef[0] = L * (M+1) * 6
-    pos0_x = np.linspace(xPosFirstMass[0], xEndRef[0], n_mass)
 
     xrest = compute_steady_state(n_mass, m, D, L, xPosFirstMass, xEndRef)
 
@@ -139,7 +137,6 @@ def run_nominal_control(chain_params):
 
     ocp.cost.Vx_e = np.eye(nx)
 
-    # import pdb; pdb.set_trace()
     yref = np.vstack((xrest, np.zeros((nu,1)))).flatten()
     ocp.cost.yref = yref
     ocp.cost.yref_e = xrest.flatten()
