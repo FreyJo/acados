@@ -55,11 +55,11 @@ from export_disturbed_chain_mass_model import export_disturbed_chain_mass_model
 from export_chain_mass_integrator import export_chain_mass_integrator
 
 from plot_utils import *
-from utils import compute_steady_state, sampleFromEllipsoid, save_closed_loop_results_as_json
+from utils import compute_steady_state, sampleFromEllipsoid, save_results_as_json
 import matplotlib.pyplot as plt
 
 
-def run_nominal_control_closed_loop(chain_params):
+def export_chain_mass_ocp_solver(chain_params):
     # create ocp object to formulate the OCP
     ocp = AcadosOcp()
 
@@ -67,9 +67,7 @@ def run_nominal_control_closed_loop(chain_params):
     n_mass = chain_params["n_mass"]
     M = chain_params["n_mass"] - 2 # number of intermediate masses
     Ts = chain_params["Ts"]
-    Tsim = chain_params["Tsim"]
     N = chain_params["N"]
-    u_init = chain_params["u_init"]
     with_wall = chain_params["with_wall"]
     yPosWall = chain_params["yPosWall"]
     m = chain_params["m"]
@@ -79,8 +77,6 @@ def run_nominal_control_closed_loop(chain_params):
 
     nlp_iter = chain_params["nlp_iter"]
     nlp_tol = chain_params["nlp_tol"]
-    save_results = chain_params["save_results"]
-    show_plots = chain_params["show_plots"]
     seed = chain_params["seed"]
     qp_solver = chain_params["qp_solver"]
 
@@ -196,10 +192,42 @@ def run_nominal_control_closed_loop(chain_params):
 
     acados_ocp_solver = AcadosOcpSolver(ocp, json_file = 'acados_ocp_' + model.name + '.json')
 
-    # acados_integrator = AcadosSimSolver(ocp, json_file = 'acados_ocp_' + model.name + '.json')
+    return acados_ocp_solver
+
+
+def run_nominal_control_closed_loop(chain_params):
+
+    # chain parameters
+    n_mass = chain_params["n_mass"]
+    M = chain_params["n_mass"] - 2 # number of intermediate masses
+    Ts = chain_params["Ts"]
+    Tsim = chain_params["Tsim"]
+    N = chain_params["N"]
+    u_init = chain_params["u_init"]
+    with_wall = chain_params["with_wall"]
+    yPosWall = chain_params["yPosWall"]
+    m = chain_params["m"]
+    D = chain_params["D"]
+    L = chain_params["L"]
+    perturb_scale = chain_params["perturb_scale"]
+
+    save_results = chain_params["save_results"]
+    show_plots = chain_params["show_plots"]
+    seed = chain_params["seed"]
+
+    np.random.seed(seed)
+
+    nparam = 3*M
+    W = perturb_scale * np.eye(nparam)
+
+    acados_ocp_solver = export_chain_mass_ocp_solver(chain_params)
+    nx = acados_ocp_solver.acados_ocp.dims.nx
+    nu = acados_ocp_solver.acados_ocp.dims.nu
+
     acados_integrator = export_chain_mass_integrator(n_mass, m, D, L)
 
-    #%% get initial state from xrest
+    #%% get initial state by disturbing the rest position a bit
+    x0 = acados_ocp_solver.acados_ocp.constraints.lbx_0
     xcurrent = x0.reshape((nx,))
     for i in range(5):
         acados_integrator.set("x", xcurrent)
@@ -281,6 +309,109 @@ def run_nominal_control_closed_loop(chain_params):
         plt.show()
 
     if save_results:
-        save_closed_loop_results_as_json(results, chain_params, id='closed_loop')
+        save_results_as_json(results, chain_params, id='closed_loop')
+
+    return
+
+
+def run_nominal_control_open_loop(chain_params):
+
+    # chain parameters
+    n_mass = chain_params["n_mass"]
+    M = chain_params["n_mass"] - 2 # number of intermediate masses
+    Ts = chain_params["Ts"]
+    Tsim = chain_params["Tsim"]
+    u_init = chain_params["u_init"]
+    with_wall = chain_params["with_wall"]
+    yPosWall = chain_params["yPosWall"]
+    m = chain_params["m"]
+    D = chain_params["D"]
+    L = chain_params["L"]
+    perturb_scale = chain_params["perturb_scale"]
+
+    N = chain_params["N"]
+    N_run = chain_params["N_run"]
+    save_results = chain_params["save_results"]
+    show_plots = chain_params["show_plots"]
+    seed = chain_params["seed"]
+
+    np.random.seed(seed)
+
+    nparam = 3*M
+    W = perturb_scale * np.eye(nparam)
+
+    acados_ocp_solver = export_chain_mass_ocp_solver(chain_params)
+    nx = acados_ocp_solver.acados_ocp.dims.nx
+    nu = acados_ocp_solver.acados_ocp.dims.nu
+
+    acados_integrator = export_chain_mass_integrator(n_mass, m, D, L)
+
+    #%% get initial state by disturbing the rest position a bit
+    xrest = acados_ocp_solver.acados_ocp.constraints.lbx_0
+    xcurrent = xrest.reshape((nx,))
+    for i in range(5):
+        acados_integrator.set("x", xcurrent)
+        acados_integrator.set("u", u_init)
+
+        status = acados_integrator.solve()
+        if status != 0:
+            raise Exception('acados integrator returned status {}. Exiting.'.format(status))
+
+        # update state
+        xcurrent = acados_integrator.get("x")
+
+    #%% solve actual problem
+    timings = np.zeros((N_run,))
+    timings_qp = np.zeros((N_run,))
+    timings_lin = np.zeros((N_run,))
+    sqp_iter = np.zeros((N_run,))
+
+    simX = np.ndarray((N+1, nx))
+    simU = np.ndarray((N, nu))
+
+    # initialize
+    acados_ocp_solver.set(0, "x", xcurrent)
+    acados_ocp_solver.store_iterate('default_init.json', overwrite=True)
+
+    acados_ocp_solver.set(0, "lbx", xcurrent)
+    acados_ocp_solver.set(0, "ubx", xcurrent)
+    # experiment loop
+    for i in range(N_run):
+
+        acados_ocp_solver.load_iterate('default_init.json')
+
+        # solve ocp
+
+        status = acados_ocp_solver.solve()
+        timings[i] = acados_ocp_solver.get_stats("time_tot")[0]
+        timings_qp[i] = acados_ocp_solver.get_stats("time_qp")[0]
+        timings_lin[i] = acados_ocp_solver.get_stats("time_lin")[0]
+        sqp_iter[i] = acados_ocp_solver.get_stats("sqp_iter")[0]
+
+        if status != 0:
+            acados_ocp_solver.print_statistics()
+            raise Exception('acados acados_ocp_solver returned status {} in time step {}. Exiting.'.format(status, i))
+
+        if i == 0:
+            for i in range(N+1):
+                simX[i,:] = acados_ocp_solver.get(i, "x")
+            for i in range(N):
+                simU[i,:] = acados_ocp_solver.get(i, "u")
+
+    results = {"simX": simX, "simU": simU, "timings": timings, "timings_qp": timings_qp, "timings_lin": timings_lin, "sqp_iter": sqp_iter}
+
+    #%% plot results
+    if os.environ.get('ACADOS_ON_TRAVIS') is None and show_plots:
+        plot_chain_control_traj(simU)
+        plot_chain_position_traj(simX, yPosWall=yPosWall)
+        plot_chain_velocity_traj(simX)
+
+        # animate_chain_position(simX, xPosFirstMass, yPosWall=yPosWall)
+        # animate_chain_position_3D(simX, xPosFirstMass)
+
+        plt.show()
+
+    if save_results:
+        save_results_as_json(results, chain_params, id='open_loop')
 
     return

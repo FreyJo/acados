@@ -53,11 +53,12 @@ def get_chain_params():
     params["perturb_scale"] = 5e-3
 
     params["save_results"] = True
-    params["show_plots"] = True
+    params["show_plots"] = False
     params["nlp_iter"] = 50
     params["seed"] = 50
     params["nlp_tol"] = 1e-6
     params["qp_solver"] = "PARTIAL_CONDENSING_HPIPM"
+    params["N_run"] = 20
 
     return params
 
@@ -119,7 +120,7 @@ def get_results_filename_from_params(chain_params, id=''):
     return json_file
 
 
-def save_closed_loop_results_as_json(results: dict, chain_params: dict, id=''):
+def save_results_as_json(results: dict, chain_params: dict, id=''):
     results["chain_params"] = chain_params
 
     if not os.path.exists('results'):
