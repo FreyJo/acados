@@ -40,7 +40,7 @@
 
 import numpy as np
 
-from run_nominal_control import run_nominal_control
+from nominal_control import run_nominal_control_closed_loop
 from utils import get_chain_params, load_results_from_json
 
 import matplotlib.pyplot as plt
@@ -65,7 +65,7 @@ def run_benchmark():
             chain_params["qp_solver"] = qp_solver
             print(chain_params)
 
-            run_nominal_control(chain_params)
+            run_nominal_control_closed_loop(chain_params)
 
 
 

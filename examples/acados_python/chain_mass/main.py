@@ -30,7 +30,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.;
 
-from run_nominal_control import run_nominal_control
+from nominal_control import run_nominal_control_closed_loop
 from utils import get_chain_params
 
 chain_params = get_chain_params()
@@ -39,4 +39,4 @@ for n_mass in range(3, 4):
     # adjust parameters wrt experiment
     chain_params["n_mass"] = n_mass
 
-    run_nominal_control(chain_params)
+    run_nominal_control_closed_loop(chain_params)

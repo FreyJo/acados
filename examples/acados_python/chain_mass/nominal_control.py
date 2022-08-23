@@ -58,7 +58,8 @@ from plot_utils import *
 from utils import compute_steady_state, sampleFromEllipsoid, save_closed_loop_results_as_json
 import matplotlib.pyplot as plt
 
-def run_nominal_control(chain_params):
+
+def run_nominal_control_closed_loop(chain_params):
     # create ocp object to formulate the OCP
     ocp = AcadosOcp()
 
