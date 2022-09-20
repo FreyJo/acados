@@ -30,12 +30,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.;
 
-# TODO:
-# - test on single problem
-#   - without slacks to use more QP solvers
-#   - vary horizon length!
-
+# possible extensions:
+# - without slacks to use more QP solvers
 # - shift in closed loop
+# - warm start evaluation?
 
 import numpy as np
 
