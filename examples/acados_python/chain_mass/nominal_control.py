@@ -51,7 +51,7 @@ import scipy.linalg
 
 from acados_template import AcadosOcp, AcadosOcpSolver
 
-from export_disturbed_chain_mass_model import export_disturbed_chain_mass_model
+from export_chain_mass_model import export_chain_mass_model
 from export_chain_mass_integrator import export_chain_mass_integrator
 
 from plot_utils import *
@@ -86,7 +86,7 @@ def export_chain_mass_ocp_solver(chain_params):
     W = perturb_scale * np.eye(nparam)
 
     # export model
-    model = export_disturbed_chain_mass_model(n_mass, m, D, L)
+    model = export_chain_mass_model(n_mass, m, D, L)
 
     # set model
     ocp.model = model
@@ -147,10 +147,6 @@ def export_chain_mass_ocp_solver(chain_params):
     ocp.constraints.x0 = x0.reshape((nx,))
     ocp.constraints.idxbu = np.array(range(nu))
 
-    # disturbances
-    nparam = 3*M
-    ocp.parameter_values = np.zeros((nparam,))
-
     # wall constraint
     if with_wall:
         nbx = M + 1
@@ -202,9 +198,7 @@ def run_nominal_control_closed_loop(chain_params):
     M = chain_params["n_mass"] - 2 # number of intermediate masses
     Ts = chain_params["Ts"]
     Tsim = chain_params["Tsim"]
-    N = chain_params["N"]
     u_init = chain_params["u_init"]
-    with_wall = chain_params["with_wall"]
     yPosWall = chain_params["yPosWall"]
     m = chain_params["m"]
     D = chain_params["D"]
@@ -319,10 +313,7 @@ def run_nominal_control_open_loop(chain_params):
     # chain parameters
     n_mass = chain_params["n_mass"]
     M = chain_params["n_mass"] - 2 # number of intermediate masses
-    Ts = chain_params["Ts"]
-    Tsim = chain_params["Tsim"]
     u_init = chain_params["u_init"]
-    with_wall = chain_params["with_wall"]
     yPosWall = chain_params["yPosWall"]
     m = chain_params["m"]
     D = chain_params["D"]

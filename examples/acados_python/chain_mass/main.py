@@ -40,5 +40,5 @@ for n_mass in range(3, 4):
     chain_params["n_mass"] = n_mass
     chain_params["show_plots"] = True
 
-    # run_nominal_control_closed_loop(chain_params)
+    run_nominal_control_closed_loop(chain_params)
     run_nominal_control_open_loop(chain_params)
