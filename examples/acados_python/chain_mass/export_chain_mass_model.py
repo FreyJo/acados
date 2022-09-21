@@ -35,7 +35,10 @@ from casadi import SX, vertcat, sin, cos, norm_2
 
 import numpy as np
 
-def export_chain_mass_model(n_mass, m, D, L):
+def export_chain_mass_model(chain_params):
+
+    n_mass = chain_params['n_mass']
+    m = chain_params['m']
 
     model_name = 'chain_mass_' + str(n_mass)
     x0 = np.array([0, 0, 0]) # fix mass (at wall)
@@ -61,7 +64,7 @@ def export_chain_mass_model(n_mass, m, D, L):
         else:
             dist = xpos[i*3:(i+1)*3] - xpos[(i-1)*3:i*3]
 
-        scale = D/m*(1-L/ norm_2(dist))
+        scale = chain_params['D']/m*(1-chain_params['L']/ norm_2(dist))
         F = scale*dist
     
         # mass on the right

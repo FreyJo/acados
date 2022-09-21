@@ -46,22 +46,20 @@ import matplotlib.pyplot as plt
 sim = AcadosSim()
 
 
-def export_chain_mass_integrator(n_mass, m, D, L):
+def export_chain_mass_integrator(chain_params):
 
     # simulation options
     Ts = 0.2
 
     # export model
-    M = n_mass - 2 # number of intermediate masses
-    model = export_disturbed_chain_mass_model(n_mass, m, D, L)
+    M = chain_params['n_mass'] - 2 # number of intermediate masses
+    model = export_disturbed_chain_mass_model(chain_params)
 
     # set model
     sim.model = model
 
     nx = model.x.size()[0]
     nu = model.u.size()[0]
-    ny = nx + nu
-    ny_e = nx
 
     # disturbances
     nparam = 3*M

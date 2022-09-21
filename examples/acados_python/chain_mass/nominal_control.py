@@ -79,7 +79,7 @@ def export_chain_mass_ocp_solver(chain_params):
     qp_solver = chain_params["qp_solver"]
 
     # export model
-    model = export_chain_mass_model(n_mass, m, D, L)
+    model = export_chain_mass_model(chain_params)
 
     # set model
     ocp.model = model
@@ -94,7 +94,7 @@ def export_chain_mass_ocp_solver(chain_params):
     xEndRef = np.zeros((3,1))
     xEndRef[0] = L * (M+1) * 6
 
-    xrest = compute_steady_state(n_mass, m, D, L, xPosFirstMass, xEndRef)
+    xrest = compute_steady_state(chain_params, xPosFirstMass, xEndRef)
 
     x0 = xrest
 
@@ -212,7 +212,7 @@ def run_nominal_control_closed_loop(chain_params):
     nx = acados_ocp_solver.acados_ocp.dims.nx
     nu = acados_ocp_solver.acados_ocp.dims.nu
 
-    acados_integrator = export_chain_mass_integrator(n_mass, m, D, L)
+    acados_integrator = export_chain_mass_integrator(chain_params)
 
     #%% get initial state by disturbing the rest position a bit
     x0 = acados_ocp_solver.acados_ocp.constraints.lbx_0
@@ -223,7 +223,7 @@ def run_nominal_control_closed_loop(chain_params):
 
         status = acados_integrator.solve()
         if status != 0:
-            raise Exception('acados integrator returned status {}. Exiting.'.format(status))
+            raise Exception(f'acados integrator returned status {status}')
 
         # update state
         xcurrent = acados_integrator.get("x")
@@ -255,7 +255,7 @@ def run_nominal_control_closed_loop(chain_params):
 
         if status != 0:
             acados_ocp_solver.print_statistics()
-            raise Exception('acados acados_ocp_solver returned status {} in time step {}. Exiting.'.format(status, i))
+            raise Exception(f'acados acados_ocp_solver returned status {status} in time step {i}')
 
         simU[i,:] = acados_ocp_solver.get(0, "u")
         print("control at time", i, ":", simU[i,:])
@@ -269,7 +269,7 @@ def run_nominal_control_closed_loop(chain_params):
 
         status = acados_integrator.solve()
         if status != 0:
-            raise Exception('acados integrator returned status {}. Exiting.'.format(status))
+            raise Exception(f'acados integrator returned status {status}')
 
         # update state
         xcurrent = acados_integrator.get("x")
@@ -305,31 +305,19 @@ def run_nominal_control_closed_loop(chain_params):
 def run_nominal_control_open_loop(chain_params):
 
     # chain parameters
-    n_mass = chain_params["n_mass"]
-    M = chain_params["n_mass"] - 2 # number of intermediate masses
     u_init = chain_params["u_init"]
     yPosWall = chain_params["yPosWall"]
-    m = chain_params["m"]
-    D = chain_params["D"]
-    L = chain_params["L"]
-    perturb_scale = chain_params["perturb_scale"]
 
     N = chain_params["N"]
     N_run = chain_params["N_run"]
     save_results = chain_params["save_results"]
     show_plots = chain_params["show_plots"]
-    seed = chain_params["seed"]
-
-    np.random.seed(seed)
-
-    nparam = 3*M
-    W = perturb_scale * np.eye(nparam)
 
     acados_ocp_solver = export_chain_mass_ocp_solver(chain_params)
     nx = acados_ocp_solver.acados_ocp.dims.nx
     nu = acados_ocp_solver.acados_ocp.dims.nu
 
-    acados_integrator = export_chain_mass_integrator(n_mass, m, D, L)
+    acados_integrator = export_chain_mass_integrator(chain_params)
 
     #%% get initial state by disturbing the rest position a bit
     xrest = acados_ocp_solver.acados_ocp.constraints.lbx_0
@@ -340,7 +328,7 @@ def run_nominal_control_open_loop(chain_params):
 
         status = acados_integrator.solve()
         if status != 0:
-            raise Exception('acados integrator returned status {}. Exiting.'.format(status))
+            raise Exception(f'acados integrator returned status {status}')
 
         # update state
         xcurrent = acados_integrator.get("x")
@@ -366,7 +354,6 @@ def run_nominal_control_open_loop(chain_params):
         acados_ocp_solver.load_iterate('default_init.json')
 
         # solve ocp
-
         status = acados_ocp_solver.solve()
         timings[i] = acados_ocp_solver.get_stats("time_tot")[0]
         timings_qp[i] = acados_ocp_solver.get_stats("time_qp")[0]
@@ -375,7 +362,7 @@ def run_nominal_control_open_loop(chain_params):
 
         if status != 0:
             acados_ocp_solver.print_statistics()
-            raise Exception('acados acados_ocp_solver returned status {} in time step {}. Exiting.'.format(status, i))
+            raise Exception(f'acados acados_ocp_solver returned status {status} in time step {i}')
 
         if i == 0:
             for i in range(N+1):

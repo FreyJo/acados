@@ -64,9 +64,10 @@ def get_chain_params():
     return params
 
 
-def compute_steady_state(n_mass, m, D, L, xPosFirstMass, xEndRef):
+def compute_steady_state(chain_params, xPosFirstMass, xEndRef):
 
-    model = export_chain_mass_model(n_mass, m, D, L)
+    n_mass = chain_params['n_mass']
+    model = export_chain_mass_model(chain_params)
     nx = model.x.shape[0]
     M = int((nx/3 -1)/2)
     
