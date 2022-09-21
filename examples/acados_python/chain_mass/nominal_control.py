@@ -73,17 +73,10 @@ def export_chain_mass_ocp_solver(chain_params):
     m = chain_params["m"]
     D = chain_params["D"]
     L = chain_params["L"]
-    perturb_scale = chain_params["perturb_scale"]
 
     nlp_iter = chain_params["nlp_iter"]
     nlp_tol = chain_params["nlp_tol"]
-    seed = chain_params["seed"]
     qp_solver = chain_params["qp_solver"]
-
-    np.random.seed(seed)
-
-    nparam = 3*M
-    W = perturb_scale * np.eye(nparam)
 
     # export model
     model = export_chain_mass_model(n_mass, m, D, L)
