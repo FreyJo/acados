@@ -158,14 +158,15 @@ def export_chain_mass_ocp_solver(chain_params):
         ocp.constraints.lbx = yPosWall * np.ones((nbx,))
         ocp.constraints.ubx = 1e9 * np.ones((nbx,))
 
-        # slacks
-        ocp.constraints.Jsbx = np.eye(nbx)
-        L2_pen = 1e3
-        L1_pen = 1
-        ocp.cost.Zl = L2_pen * np.ones((nbx,))
-        ocp.cost.Zu = L2_pen * np.ones((nbx,))
-        ocp.cost.zl = L1_pen * np.ones((nbx,))
-        ocp.cost.zu = L1_pen * np.ones((nbx,))
+        if chain_params['slacked_wall']:
+            # slacks
+            ocp.constraints.Jsbx = np.eye(nbx)
+            L2_pen = 1e3
+            L1_pen = 1
+            ocp.cost.Zl = L2_pen * np.ones((nbx,))
+            ocp.cost.Zu = L2_pen * np.ones((nbx,))
+            ocp.cost.zl = L1_pen * np.ones((nbx,))
+            ocp.cost.zu = L1_pen * np.ones((nbx,))
 
 
     # solver options

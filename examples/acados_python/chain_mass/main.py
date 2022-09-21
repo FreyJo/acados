@@ -39,6 +39,8 @@ for n_mass in range(3, 4):
     # adjust parameters wrt experiment
     chain_params["n_mass"] = n_mass
     chain_params["show_plots"] = True
+    # chain_params["slacked_wall"] = True
+    # chain_params["qp_solver"] = "PARTIAL_CONDENSING_OSQP"
 
     run_nominal_control_closed_loop(chain_params)
     run_nominal_control_open_loop(chain_params)

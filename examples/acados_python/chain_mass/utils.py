@@ -45,6 +45,7 @@ def get_chain_params():
     params["N"] = 40
     params["u_init"] = np.array([-1, 1, 1])
     params["with_wall"] = True
+    params["slacked_wall"] = True
     params["yPosWall"] = -0.05 # Dimitris: - 0.1;
     params["m"] = 0.033 # mass of the balls
     params["D"] = 1.0 # spring constant
@@ -116,7 +117,7 @@ def sampleFromEllipsoid(w, Z):
     return y
 
 def get_results_filename_from_params(chain_params, id=''):
-    json_file = os.path.join('results', f'{id}nm_{chain_params["n_mass"]}_N_{chain_params["N"]}_seed_{chain_params["seed"]}_nlpiter_{chain_params["nlp_iter"]}_qpSolver_{chain_params["qp_solver"]}_nlptol_{chain_params["nlp_tol"]}.json')
+    json_file = os.path.join('results', f'{id}nm_{chain_params["n_mass"]}_N_{chain_params["N"]}_seed_{chain_params["seed"]}_nlpiter_{chain_params["nlp_iter"]}_qpSolver_{chain_params["qp_solver"]}_nlptol_{chain_params["nlp_tol"]}_wall_{chain_params["with_wall"]}_slacked_{chain_params["slacked_wall"]}.json')
     return json_file
 
 
