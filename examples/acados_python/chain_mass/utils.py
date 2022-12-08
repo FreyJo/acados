@@ -34,7 +34,21 @@ import scipy, json, os
 import numpy as np
 import casadi as ca
 from export_chain_mass_model import export_chain_mass_model
-from acados_template import np_array_to_list
+
+
+def make_object_json_dumpable(input):
+    if isinstance(input, (np.ndarray)):
+        return input.tolist()
+    elif isinstance(input, (ca.SX)):
+        return input.serialize()
+    elif isinstance(input, (ca.MX)):
+        # NOTE: MX expressions can not be serialized, only Functions.
+        return input.__str__()
+    elif isinstance(input, (ca.DM)):
+        return input.full()
+    else:
+        raise TypeError(f"Cannot make input of type {type(input)} dumpable.")
+
 
 def get_chain_params():
     params = dict()
@@ -131,7 +145,7 @@ def save_results_as_json(results: dict, chain_params: dict, id=''):
     json_file = get_results_filename_from_params(chain_params, id=id)
 
     with open(json_file, 'w') as f:
-        json.dump(results, f, default=np_array_to_list, indent=4, sort_keys=True)
+        json.dump(results, f, default=make_object_json_dumpable, indent=4, sort_keys=True)
 
     return
 
