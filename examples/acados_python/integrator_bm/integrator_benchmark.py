@@ -38,6 +38,8 @@ from utils import plot_pendulum, latexify_plot
 import numpy as np
 import json
 
+JAC_REUSE = 0
+STAGE_RANGE = range(1, 9)
 
 def run_experiment(num_stages: int = 3, integrator_type='IRK') -> np.ndarray:
     sim = AcadosSim()
@@ -51,7 +53,7 @@ def run_experiment(num_stages: int = 3, integrator_type='IRK') -> np.ndarray:
     Tf = 0.1
     nx = model.x.size()[0]
     nu = model.u.size()[0]
-    N = 200
+    N = 20000
 
     # set simulation time
     sim.solver_options.T = Tf
@@ -59,23 +61,25 @@ def run_experiment(num_stages: int = 3, integrator_type='IRK') -> np.ndarray:
     sim.solver_options.integrator_type = integrator_type
     sim.solver_options.num_stages = num_stages
     sim.solver_options.num_steps = 3
-    sim.solver_options.newton_iter = 3 # for implicit integrator
     sim.solver_options.collocation_type = "GAUSS_RADAU_IIA"
+    sim.solver_options.sim_method_jac_reuse = JAC_REUSE
+    sim.solver_options.newton_iter = 10 # for implicit integrator
+    sim.solver_options.newton_tol = 1e-10
 
     # create
     acados_integrator = AcadosSimSolver(sim)
 
     simX = np.zeros((N+1, nx))
-    x0 = np.array([0.0, np.pi+1, 0.0, 0.0])
+    x0 = np.array([5.863919e-02, 3.176782e+00, -2.557677e-01, 3.518985e+00])
     u0 = np.array([0.0])
     acados_integrator.set("u", u0)
 
-    simX[0,:] = x0
+    # simX[0,:] = x0
     cpu = np.zeros((N,))
 
     for i in range(N):
         # set initial state
-        acados_integrator.set("x", simX[i,:])
+        acados_integrator.set("x", x0)
         # initialize IRK
         if sim.solver_options.integrator_type == 'IRK':
             acados_integrator.set("xdot", np.zeros((nx,)))
@@ -83,7 +87,7 @@ def run_experiment(num_stages: int = 3, integrator_type='IRK') -> np.ndarray:
         # solve
         status = acados_integrator.solve()
         # get solution
-        simX[i+1,:] = acados_integrator.get("x")
+        # simX[i+1,:] = acados_integrator.get("x")
         cpu[i] = acados_integrator.get("time_tot")
 
     if status != 0:
@@ -97,8 +101,7 @@ def run_experiment(num_stages: int = 3, integrator_type='IRK') -> np.ndarray:
 
     # # plot results
     # plot_pendulum(np.linspace(0, N*Tf, N+1), 10, np.repeat(u0, N), simX)
-JAC_REUSE = False
-STAGE_RANGE = range(1, 9)
+
 def get_run_id(num_stages: int) -> str:
     return f'num_stages_{num_stages}'
 
@@ -140,6 +143,7 @@ def main_eval_plot():
         plt.plot(STAGE_RANGE, means, label=integrator_type)
     plt.xlabel('num stages')
     plt.ylabel('mean runtime [ms]')
+    plt.title(f'with jac_reuse ={JAC_REUSE}')
     plt.grid()
     plt.legend()
     plt.show()
