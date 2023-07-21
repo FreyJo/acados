@@ -795,10 +795,15 @@ int custom_update_function({{ model.name }}_solver_capsule* capsule, double* dat
     ocp_nlp_solver *nlp_solver = {{ model.name }}_acados_get_nlp_solver(capsule);
     void *nlp_opts = {{ model.name }}_acados_get_nlp_opts(capsule);
 
+
+    {% if zoro_description.update_W %}
+
+    {% else %}
     if (data_len > 0)
     {
         reset_P0_matrix(nlp_dims, &custom_mem->uncertainty_matrix_buffer[0], data);
     }
+    {% endif %}
     uncertainty_propagate_and_update(nlp_solver, nlp_in, nlp_out, custom_mem);
 
     return 1;
