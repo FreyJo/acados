@@ -28,8 +28,9 @@
 # POSSIBILITY OF SUCH DAMAGE.;
 #
 
-from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver, AcadosSim, AcadosSimSolver
+from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver, AcadosSim, AcadosSimSolver, casadi_length
 from casadi import vertcat, atan, exp, cos, sin, sqrt, SX
+import casadi as ca
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.linalg
@@ -37,21 +38,26 @@ import scipy.linalg
 from plot_utils import plot_rsm_trajectories, plot_hexagon
 
 
+# OCP variants
 WITH_ELLIPSOIDAL_CONSTRAINT = True
 # WITH_ELLIPSOIDAL_CONSTRAINT = False
 WITH_HEXAGON_CONSTRAINT = True
 # WITH_HEXAGON_CONSTRAINT = False
-USE_RTI = True
-# USE_RTI = False
+SQUASHING = True
+USE_RTI = False
+# USE_RTI = True
 
 USE_PLANT = True
 # USE_PLANT = False
 
 # multiple executions for consistent timings:
-N_EXEC = 5
+N_EXEC = 1
 
 # shooting intervals
 N = 2
+
+Q = np.diag([5e2, 5e2])
+R = np.diag([1e-4, 1e-4])
 
 Ts = 0.0008
 
@@ -67,9 +73,14 @@ udc = 580
 u_max = 2/3*udc
 Rs = 0.4
 
+u_radius = u_max*sqrt(3)/2
+
 w_val_tilde = .5 * w_val
 
 X0 = np.array([0.0, 0.0])
+
+# TODO:
+# initialize
 
 
 # fitted psi_d map
@@ -92,6 +103,11 @@ def psi_q_num(x,y):
 
     return psi_q_expression
 
+def squash_u(u):
+    norm_u = ca.sqrt( u.T @ u + 1e-5)
+    squash_factor = ca.tanh(norm_u) / norm_u
+    squashed_u = u_radius * squash_factor * u
+    return squashed_u
 
 def export_rsm_model():
     model_name = 'rsm'
@@ -100,11 +116,13 @@ def export_rsm_model():
     psi_d = SX.sym('psi_d')
     psi_q = SX.sym('psi_q')
     x = vertcat(psi_d, psi_q)
+    nx = casadi_length(x)
 
     # set up controls
     u_d = SX.sym('u_d')
     u_q = SX.sym('u_q')
     u = vertcat(u_d, u_q)
+    nu = casadi_length(u)
 
     # set up algebraic variables
     i_d = SX.sym('i_d')
@@ -131,6 +149,10 @@ def export_rsm_model():
                      psi_d - Psi[0],
                      psi_q - Psi[1])
 
+    if SQUASHING:
+        squashed_u = squash_u(u)
+        f_impl = ca.substitute(f_impl, u, squashed_u)
+
     model = AcadosModel()
 
     model.f_impl_expr = f_impl
@@ -142,7 +164,19 @@ def export_rsm_model():
     model.p = p
     model.name = model_name
 
-    if WITH_ELLIPSOIDAL_CONSTRAINT:
+    tau = 10.
+    if SQUASHING:
+        norm_u = ca.sqrt( u.T @ u + 1e-5)
+        squash_factor = ca.tanh(norm_u) / norm_u
+        model.cost_y_expr = vertcat(x, squashed_u, squash_factor)
+        #
+        r = ca.SX.sym('r_in_psi', casadi_length(model.cost_y_expr))
+        model.cost_r_in_psi_expr = r
+        model.cost_psi_expr = .5 * r[:nx].T @ Q @ r[:nx] + \
+                              .5 * r[nx:nx+nu].T @ R @ r[nx:nx+nu] + \
+                              tau * (- ca.log(1+r[-1]) - ca.log(-r[-1] + 1))
+
+    if WITH_ELLIPSOIDAL_CONSTRAINT and not SQUASHING:
         r = SX.sym('r', 2, 1)
         model.con_phi_expr = r[0]**2 + r[1]**2
         model.con_r_expr = vertcat(u_d, u_q)
@@ -177,22 +211,30 @@ def create_ocp_solver(tol = 1e-3):
     # set number of shooting intervals
     ocp.dims.N = N
 
+
     # set cost
-    Q = np.diag([5e2, 5e2])
-    R = np.diag([1e-4, 1e-4])
+    y_ref = compute_y_ref(w_val)
 
-    ocp.cost.W = scipy.linalg.block_diag(Q, R)
+    if SQUASHING:
+        ocp.cost.cost_type = 'CONVEX_OVER_NONLINEAR'
+        y_ref = np.concatenate((y_ref, np.array([0])))
+        #
+        # ocp.cost.W = scipy.linalg.block_diag(Q, R)
 
-    Vx = np.zeros((ny, nx))
-    Vx[:nx, :nx] = np.eye(nx)
-    ocp.cost.Vx = Vx
 
-    Vu = np.zeros((ny, nu))
-    Vu[2,0] = 1.0
-    Vu[3,1] = 1.0
-    ocp.cost.Vu = Vu
+    else:
+        ocp.cost.W = scipy.linalg.block_diag(Q, R)
 
-    ocp.cost.Vz = np.zeros((ny, nz))
+        Vx = np.zeros((ny, nx))
+        Vx[:nx, :nx] = np.eye(nx)
+        ocp.cost.Vx = Vx
+
+        Vu = np.zeros((ny, nu))
+        Vu[2,0] = 1.0
+        Vu[3,1] = 1.0
+        ocp.cost.Vu = Vu
+
+        ocp.cost.Vz = np.zeros((ny, nz))
 
     Q_e = np.diag([1e-3, 1e-3])
     ocp.cost.W_e = Q_e
@@ -202,20 +244,11 @@ def create_ocp_solver(tol = 1e-3):
 
     ocp.cost.Vx_e = Vx_e
 
-    y_ref = compute_y_ref(w_val)
     ocp.cost.yref = y_ref
     ocp.cost.yref_e = y_ref[:ny_e]
 
     ## setup constraints
     ocp.constraints.x0 = X0
-
-    # bounds on u
-    q2 = u_max*sin(np.pi/3)
-    lbu = np.array([-q2])
-    ubu = np.array([+q2])
-    ocp.constraints.idxbu = np.array([1])
-    ocp.constraints.lbu = lbu
-    ocp.constraints.ubu = ubu
 
     # polytopic constraint on the input
     x1 = u_max
@@ -226,14 +259,21 @@ def create_ocp_solver(tol = 1e-3):
     q1 = -(y2 - y1/x1*x2)/(1-x2/x1)
     m1 = -(y1 + q1)/x1
 
-    if WITH_ELLIPSOIDAL_CONSTRAINT:
+    if WITH_ELLIPSOIDAL_CONSTRAINT and not SQUASHING:
         # to avoid LICQ violations
         eps = 1e-3 # Note: was originally eps = 0.0.
         ocp.constraints.constr_type = 'BGP'
         ocp.constraints.lphi = np.array([-1.0e8])
         ocp.constraints.uphi = (1-eps)*np.array([(u_max*sqrt(3)/2)**2])
 
-    if WITH_HEXAGON_CONSTRAINT:
+        # bounds on u
+        q2 = u_max*sin(np.pi/3)
+        lbu = np.array([-q2])
+        ubu = np.array([+q2])
+        ocp.constraints.idxbu = np.array([1])
+        ocp.constraints.lbu = lbu
+        ocp.constraints.ubu = ubu
+    if WITH_HEXAGON_CONSTRAINT and not SQUASHING:
         # lg <= C*x + D*u <= ug
         ocp.constraints.D = np.array([[m1, 1],[-m1, 1]])
         ocp.constraints.C = np.zeros((nx, nx))
@@ -244,18 +284,22 @@ def create_ocp_solver(tol = 1e-3):
     ocp.parameter_values = np.array([w_val, 0.0, 0.0])
 
     # set QP solver
-    # ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
     # ocp.solver_options.qp_solver = 'FULL_CONDENSING_HPIPM'
     # ocp.solver_options.qp_solver = 'FULL_CONDENSING_DAQP'
-    ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
+    # ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
     ocp.solver_options.integrator_type = 'IRK'
     ocp.solver_options.sim_method_num_stages = 2
     ocp.solver_options.sim_method_newton_iter = 20
-    ocp.solver_options.sim_method_newton_tol = 1e-6
+    ocp.solver_options.sim_method_newton_tol = 1e-10
+
+    ocp.solver_options.levenberg_marquardt = 1e-5
 
     # set prediction horizon
     ocp.solver_options.tf = Tf
+    if SQUASHING:
+        tol = 1e-7
     ocp.solver_options.tol = tol
     ocp.solver_options.qp_tol = tol/10.
     if USE_RTI:
@@ -316,9 +360,11 @@ def main():
         xcurrent = X0.copy()
         acados_solver.reset()
 
-        # # initialize
+        # initialize
+        for i in range(N+1):
+            acados_solver.set(i, 'x', y_ref_1[:nx])
         # for i in range(N):
-        #     acados_solver.set(i, 'u', -0.9 * u_max * np.ones(nu,))
+            # acados_solver.set(i, 'u', y_ref_1[nx:])
 
         # simulation
         for i in range(Nsim):
@@ -330,6 +376,9 @@ def main():
             else:
                 p_val = p_val_1
                 y_ref = y_ref_1
+
+            if SQUASHING:
+                y_ref = np.concatenate((y_ref, np.array([0])))
 
             # set params and y_ref
             for j in range(N):
@@ -359,6 +408,8 @@ def main():
 
             # solve
             status = acados_solver.solve()
+            acados_solver.dump_last_qp_to_json('qp_dump.json', overwrite=True)
+
             time_feed = acados_solver.get_stats('time_tot')[0] * 1e3
             if i_exec == 0:
                 times_feed[i] = time_feed
@@ -366,14 +417,18 @@ def main():
                 times_feed[i] = min(times_feed[i], time_feed)
             if status != 0:
                 acados_solver.print_statistics()
+                # breakpoint()
                 # raise Exception(f'acados returned status {status}.')
 
             # get solution
-            u0 = acados_solver.get(0, "u")
+            if SQUASHING:
+                u0 = squash_u(acados_solver.get(0, "u"))
+            else:
+                u0 = acados_solver.get(0, "u")
 
             simX[i, :] = xcurrent
             simU[i, :] = u0
-            simY[i, :] = y_ref
+            simY[i, :] = y_ref[:nx+nu]
 
             # get next state
             if USE_PLANT:
@@ -388,7 +443,7 @@ def main():
     # timings
     cpu_times = times_prep + times_feed
 
-    print(f"Ran experiment with {WITH_ELLIPSOIDAL_CONSTRAINT=}, {WITH_HEXAGON_CONSTRAINT=}, {USE_RTI=}")
+    print(f"Ran experiment with {WITH_ELLIPSOIDAL_CONSTRAINT=}, {WITH_HEXAGON_CONSTRAINT=}, {USE_RTI=}, {SQUASHING=}")
     print(f"CPU time in ms: min {np.min(cpu_times):.3f}, median {np.median(cpu_times):.3f}, max {np.max(cpu_times):.3f}")
 
     # plot results
