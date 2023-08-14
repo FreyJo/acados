@@ -151,6 +151,18 @@ def export_rsm_model():
                      psi_d - Psi[0],
                      psi_q - Psi[1])
 
+    # setup plant dynamics
+    plant = AcadosModel()
+    plant.f_impl_expr = f_impl
+    plant.f_expl_expr = []
+    plant.x = x
+    plant.xdot = xdot
+    plant.u = u
+    plant.z = z
+    plant.p = p
+    plant.name = model_name + '_plant'
+
+    # setup solver model
     if SQUASHING:
         v = SX.sym('v', nu)
         u = vertcat(u, v)
@@ -184,7 +196,7 @@ def export_rsm_model():
         model.con_r_expr = vertcat(u_d, u_q)
         model.con_r_in_phi = r
 
-    return model
+    return model, plant
 
 
 def compute_y_ref(w_val):
@@ -197,10 +209,9 @@ def compute_y_ref(w_val):
     return np.array([psi_d_ref, psi_q_ref, u_d_ref, u_q_ref])
 
 
-def create_ocp_solver(tol = 1e-6):
+def create_ocp_solver(model, tol = 1e-6):
 
     ocp = AcadosOcp()
-    model = export_rsm_model()
     ocp.model = model
 
     nx = model.x.size()[0]
@@ -293,7 +304,7 @@ def create_ocp_solver(tol = 1e-6):
     ocp.solver_options.integrator_type = 'IRK'
     ocp.solver_options.sim_method_num_stages = 2
     ocp.solver_options.sim_method_newton_iter = 20
-    ocp.solver_options.sim_method_newton_tol = 1e-6
+    ocp.solver_options.sim_method_newton_tol = 1e-5
 
     ocp.solver_options.levenberg_marquardt = 5*1e-4
 
@@ -311,38 +322,38 @@ def create_ocp_solver(tol = 1e-6):
     return acados_solver
 
 
-def setup_acados_integrator(ocp=None):
+def setup_acados_integrator(model):
 
-    if ocp is None:
-        integrator = AcadosSimSolver(ocp)
-    else:
-        sim = AcadosSim()
-        sim.model = export_rsm_model()
-        sim.model.name = 'rsm_integrator'
-        sim.solver_options.integrator_type = 'IRK'
-        sim.solver_options.sens_forw = False
-        sim.solver_options.sens_adj = False
-        sim.solver_options.num_stages = 6
-        sim.solver_options.num_steps = 3
-        sim.solver_options.newton_tol = 1e-10
-        sim.solver_options.newton_iter = 50
-        sim.solver_options.T = Ts
-        sim.parameter_values = np.array([w_val, 0.0, 0.0])
-        integrator = AcadosSimSolver(sim)
+    sim = AcadosSim()
+    sim.model = model
+    sim.solver_options.integrator_type = 'IRK'
+    sim.solver_options.sens_forw = False
+    sim.solver_options.sens_adj = False
+    sim.solver_options.num_stages = 6
+    sim.solver_options.num_steps = 3
+    sim.solver_options.newton_tol = 1e-10
+    sim.solver_options.newton_iter = 50
+    sim.solver_options.T = Ts
+    sim.parameter_values = np.array([w_val, 0.0, 0.0])
+    integrator = AcadosSimSolver(sim)
 
     return integrator
 
 def main():
-    acados_solver = create_ocp_solver()
+
+    model, plant = export_rsm_model()
+
+    acados_solver = create_ocp_solver(model)
     ocp = acados_solver.acados_ocp
     nx = ocp.dims.nx
     nu = ocp.dims.nu
     N = ocp.dims.N
+
     Nsim = 100
-    nu_original = 2
+    nu_original = plant.u.rows()
 
     if USE_PLANT:
-        plant = setup_acados_integrator(acados_solver.acados_ocp)
+        plant = setup_acados_integrator(plant)
 
     simX = np.ndarray((Nsim, nx))
     simU = np.ndarray((Nsim, nu))
@@ -434,7 +445,7 @@ def main():
 
             # get next state
             if USE_PLANT:
-                plant.set('u', u0)
+                plant.set('u', u0[:nu_original])
                 plant.set('x', xcurrent)
                 plant.set('p', p_val)
                 plant.solve()
