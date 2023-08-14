@@ -44,8 +44,9 @@ WITH_ELLIPSOIDAL_CONSTRAINT = True
 WITH_HEXAGON_CONSTRAINT = True
 # WITH_HEXAGON_CONSTRAINT = False
 SQUASHING = True
-USE_RTI = False
-# USE_RTI = True
+# SQUASHING = False
+# USE_RTI = False
+USE_RTI = True
 
 USE_PLANT = True
 # USE_PLANT = False
@@ -104,10 +105,11 @@ def psi_q_num(x,y):
     return psi_q_expression
 
 def squash_u(u):
-    norm_u = ca.sqrt( u.T @ u + 1e-5)
-    squash_factor = ca.tanh(norm_u) / norm_u
-    squashed_u = u_radius * squash_factor * u
-    return squashed_u
+    norm_u = ca.sqrt( u.T @ u + 1e-9)
+    normalized_u = u / norm_u
+    squash_factor = ca.tanh(norm_u)
+    squashed_u = u_radius * squash_factor * normalized_u
+    return squashed_u, squash_factor
 
 def export_rsm_model():
     model_name = 'rsm'
@@ -150,8 +152,9 @@ def export_rsm_model():
                      psi_q - Psi[1])
 
     if SQUASHING:
-        squashed_u = squash_u(u)
-        f_impl = ca.substitute(f_impl, u, squashed_u)
+        v = SX.sym('v', nu)
+        u = vertcat(u, v)
+        squashed_v, squashing_factor = squash_u(v)
 
     model = AcadosModel()
 
@@ -164,17 +167,16 @@ def export_rsm_model():
     model.p = p
     model.name = model_name
 
-    tau = 10.
+    tau = .05
     if SQUASHING:
-        norm_u = ca.sqrt( u.T @ u + 1e-5)
-        squash_factor = ca.tanh(norm_u) / norm_u
-        model.cost_y_expr = vertcat(x, squashed_u, squash_factor)
-        #
+        model.cost_y_expr = vertcat(x, squashed_v, squashing_factor)
+
         r = ca.SX.sym('r_in_psi', casadi_length(model.cost_y_expr))
         model.cost_r_in_psi_expr = r
         model.cost_psi_expr = .5 * r[:nx].T @ Q @ r[:nx] + \
                               .5 * r[nx:nx+nu].T @ R @ r[nx:nx+nu] + \
                               tau * (- ca.log(1+r[-1]) - ca.log(-r[-1] + 1))
+        model.con_h_expr = u[:nu] - squashed_v
 
     if WITH_ELLIPSOIDAL_CONSTRAINT and not SQUASHING:
         r = SX.sym('r', 2, 1)
@@ -195,7 +197,7 @@ def compute_y_ref(w_val):
     return np.array([psi_d_ref, psi_q_ref, u_d_ref, u_q_ref])
 
 
-def create_ocp_solver(tol = 1e-3):
+def create_ocp_solver(tol = 1e-6):
 
     ocp = AcadosOcp()
     model = export_rsm_model()
@@ -211,16 +213,15 @@ def create_ocp_solver(tol = 1e-3):
     # set number of shooting intervals
     ocp.dims.N = N
 
-
     # set cost
     y_ref = compute_y_ref(w_val)
 
     if SQUASHING:
         ocp.cost.cost_type = 'CONVEX_OVER_NONLINEAR'
         y_ref = np.concatenate((y_ref, np.array([0])))
-        #
         # ocp.cost.W = scipy.linalg.block_diag(Q, R)
-
+        ocp.constraints.lh = np.zeros((int(nu/2),))
+        ocp.constraints.uh = np.zeros((int(nu/2),))
 
     else:
         ocp.cost.W = scipy.linalg.block_diag(Q, R)
@@ -284,22 +285,20 @@ def create_ocp_solver(tol = 1e-3):
     ocp.parameter_values = np.array([w_val, 0.0, 0.0])
 
     # set QP solver
-    ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+    # ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
     # ocp.solver_options.qp_solver = 'FULL_CONDENSING_HPIPM'
     # ocp.solver_options.qp_solver = 'FULL_CONDENSING_DAQP'
-    # ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
+    ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
     ocp.solver_options.integrator_type = 'IRK'
     ocp.solver_options.sim_method_num_stages = 2
     ocp.solver_options.sim_method_newton_iter = 20
-    ocp.solver_options.sim_method_newton_tol = 1e-10
+    ocp.solver_options.sim_method_newton_tol = 1e-6
 
-    ocp.solver_options.levenberg_marquardt = 1e-5
+    ocp.solver_options.levenberg_marquardt = 5*1e-4
 
     # set prediction horizon
     ocp.solver_options.tf = Tf
-    if SQUASHING:
-        tol = 1e-7
     ocp.solver_options.tol = tol
     ocp.solver_options.qp_tol = tol/10.
     if USE_RTI:
@@ -340,13 +339,14 @@ def main():
     nu = ocp.dims.nu
     N = ocp.dims.N
     Nsim = 100
+    nu_original = 2
 
     if USE_PLANT:
         plant = setup_acados_integrator(acados_solver.acados_ocp)
 
     simX = np.ndarray((Nsim, nx))
     simU = np.ndarray((Nsim, nu))
-    simY = np.ndarray((Nsim, nu+nx))
+    simY = np.ndarray((Nsim, nu_original+nx))
     times_prep = np.zeros(Nsim)
     times_feed = np.zeros(Nsim)
 
@@ -364,7 +364,7 @@ def main():
         for i in range(N+1):
             acados_solver.set(i, 'x', y_ref_1[:nx])
         # for i in range(N):
-            # acados_solver.set(i, 'u', y_ref_1[nx:])
+        #     acados_solver.set(i, 'u', ca.vertcat(y_ref_1[nx:], np.zeros((nu_original, ))).full())
 
         # simulation
         for i in range(Nsim):
@@ -422,13 +422,15 @@ def main():
 
             # get solution
             if SQUASHING:
-                u0 = squash_u(acados_solver.get(0, "u"))
+                # u0 = squash_u(acados_solver.get(0, "u"))
+                u0 = acados_solver.get(0, "u")
+                u0[:nu_original], _ = squash_u(u0[nu_original:])
             else:
                 u0 = acados_solver.get(0, "u")
 
             simX[i, :] = xcurrent
             simU[i, :] = u0
-            simY[i, :] = y_ref[:nx+nu]
+            simY[i, :] = y_ref[:nx+nu_original]
 
             # get next state
             if USE_PLANT:
