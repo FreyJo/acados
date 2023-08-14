@@ -45,14 +45,14 @@ WITH_HEXAGON_CONSTRAINT = True
 # WITH_HEXAGON_CONSTRAINT = False
 SQUASHING = True
 # SQUASHING = False
-# USE_RTI = False
-USE_RTI = True
+USE_RTI = False
+# USE_RTI = True
 
 USE_PLANT = True
 # USE_PLANT = False
 
 # multiple executions for consistent timings:
-N_EXEC = 1
+N_EXEC = 5
 
 # shooting intervals
 N = 2
@@ -165,7 +165,7 @@ def export_rsm_model():
     # setup solver model
     if SQUASHING:
         v = SX.sym('v', nu)
-        u = vertcat(u, v)
+        z = vertcat(z, v)
         squashed_v, squashing_factor = squash_u(v)
 
     model = AcadosModel()
@@ -188,7 +188,9 @@ def export_rsm_model():
         model.cost_psi_expr = .5 * r[:nx].T @ Q @ r[:nx] + \
                               .5 * r[nx:nx+nu].T @ R @ r[nx:nx+nu] + \
                               tau * (- ca.log(1+r[-1]) - ca.log(-r[-1] + 1))
-        model.con_h_expr = u[:nu] - squashed_v
+        # model.con_h_expr = u[:nu] - squashed_v
+
+        model.f_impl_expr = vertcat(model.f_impl_expr, u - squashed_v)
 
     if WITH_ELLIPSOIDAL_CONSTRAINT and not SQUASHING:
         r = SX.sym('r', 2, 1)
@@ -230,9 +232,8 @@ def create_ocp_solver(model, tol = 1e-6):
     if SQUASHING:
         ocp.cost.cost_type = 'CONVEX_OVER_NONLINEAR'
         y_ref = np.concatenate((y_ref, np.array([0])))
-        # ocp.cost.W = scipy.linalg.block_diag(Q, R)
-        ocp.constraints.lh = np.zeros((int(nu/2),))
-        ocp.constraints.uh = np.zeros((int(nu/2),))
+        # ocp.constraints.lh = np.zeros((int(nu/2),))
+        # ocp.constraints.uh = np.zeros((int(nu/2),))
 
     else:
         ocp.cost.W = scipy.linalg.block_diag(Q, R)
@@ -351,9 +352,10 @@ def main():
 
     Nsim = 100
     nu_original = plant.u.rows()
+    nz_original = plant.z.rows()
 
     if USE_PLANT:
-        plant = setup_acados_integrator(plant)
+        plant_integrator = setup_acados_integrator(plant)
 
     simX = np.ndarray((Nsim, nx))
     simU = np.ndarray((Nsim, nu))
@@ -371,6 +373,9 @@ def main():
         xcurrent = X0.copy()
         acados_solver.reset()
 
+        if USE_PLANT:
+            plant_integrator.set('xdot', np.zeros((nx,)))
+            plant_integrator.set('z', np.zeros((nz_original,)))
         # initialize
         for i in range(N+1):
             acados_solver.set(i, 'x', y_ref_1[:nx])
@@ -433,9 +438,9 @@ def main():
 
             # get solution
             if SQUASHING:
-                # u0 = squash_u(acados_solver.get(0, "u"))
-                u0 = acados_solver.get(0, "u")
-                u0[:nu_original], _ = squash_u(u0[nu_original:])
+                u0, _ = squash_u(acados_solver.get(0, "u"))
+                # u0 = acados_solver.get(0, "u")
+                # u0[:nu_original], _ = squash_u(u0[nu_original:])
             else:
                 u0 = acados_solver.get(0, "u")
 
@@ -445,11 +450,11 @@ def main():
 
             # get next state
             if USE_PLANT:
-                plant.set('u', u0[:nu_original])
-                plant.set('x', xcurrent)
-                plant.set('p', p_val)
-                plant.solve()
-                xcurrent = plant.get('x')
+                plant_integrator.set('u', u0[:nu_original])
+                plant_integrator.set('x', xcurrent)
+                plant_integrator.set('p', p_val)
+                plant_integrator.solve()
+                xcurrent = plant_integrator.get('x')
             else:
                 xcurrent = acados_solver.get(1, "x")
 
