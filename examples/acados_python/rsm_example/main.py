@@ -274,15 +274,6 @@ def create_ocp_solver(model, tol = 1e-6):
     ## setup constraints
     ocp.constraints.x0 = X0
 
-    # polytopic constraint on the input
-    x1 = u_max
-    y1 = 0
-    x2 = u_max*cos(np.pi/3)
-    y2 = u_max*sin(np.pi/3)
-
-    q1 = -(y2 - y1/x1*x2)/(1-x2/x1)
-    m1 = -(y1 + q1)/x1
-
     if WITH_ELLIPSOIDAL_CONSTRAINT and not SQUASHING:
         # to avoid LICQ violations
         eps = 1e-3 # Note: was originally eps = 0.0.
@@ -297,7 +288,16 @@ def create_ocp_solver(model, tol = 1e-6):
         ocp.constraints.idxbu = np.array([1])
         ocp.constraints.lbu = lbu
         ocp.constraints.ubu = ubu
+
     if WITH_HEXAGON_CONSTRAINT and not SQUASHING:
+        # polytopic constraint on the input
+        x1 = u_max
+        y1 = 0
+        x2 = u_max*cos(np.pi/3)
+        y2 = u_max*sin(np.pi/3)
+
+        q1 = -(y2 - y1/x1*x2)/(1-x2/x1)
+        m1 = -(y1 + q1)/x1
         # lg <= C*x + D*u <= ug
         ocp.constraints.D = np.array([[m1, 1],[-m1, 1]])
         ocp.constraints.C = np.zeros((nx, nx))
