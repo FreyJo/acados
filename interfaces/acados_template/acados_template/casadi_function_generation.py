@@ -31,7 +31,7 @@
 import os
 import casadi as ca
 from .utils import is_empty, casadi_length
-
+from .acados_model import AcadosModel
 
 def get_casadi_symbol(x):
     if isinstance(x, ca.MX):
@@ -46,7 +46,7 @@ def get_casadi_symbol(x):
 ################
 
 
-def generate_c_code_discrete_dynamics( model, opts ):
+def generate_c_code_discrete_dynamics(model: AcadosModel, opts ):
 
     casadi_codegen_opts = dict(mex=False, casadi_int='int', casadi_real='double')
 
@@ -95,7 +95,7 @@ def generate_c_code_discrete_dynamics( model, opts ):
 
 
 
-def generate_c_code_explicit_ode( model, opts ):
+def generate_c_code_explicit_ode(model: AcadosModel, opts ):
 
     casadi_codegen_opts = dict(mex=False, casadi_int='int', casadi_real='double')
 
@@ -172,7 +172,7 @@ def generate_c_code_explicit_ode( model, opts ):
     return
 
 
-def generate_c_code_implicit_ode( model, opts ):
+def generate_c_code_implicit_ode(model: AcadosModel, opts ):
 
     casadi_codegen_opts = dict(mex=False, casadi_int='int', casadi_real='double')
 
@@ -190,10 +190,25 @@ def generate_c_code_implicit_ode( model, opts ):
     nz = casadi_length(z)
 
     # generate jacobians
-    jac_x       = ca.jacobian(f_impl, x)
-    jac_xdot    = ca.jacobian(f_impl, xdot)
-    jac_u       = ca.jacobian(f_impl, u)
-    jac_z       = ca.jacobian(f_impl, z)
+    if model.dyn_f_impl_custom_jac_x is None:
+        jac_x = ca.jacobian(f_impl, x)
+    else:
+        jac_x = model.dyn_f_impl_custom_jac_x
+
+    if model.dyn_f_impl_custom_jac_xdot is None:
+        jac_xdot = ca.jacobian(f_impl, xdot)
+    else:
+        jac_xdot = model.dyn_f_impl_custom_jac_xdot
+
+    if model.dyn_f_impl_custom_jac_u is None:
+        jac_u = ca.jacobian(f_impl, u)
+    else:
+        jac_u = model.dyn_f_impl_custom_jac_u
+
+    if model.dyn_f_impl_custom_jac_z is None:
+        jac_z = ca.jacobian(f_impl, z)
+    else:
+        jac_z = model.dyn_f_impl_custom_jac_z
 
     # Set up functions
     p = model.p
@@ -252,7 +267,7 @@ def generate_c_code_implicit_ode( model, opts ):
     return
 
 
-def generate_c_code_gnsf( model, opts ):
+def generate_c_code_gnsf(model: AcadosModel, opts ):
 
     casadi_codegen_opts = dict(mex=False, casadi_int='int', casadi_real='double')
 
@@ -414,7 +429,7 @@ def generate_c_code_external_cost(model, stage_type, opts):
     return
 
 
-def generate_c_code_nls_cost( model, cost_name, stage_type, opts ):
+def generate_c_code_nls_cost(model: AcadosModel, cost_name, stage_type, opts ):
 
     casadi_codegen_opts = dict(mex=False, casadi_int='int', casadi_real='double')
 
@@ -573,7 +588,7 @@ def generate_c_code_conl_cost(model, cost_name, stage_type, opts):
 ################
 # Constraints
 ################
-def generate_c_code_constraint( model, con_name, is_terminal, opts ):
+def generate_c_code_constraint(model: AcadosModel, con_name, is_terminal, opts ):
 
     casadi_codegen_opts = dict(mex=False, casadi_int='int', casadi_real='double')
 

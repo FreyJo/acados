@@ -152,3 +152,23 @@ class AcadosModel():
         CasADi expression for the custom hessian of the outer loss function (only for convex-over-nonlinear cost), terminal; Default: :code:`None`
         Used if :py:attr:`acados_template.acados_ocp.AcadosOcpOptions.cost_type_e` is 'CONVEX_OVER_NONLINEAR'.
         """
+        self.dyn_f_impl_custom_jac_x = None
+        """
+        CasADi expression for the custom jacobian of f_impl with respect to x; Default: :code:`None`
+        Used if :py:attr:`acados_template.acados_ocp.AcadosOcpOptions.integrator_type` is 'IRK'.
+        """
+        self.dyn_f_impl_custom_jac_u = None
+        """
+        CasADi expression for the custom jacobian of f_impl with respect to u; Default: :code:`None`
+        Used if :py:attr:`acados_template.acados_ocp.AcadosOcpOptions.integrator_type` is 'IRK'.
+        """
+        self.dyn_f_impl_custom_jac_xdot = None
+        """
+        CasADi expression for the custom jacobian of f_impl with respect to xdot; Default: :code:`None`
+        Used if :py:attr:`acados_template.acados_ocp.AcadosOcpOptions.integrator_type` is 'IRK'.
+        """
+        self.dyn_f_impl_custom_jac_z = None
+        """
+        CasADi expression for the custom jacobian of f_impl with respect to z; Default: :code:`None`
+        Used if :py:attr:`acados_template.acados_ocp.AcadosOcpOptions.integrator_type` is 'IRK'.
+        """
