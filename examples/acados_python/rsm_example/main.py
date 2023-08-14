@@ -106,10 +106,10 @@ def psi_q_num(x,y):
 
 def squash_u(u):
     norm_u = ca.sqrt( u.T @ u + 1e-9)
-    normalized_u = u / norm_u
-    squash_factor = ca.tanh(norm_u)
-    squashed_u = u_radius * squash_factor * normalized_u
-    return squashed_u, squash_factor
+    norm_squashed_u = ca.tanh(norm_u)
+    squash_factor = norm_squashed_u / norm_u
+    squashed_u = u_radius * squash_factor * u
+    return squashed_u, norm_squashed_u, squash_factor
 
 def export_rsm_model():
     model_name = 'rsm'
@@ -166,7 +166,7 @@ def export_rsm_model():
     if SQUASHING:
         v = SX.sym('v', nu)
         z = vertcat(z, v)
-        squashed_u, squashing_factor = squash_u(u)
+        squashed_u, norm_squashed_u, squash_factor = squash_u(u)
 
     model = AcadosModel()
 
@@ -181,7 +181,7 @@ def export_rsm_model():
 
     tau = .5
     if SQUASHING:
-        model.cost_y_expr = vertcat(x, squashed_u, squashing_factor)
+        model.cost_y_expr = vertcat(x, v, norm_squashed_u)
 
         r = ca.SX.sym('r_in_psi', casadi_length(model.cost_y_expr))
         model.cost_r_in_psi_expr = r
@@ -193,14 +193,17 @@ def export_rsm_model():
         model.f_impl_expr = vertcat(model.f_impl_expr, squashed_u - v)
 
         # custom jacobian
-        eps_jacobian = 1e-5
-        f_impl_jac_u = ca.jacobian(model.f_impl_expr, u)
+        # f_impl_jac_u = ca.jacobian(model.f_impl_expr, u)
 
         # print(f"{f_impl_jac_u.sparsity()=}")
+        # f_impl_jac_u *= ca.fmin(1000, 1 * (1/squash_factor))
+        # f_impl_jac_u *= ca.fmax(1, 1/(0.15 + squash_factor))
+        # f_impl_jac_u *= (1/squash_factor)
 
-        for i in range(nu):
-            f_impl_jac_u[-nu+i, i] = ca.fmax(eps_jacobian, f_impl_jac_u[-nu + i, i])
-        model.dyn_f_impl_custom_jac_u = f_impl_jac_u
+        # eps_jacobian = 0.0 #1e-4 * u_radius
+        # for i in range(nu):
+        #     f_impl_jac_u[-nu+i, i] = ca.fmax(eps_jacobian, f_impl_jac_u[-nu + i, i])
+        # model.dyn_f_impl_custom_jac_u = f_impl_jac_u
         # print(f"{f_impl_jac_u.sparsity()=}")
         # print(f"{f_impl_jac_u=}")
 
@@ -224,7 +227,7 @@ def compute_y_ref(w_val):
     return np.array([psi_d_ref, psi_q_ref, u_d_ref, u_q_ref])
 
 
-def create_ocp_solver(model, tol = 1e-6):
+def create_ocp_solver(model, tol = 1e-4):
 
     ocp = AcadosOcp()
     ocp.model = model
@@ -316,9 +319,12 @@ def create_ocp_solver(model, tol = 1e-6):
     ocp.solver_options.integrator_type = 'IRK'
     ocp.solver_options.sim_method_num_stages = 2
     ocp.solver_options.sim_method_newton_iter = 20
-    ocp.solver_options.sim_method_newton_tol = 1e-5
+    ocp.solver_options.sim_method_newton_tol = tol / 10
+    ocp.solver_options.sim_method_num_steps = 1
+    ocp.solver_options.sim_method_jac_reuse = 0
 
-    ocp.solver_options.levenberg_marquardt = 5*1e-4
+    # ocp.solver_options.levenberg_marquardt = 5*1e-4
+    # ocp.solver_options.levenberg_marquardt = 1e-0
 
     # set prediction horizon
     ocp.solver_options.tf = Tf
@@ -351,6 +357,11 @@ def setup_acados_integrator(model):
 
     return integrator
 
+
+def print_timing(timing: np.ndarray, label: str):
+    print(f"time {label} in ms: min {np.min(timing):.3f}, median {np.median(timing):.3f}, max {np.max(timing):.3f}")
+
+
 def main():
 
     model, plant = export_rsm_model()
@@ -358,7 +369,6 @@ def main():
     acados_solver = create_ocp_solver(model)
     ocp = acados_solver.acados_ocp
     nx = ocp.dims.nx
-    nu = ocp.dims.nu
     N = ocp.dims.N
 
     Nsim = 100
@@ -373,6 +383,7 @@ def main():
     simY = np.ndarray((Nsim, nu_original+nx))
     times_prep = np.zeros(Nsim)
     times_feed = np.zeros(Nsim)
+    times_sim = np.zeros(Nsim)
 
     p_val_1 = np.array([w_val, 0, 0])
     y_ref_1 = compute_y_ref(w_val)
@@ -420,10 +431,13 @@ def main():
                 acados_solver.options_set('rti_phase', 1)
                 status = acados_solver.solve()
                 time_prep = acados_solver.get_stats('time_tot')[0] * 1e3
+                time_sim = acados_solver.get_stats('time_sim')[0] * 1e3
                 if i_exec == 0:
                     times_prep[i] = time_prep
+                    times_sim[i] = time_sim
                 else:
                     times_prep[i] = min(times_prep[i], time_prep)
+                    times_sim[i] = min(times_sim[i], time_sim)
 
             # update initial condition
             acados_solver.set(0, "lbx", xcurrent)
@@ -444,14 +458,15 @@ def main():
                 times_feed[i] = min(times_feed[i], time_feed)
             if status != 0:
                 acados_solver.print_statistics()
-                # breakpoint()
+                breakpoint()
                 # raise Exception(f'acados returned status {status}.')
 
             # get solution
             if SQUASHING:
-                u0, _ = squash_u(acados_solver.get(0, "u"))
+                # u0, _, _ = squash_u(acados_solver.get(0, "u"))
+                u0 = acados_solver.get(0, "z")[-nu_original:]
                 # u0_ocp = acados_solver.get(0, "u")
-                # u0, _ = squash_u(u0_ocp[nu_original:])
+                # u0, _, _ = squash_u(u0_ocp[nu_original:])
             else:
                 u0 = acados_solver.get(0, "u")
 
@@ -473,7 +488,11 @@ def main():
     cpu_times = times_prep + times_feed
 
     print(f"Ran experiment with {WITH_ELLIPSOIDAL_CONSTRAINT=}, {WITH_HEXAGON_CONSTRAINT=}, {USE_RTI=}, {SQUASHING=}")
-    print(f"CPU time in ms: min {np.min(cpu_times):.3f}, median {np.median(cpu_times):.3f}, max {np.max(cpu_times):.3f}")
+    print_timing(cpu_times, 'total')
+    print_timing(times_feed, 'feedback')
+    print_timing(times_prep, 'preparation')
+    print_timing(times_sim, 'integrator')
+
 
     # plot results
     plot_rsm_trajectories(simX, simU, simY, Ts)
