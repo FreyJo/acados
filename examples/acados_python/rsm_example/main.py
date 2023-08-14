@@ -52,7 +52,7 @@ USE_PLANT = True
 # USE_PLANT = False
 
 # multiple executions for consistent timings:
-N_EXEC = 5
+N_EXEC = 1
 
 # shooting intervals
 N = 2
@@ -190,7 +190,15 @@ def export_rsm_model():
                               tau * (- ca.log(1+r[-1]) - ca.log(-r[-1] + 1))
         # model.con_h_expr = u[:nu] - squashed_v
 
-        model.f_impl_expr = vertcat(model.f_impl_expr, u - squashed_v)
+        model.f_impl_expr = vertcat(model.f_impl_expr, squashed_v - u)
+
+        # custom jacobian
+        eps_jacobian = 1e-4
+        f_impl_jac_u = ca.jacobian(model.f_impl_expr, u)
+
+        for i in range(nu):
+            f_impl_jac_u[-nu+i, i] = ca.fmax(eps_jacobian, f_impl_jac_u[-nu + i, i])
+        model.dyn_f_impl_custom_jac_u = f_impl_jac_u
 
     if WITH_ELLIPSOIDAL_CONSTRAINT and not SQUASHING:
         r = SX.sym('r', 2, 1)
@@ -330,10 +338,10 @@ def setup_acados_integrator(model):
     sim.solver_options.integrator_type = 'IRK'
     sim.solver_options.sens_forw = False
     sim.solver_options.sens_adj = False
-    sim.solver_options.num_stages = 6
-    sim.solver_options.num_steps = 3
-    sim.solver_options.newton_tol = 1e-10
-    sim.solver_options.newton_iter = 50
+    sim.solver_options.num_stages = 2
+    # sim.solver_options.num_steps = 3
+    sim.solver_options.newton_tol = 1e-6
+    sim.solver_options.newton_iter = 20
     sim.solver_options.T = Ts
     sim.parameter_values = np.array([w_val, 0.0, 0.0])
     integrator = AcadosSimSolver(sim)
@@ -358,7 +366,7 @@ def main():
         plant_integrator = setup_acados_integrator(plant)
 
     simX = np.ndarray((Nsim, nx))
-    simU = np.ndarray((Nsim, nu))
+    simU = np.ndarray((Nsim, nu_original))
     simY = np.ndarray((Nsim, nu_original+nx))
     times_prep = np.zeros(Nsim)
     times_feed = np.zeros(Nsim)
@@ -439,8 +447,8 @@ def main():
             # get solution
             if SQUASHING:
                 u0, _ = squash_u(acados_solver.get(0, "u"))
-                # u0 = acados_solver.get(0, "u")
-                # u0[:nu_original], _ = squash_u(u0[nu_original:])
+                # u0_ocp = acados_solver.get(0, "u")
+                # u0, _ = squash_u(u0_ocp[nu_original:])
             else:
                 u0 = acados_solver.get(0, "u")
 
@@ -450,7 +458,7 @@ def main():
 
             # get next state
             if USE_PLANT:
-                plant_integrator.set('u', u0[:nu_original])
+                plant_integrator.set('u', u0)
                 plant_integrator.set('x', xcurrent)
                 plant_integrator.set('p', p_val)
                 plant_integrator.solve()
