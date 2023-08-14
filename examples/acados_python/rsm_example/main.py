@@ -166,7 +166,7 @@ def export_rsm_model():
     if SQUASHING:
         v = SX.sym('v', nu)
         z = vertcat(z, v)
-        squashed_v, squashing_factor = squash_u(v)
+        squashed_u, squashing_factor = squash_u(u)
 
     model = AcadosModel()
 
@@ -179,26 +179,31 @@ def export_rsm_model():
     model.p = p
     model.name = model_name
 
-    tau = .05
+    tau = .5
     if SQUASHING:
-        model.cost_y_expr = vertcat(x, squashed_v, squashing_factor)
+        model.cost_y_expr = vertcat(x, squashed_u, squashing_factor)
 
         r = ca.SX.sym('r_in_psi', casadi_length(model.cost_y_expr))
         model.cost_r_in_psi_expr = r
         model.cost_psi_expr = .5 * r[:nx].T @ Q @ r[:nx] + \
                               .5 * r[nx:nx+nu].T @ R @ r[nx:nx+nu] + \
                               tau * (- ca.log(1+r[-1]) - ca.log(-r[-1] + 1))
-        # model.con_h_expr = u[:nu] - squashed_v
-
-        model.f_impl_expr = vertcat(model.f_impl_expr, squashed_v - u)
+        # model.con_h_expr = u[:nu] - squashed_u
+        model.f_impl_expr = ca.substitute(model.f_impl_expr, u, v)
+        model.f_impl_expr = vertcat(model.f_impl_expr, squashed_u - v)
 
         # custom jacobian
-        eps_jacobian = 1e-4
+        eps_jacobian = 1e-5
         f_impl_jac_u = ca.jacobian(model.f_impl_expr, u)
+
+        # print(f"{f_impl_jac_u.sparsity()=}")
 
         for i in range(nu):
             f_impl_jac_u[-nu+i, i] = ca.fmax(eps_jacobian, f_impl_jac_u[-nu + i, i])
         model.dyn_f_impl_custom_jac_u = f_impl_jac_u
+        # print(f"{f_impl_jac_u.sparsity()=}")
+        # print(f"{f_impl_jac_u=}")
+
 
     if WITH_ELLIPSOIDAL_CONSTRAINT and not SQUASHING:
         r = SX.sym('r', 2, 1)
@@ -240,8 +245,6 @@ def create_ocp_solver(model, tol = 1e-6):
     if SQUASHING:
         ocp.cost.cost_type = 'CONVEX_OVER_NONLINEAR'
         y_ref = np.concatenate((y_ref, np.array([0])))
-        # ocp.constraints.lh = np.zeros((int(nu/2),))
-        # ocp.constraints.uh = np.zeros((int(nu/2),))
 
     else:
         ocp.cost.W = scipy.linalg.block_diag(Q, R)
