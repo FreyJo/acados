@@ -81,7 +81,7 @@ def ocp_generate_external_functions(ocp: AcadosOcp):
         elif ocp.solver_options.integrator_type == 'DISCRETE':
             generate_c_code_discrete_dynamics(model, opts)
         else:
-            raise Exception("ocp_generate_external_functions: unknown integrator type.")
+            raise Exception(f"ocp_generate_external_functions: unknown integrator type {ocp.solver_options.integrator_type}.")
     else:
         target_location = os.path.join(code_export_dir, model_dir, model.dyn_generic_source)
         shutil.copyfile(model.dyn_generic_source, target_location)
