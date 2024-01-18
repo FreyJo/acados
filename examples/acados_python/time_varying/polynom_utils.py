@@ -28,7 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.;
 #
 
-import os
+from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
 import casadi as ca
@@ -86,12 +86,19 @@ def export_pendulum_ode_model() -> AcadosModel:
 
     return model
 
-
-def plot_open_loop_trajectory_pwpol_u(shooting_nodes, X_traj: np.ndarray, U_fine_traj: list, plt_show=True, u_max=None, title=None,
-    states_lables = ['$x$', r'$\theta$', '$v$', r'$\dot{\theta}$'],
-    idxpx=None, idxpu=None
-                  ):
-
+def plot_open_loop_trajectory_pwpol_u(
+    shooting_nodes,
+    X_traj: np.ndarray,
+    U_fine_traj: list,
+    plt_show=True,
+    lbu: Optional[np.ndarray] = None,
+    ubu: Optional[np.ndarray] = None,
+    title=None,
+    x_labels=["$x$", r"$\theta$", "$v$", r"$\dot{\theta}$"],
+    u_labels=None,
+    idxpx=None,
+    idxpu=None,
+):
     nx = X_traj.shape[1]
     nu = U_fine_traj[0].shape[1]
     t = shooting_nodes
@@ -100,38 +107,62 @@ def plot_open_loop_trajectory_pwpol_u(shooting_nodes, X_traj: np.ndarray, U_fine
         idxpx = list(range(nx))
     if idxpu is None:
         idxpu = list(range(nu))
+    if u_labels is None:
+        u_labels = [f"$u_{i}$" for i in range(nu)]
 
     nxpx = len(idxpx)
     nxpu = len(idxpu)
 
-    nrows = max(nxpx, nxpu)
+    nrows = nxpx + nxpu
 
     latexify_plot()
-    fig, axes = plt.subplots(ncols=1, nrows=nxpx+nxpu, figsize=(5.5, 1.65*(nxpx+nxpu+1)), sharex=True)
-    plt.subplot(nx+1, 1, 1)
+    fig, axes = plt.subplots(
+        ncols=1, nrows=nxpx + nxpu, figsize=(5.5, 1.65 * (nxpx + nxpu + 1)), sharex=True
+    )
+    plt.subplot(nrows, 1, 1)
 
     # plot U
     for i, u_interval in enumerate(U_fine_traj):
         n_pol_interval = u_interval.shape[0]
-        t_grid_interval = np.linspace(shooting_nodes[i], shooting_nodes[i+1], n_pol_interval)
+        t_grid_interval = np.linspace(
+            shooting_nodes[i], shooting_nodes[i + 1], n_pol_interval
+        )
         for isub, iu in enumerate(idxpu):
-            axes[isub].plot(t_grid_interval, u_interval[:, iu], color='C0', alpha= .5 + .5*(i%2) )
+            axes[isub].plot(
+                t_grid_interval,
+                u_interval[:, iu],
+                color="C0",
+                alpha=0.5 + 0.5 * (i % 2),
+            )
     for isub, iu in enumerate(idxpu):
-        axes[isub].set_ylabel(f'$u_{iu}$')
+        axes[isub].set_ylabel(u_labels[iu])
         axes[isub].grid()
 
+    if lbu is not None:
+        for isub, iu in enumerate(idxpu):
+            axes[isub].hlines(
+                lbu[iu], t[0], t[-1], linestyles="dashed", alpha=0.4, color="k"
+            )
+    if ubu is not None:
+        for isub, iu in enumerate(idxpu):
+            axes[isub].hlines(
+                ubu[iu], t[0], t[-1], linestyles="dashed", alpha=0.4, color="k"
+            )
+
+    # plot X
     for isub, ix in enumerate(idxpx):
-        axes[isub+nxpu].plot(t, X_traj[:, ix])
+        axes[isub + nxpu].plot(
+            t, X_traj[:, ix], "--", marker="o", markersize=4, color="C0", alpha=0.5
+        )
 
-        axes[isub+nxpu].set_ylabel(states_lables[ix])
-        axes[isub+nxpu].grid()
+        axes[isub + nxpu].set_ylabel(x_labels[ix])
+        axes[isub + nxpu].grid()
 
-    axes[-1].set_xlabel('$t$')
+    axes[-1].set_xlabel("$t$")
     plt.subplots_adjust(left=None, bottom=None, right=None, top=None, hspace=0.4)
 
     if title is not None:
         axes[0].set_title(title)
 
-    # avoid plotting when running on Travis
-    if os.environ.get('ACADOS_ON_CI') is None and plt_show:
+    if plt_show:
         plt.show()
