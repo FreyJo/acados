@@ -873,19 +873,11 @@ class AcadosOcp:
         min_hess: provide a minimum value for the hessian
         weight: weight of the penalty corresponding to Hessian in quadratic region
         """
-        if isinstance(constr_expr, ca.MX):
-            casadi_symbol = ca.MX.sym
-            casadi_zeros = ca.MX.zeros
-        elif isinstance(constr_expr, ca.SX):
-            casadi_symbol = ca.SX.sym
-            casadi_zeros = ca.SX.zeros
+        casadi_symbol = self.model.get_casadi_symbol()
+        casadi_zeros = self.model.get_casadi_zeros()
 
-
-        # if (upper_bound is None or lower_bound is None):
-        #     raise NotImplementedError("only symmetric Huber for now")
         if upper_bound is None and lower_bound is None:
             raise ValueError("Either upper or lower bound must be provided.")
-
 
         if self.cost.cost_type != "CONVEX_OVER_NONLINEAR":
             raise Exception("Huber penalty is only supported for CONVEX_OVER_NONLINEAR cost type.")
@@ -933,7 +925,6 @@ class AcadosOcp:
             # add penalty Hessian to existing Hessian
             self.model.cost_conl_custom_outer_hess = ca.blockcat(self.model.cost_conl_custom_outer_hess,
                                                                 zero_offdiag, zero_offdiag.T, penalty_hess)
-
         return
 
 

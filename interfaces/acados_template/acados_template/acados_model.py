@@ -224,6 +224,14 @@ class AcadosModel():
         else:
             raise Exception(f"model.x must be casadi.SX or casadi.MX, got {type(self.x)}")
 
+    def get_casadi_zeros(self):
+        if isinstance(self.x, MX):
+            return MX.zeros
+        elif isinstance(self.x, SX):
+            return SX.zeros
+        else:
+            raise Exception(f"model.x must be casadi.SX or casadi.MX, got {type(self.x)}")
+
     def make_consistent(self, dims: Union[AcadosOcpDims, AcadosSimDims]) -> None:
 
         casadi_symbol = self.get_casadi_symbol()
@@ -278,6 +286,7 @@ class AcadosModel():
             raise Exception('model.u has already been augmented')
 
         casadi_symbol = self.get_casadi_symbol()
+        casadi_zeros = self.get_casadi_zeros()
 
         # add time to model
         if self.t == []:
