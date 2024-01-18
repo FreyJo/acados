@@ -272,8 +272,9 @@ class AcadosModel():
         """
         Augment the model with polynomial control.
 
-        Replace the original control input :math:`u` with a polynomial control input :math:`v_{\\text{poly}} = \\sum_{i=0}^d u_i t^i`
-        New controls are :math:`u_0, \\dots, u_d`.
+        Replace the original control input :math:`u` with a polynomial control input
+        :math:`v_{j, \\text{poly}} = \\sum_{i=0}^d u_{j,i} t^i`
+        New controls are :math:`u_{0, 0}, \\dots, u_{0, d}, \\dots u_{\\text{nu\_original}, d}`.
 
         NOTE: bounds on controls are not changed in this function.
 
@@ -297,11 +298,15 @@ class AcadosModel():
         u_old = self.u
         nu_original = casadi_length(self.u)
 
-        u_coeff = casadi_symbol('u_coeff', (degree+1) * nu_original)
-        u_new = np.zeros((nu_original, 1))
-        for i in range(degree+1):
-            u_new += t ** i * u_coeff[i*nu_original:(i+1)*nu_original]
+        u_coeff_list = []
+        u_new = casadi_zeros((nu_original, 1))
+        for j in range(nu_original):
+            u_coeff_j = casadi_symbol(f'u_coeff_{j}', degree+1)
+            u_coeff_list.append(u_coeff_j)
+            for i in range(degree+1):
+                u_new[j] += t ** i * u_coeff_j[i]
 
+        u_coeff = ca.vertcat(*u_coeff_list)
         evaluate_polynomial_u_fun = ca.Function("evaluate_polynomial_u", [u_coeff, t], [u_new])
 
         if self.f_impl_expr is not None:
