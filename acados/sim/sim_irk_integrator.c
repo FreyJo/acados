@@ -1140,7 +1140,10 @@ int sim_irk(void *config_, sim_in *in, sim_out *out, void *opts_, void *mem_, vo
                 impl_ode_res_out.xi = ii * (nx + nz);  // store output in this position of rG
 
                 // compute the residual of implicit ode at time t_ii
-                if ((opts->jac_reuse && (ss == 0) && (iter == 0)) || (!opts->jac_reuse))
+                if (
+                    (!opts->jac_reuse) ||
+                    (opts->jac_reuse && (iter == 0)) && ((ss == 0) || !opts->sens_forw)
+                )
                 {   // evaluate the ode function & jacobian w.r.t. x, xdot;
                     // &  compute jacobian dG_dK_ss;
                     acados_tic(&timer_ad);
