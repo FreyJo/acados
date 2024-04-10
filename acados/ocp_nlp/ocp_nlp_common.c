@@ -1422,6 +1422,13 @@ acados_size_t ocp_nlp_memory_calculate_size(ocp_nlp_config *config, ocp_nlp_dims
     int *nz = dims->nz;
     int *nu = dims->nu;
     int *ni = dims->ni;
+    int *np = dims->np;
+
+    int np_max = 0;
+    for (int i = 0; i <= N; i++)
+    {
+        np_max = np_max > np[i] ? np_max : np[i];
+    }
 
     acados_size_t size = sizeof(ocp_nlp_memory);
 
@@ -1483,6 +1490,7 @@ acados_size_t ocp_nlp_memory_calculate_size(ocp_nlp_config *config, ocp_nlp_dims
     size += 1*blasfeo_memsize_dvec(nu[N] + nx[N]);  // dyn_adj
     size += 1*blasfeo_memsize_dvec(2 * ni[N]);      // ineq_fun
     size += 1*blasfeo_memsize_dvec(nx[N] + nz[N]);  // sim_guess
+    size += 1*blasfeo_memsize_dvec(np_max); //  out_nparam;
 
     size += 8;   // initial align
     size += 8;   // middle align
@@ -1510,6 +1518,13 @@ ocp_nlp_memory *ocp_nlp_memory_assign(ocp_nlp_config *config, ocp_nlp_dims *dims
     int *nz = dims->nz;
     int *nu = dims->nu;
     int *ni = dims->ni;
+    int *np = dims->np;
+
+    int np_max = 0;
+    for (int i = 0; i <= N; i++)
+    {
+        np_max = np_max > np[i] ? np_max : np[i];
+    }
 
     char *c_ptr = (char *) raw_memory;
 
@@ -1613,11 +1628,15 @@ ocp_nlp_memory *ocp_nlp_memory_assign(ocp_nlp_config *config, ocp_nlp_dims *dims
     // blasfeo_mem align
     align_char_to(64, &c_ptr);
 
+
     // dzduxt
     for (int i=0; i<=N; i++)
     {
         assign_and_advance_blasfeo_dmat_mem(nu[i]+nx[i], nz[i], mem->dzduxt+i, &c_ptr);
     }
+
+    /* vectors */
+    assign_and_advance_blasfeo_dvec_mem(np_max, &mem->out_np, &c_ptr);
     // z_alg
     for (int i=0; i<=N; i++)
     {
@@ -1677,6 +1696,7 @@ acados_size_t ocp_nlp_workspace_calculate_size(ocp_nlp_config *config, ocp_nlp_d
     int N = dims->N;
     int *nx = dims->nx;
     // int *nu = dims->nu;
+    // int *nu = dims->nu;
     int *ni = dims->ni;
     int *np = dims->np;
     // int *ns = dims->ns;
@@ -1719,7 +1739,6 @@ acados_size_t ocp_nlp_workspace_calculate_size(ocp_nlp_config *config, ocp_nlp_d
     size += 1 * blasfeo_memsize_dvec(ni_max);
 
     size += 1 * blasfeo_memsize_dvec(np_max); //  tmp_nparam;
-    size += 1 * blasfeo_memsize_dvec(np_max); //  out_nparam;
 
     // array of pointers
     // cost
@@ -1901,7 +1920,6 @@ ocp_nlp_workspace *ocp_nlp_workspace_assign(ocp_nlp_config *config, ocp_nlp_dims
     assign_and_advance_blasfeo_dvec_mem(ni_max, &work->tmp_ni, &c_ptr);
     assign_and_advance_blasfeo_dvec_mem(nx_max, &work->dxnext_dy, &c_ptr);
     assign_and_advance_blasfeo_dvec_mem(np_max, &work->tmp_np, &c_ptr);
-    assign_and_advance_blasfeo_dvec_mem(np_max, &work->out_np, &c_ptr);
 
     if (opts->reuse_workspace)
     {
@@ -3431,19 +3449,19 @@ void ocp_nlp_common_eval_lagr_grad_p(ocp_nlp_config *config, ocp_nlp_dims *dims,
     else if (!strcmp("params_global", field))
     {
         // initialize to zero
-        blasfeo_dvecse(np[0], 0., &work->out_np, 0);
+        blasfeo_dvecse(np[0], 0., &mem->out_np, 0);
 
         for (i = 0; i < N; i++)
         {
             // dynamics contribution
             config->dynamics[i]->compute_adj_p(config->dynamics[i], dims->dynamics[i], in->dynamics[i], opts,
                                     mem->dynamics[i], &work->tmp_np);
-            blasfeo_dvecad(np[i], 1., &work->tmp_np, 0, &work->out_np, 0);
+            blasfeo_dvecad(np[i], 1., &work->tmp_np, 0, &mem->out_np, 0);
 
             // cost contribution
             config->cost[i]->eval_grad_p(config->cost[i], dims->cost[i], in->cost[i], opts,
                                     mem->cost[i], work->cost[i], &work->tmp_np);
-            blasfeo_dvecad(np[i], 1., &work->tmp_np, 0, &work->out_np, 0);
+            blasfeo_dvecad(np[i], 1., &work->tmp_np, 0, &mem->out_np, 0);
 
             // TODO: add support for inequality constraints
         }
@@ -3451,9 +3469,9 @@ void ocp_nlp_common_eval_lagr_grad_p(ocp_nlp_config *config, ocp_nlp_dims *dims,
         // terminal cost contribution
         config->cost[N]->eval_grad_p(config->cost[N], dims->cost[N], in->cost[N], opts,
                                     mem->cost[N], work->cost[N], &work->tmp_np);
-        blasfeo_dvecad(np[N], 1., &work->tmp_np, 0, &work->out_np, 0);
+        blasfeo_dvecad(np[N], 1., &work->tmp_np, 0, &mem->out_np, 0);
 
-        blasfeo_unpack_dvec(np[0], &work->out_np, 0, grad_p, 1);
+        blasfeo_unpack_dvec(np[0], &mem->out_np, 0, grad_p, 1);
     }
     else
     {
