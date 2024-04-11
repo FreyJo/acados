@@ -162,7 +162,11 @@ if(ACADOS_PYTHON)
         COMMAND "${CMAKE_COMMAND}" -E chdir ${PROJECT_SOURCE_DIR}/examples/acados_python/pendulum_on_cart/solution_sensitivities
         python value_gradient_example.py)
 
-    add_test(NAME python_policy_gradient
+add_test(NAME python_forw_vs_adj_param_sens
+        COMMAND "${CMAKE_COMMAND}" -E chdir ${PROJECT_SOURCE_DIR}/examples/acados_python/pendulum_on_cart/solution_sensitivities
+        python forw_vs_adj_param_sens.py)
+
+add_test(NAME python_policy_gradient
         COMMAND "${CMAKE_COMMAND}" -E chdir ${PROJECT_SOURCE_DIR}/examples/acados_python/pendulum_on_cart/solution_sensitivities
         python policy_gradient_example.py)
 
