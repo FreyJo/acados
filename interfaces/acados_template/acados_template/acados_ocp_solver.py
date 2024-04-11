@@ -546,6 +546,52 @@ class AcadosOcpSolver:
         return self.eval_and_get_optimal_value_gradient(with_respect_to)
 
 
+    def sanity_check_parametric_sensitivities(self):
+        if not (self.acados_ocp.solver_options.qp_solver == 'FULL_CONDENSING_HPIPM' or
+                self.acados_ocp.solver_options.qp_solver == 'PARTIAL_CONDENSING_HPIPM'):
+            raise Exception("Parametric sensitivities are only available with HPIPM as QP solver.")
+
+        if not (
+            self.acados_ocp.solver_options.hessian_approx == 'EXACT' and
+            self.acados_ocp.solver_options.regularize_method == 'NO_REGULARIZE' and
+            self.acados_ocp.solver_options.levenberg_marquardt == 0 and
+            self.acados_ocp.solver_options.exact_hess_constr == 1 and
+            self.acados_ocp.solver_options.exact_hess_cost == 1 and
+            self.acados_ocp.solver_options.exact_hess_dyn == 1 and
+            self.acados_ocp.solver_options.fixed_hess == 0 and
+            self.acados_ocp.model.cost_expr_ext_cost_custom_hess_0 is None and
+            self.acados_ocp.model.cost_expr_ext_cost_custom_hess is None and
+            self.acados_ocp.model.cost_expr_ext_cost_custom_hess_e is None
+        ):
+            raise Exception("Parametric sensitivities are only correct if an exact Hessian is used!")
+
+
+    def eval_adjoint_solution_sensitivity(self, seed=None, with_respect_to: str = "params_global") -> np.ndarray:
+
+        self.sanity_check_parametric_sensitivities()
+
+        t0 = time.time()
+        self.__acados_lib.ocp_nlp_eval_params_jac(self.nlp_solver, self.nlp_in, self.nlp_out)
+        self.time_solution_sens_lin = time.time() - t0
+
+
+        if with_respect_to == "params_global":
+            nparam = self.__acados_lib.ocp_nlp_dims_get_from_attr(self.nlp_config, self.nlp_dims, self.nlp_out, 0, "p".encode('utf-8'))
+
+            ngrad = nparam
+            field = "params_global".encode('utf-8')
+            grad = np.zeros((nparam,))
+            grad_p = np.ascontiguousarray(grad, dtype=np.float64)
+            c_grad_p = cast(grad_p.ctypes.data, POINTER(c_double))
+
+            self.__acados_lib.ocp_nlp_eval_solution_sens_adj_p(self.nlp_solver, self.nlp_in, self.sens_out, field, 0, c_grad_p)
+
+            return grad_p
+
+        else:
+            raise NotImplementedError("")
+
+
     def eval_solution_sensitivity(self, stages: Union[int, List[int]], with_respect_to: str) \
                 -> Tuple[Union[List[np.ndarray], np.ndarray], Union[List[np.ndarray], np.ndarray]]:
         """
@@ -574,24 +620,7 @@ class AcadosOcpSolver:
         .. note:: Solution sensitivities with respect to parameters are currently implemented only for parametric discrete dynamics and parametric external costs (in particular, parametric constraints are not covered).
         """
 
-        if not (self.acados_ocp.solver_options.qp_solver == 'FULL_CONDENSING_HPIPM' or
-                self.acados_ocp.solver_options.qp_solver == 'PARTIAL_CONDENSING_HPIPM'):
-            raise Exception("Parametric sensitivities are only available with HPIPM as QP solver.")
-
-        if not (
-            self.acados_ocp.solver_options.hessian_approx == 'EXACT' and
-            self.acados_ocp.solver_options.regularize_method == 'NO_REGULARIZE' and
-            self.acados_ocp.solver_options.levenberg_marquardt == 0 and
-            self.acados_ocp.solver_options.exact_hess_constr == 1 and
-            self.acados_ocp.solver_options.exact_hess_cost == 1 and
-            self.acados_ocp.solver_options.exact_hess_dyn == 1 and
-            self.acados_ocp.solver_options.fixed_hess == 0 and
-            self.acados_ocp.model.cost_expr_ext_cost_custom_hess_0 is None and
-            self.acados_ocp.model.cost_expr_ext_cost_custom_hess is None and
-            self.acados_ocp.model.cost_expr_ext_cost_custom_hess_e is None
-        ):
-            raise Exception("Parametric sensitivities are only correct if an exact Hessian is used!")
-
+        self.sanity_check_parametric_sensitivities()
         stages_is_list = isinstance(stages, list)
         stages_ = stages if stages_is_list else [stages]
 
