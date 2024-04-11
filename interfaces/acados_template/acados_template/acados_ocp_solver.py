@@ -272,6 +272,8 @@ class AcadosOcpSolver:
         self.__acados_lib.ocp_nlp_eval_lagrange_grad_p.argtypes = [c_void_p, c_void_p, c_char_p, POINTER(c_double)]
         self.__acados_lib.ocp_nlp_out_get.argtypes = [c_void_p, c_void_p, c_void_p, c_int, c_char_p, c_void_p]
 
+        self.__acados_lib.ocp_nlp_eval_solution_sens_adj_p.argtypes = [c_void_p, c_void_p, c_void_p, c_char_p, c_int, c_void_p]
+        self.__acados_lib.ocp_nlp_eval_solution_sens_adj_p.restype = None
         self.__acados_lib.ocp_nlp_eval_param_sens.argtypes = [c_void_p, c_char_p, c_int, c_int, c_void_p]
         self.__acados_lib.ocp_nlp_eval_param_sens.restype = None
 
