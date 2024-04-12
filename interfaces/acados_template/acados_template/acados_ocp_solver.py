@@ -44,7 +44,8 @@ if os.name == 'nt':
 else:
     from ctypes import CDLL as DllLoader
 from datetime import datetime
-from typing import Union, List, Tuple
+from typing import Union, Optional, List, Tuple
+from collections.abc import Sequence
 
 import numpy as np
 import scipy.linalg
@@ -567,9 +568,8 @@ class AcadosOcpSolver:
 
 
     def eval_adjoint_solution_sensitivity(self,
-                                          seed_x: Union[np.ndarray, List[np.ndarray]],
-                                          seed_u: Union[np.ndarray, List[np.ndarray]],
-                                          stages: Union[int, List[int]] = 0,
+                                          seed_x: Sequence[Tuple[int, np.ndarray]] = None,
+                                          seed_u: Sequence[Tuple[int, np.ndarray]] = None,
                                           with_respect_to: str = "params_global",
                                           sanity_checks: bool = True,
                                           ) -> np.ndarray:
@@ -578,44 +578,55 @@ class AcadosOcpSolver:
 
             :param seed_x : np.ndarray or list of np.ndarrays - seed for the states at stage `stages`
             :param seed_u : np.ndarray or list of np.ndarrays - seed for the controls at stage `stages`
-            :param stages : int or list of int - stages corresponding to the seeds
+            :param stages_seed_x : int or list of int - stages corresponding to the seeds_x
+            :param stages_seed_u : int or list of int - stages corresponding to the seeds_u
             :param with_respect_to : string in ["params_global"]
             :param sanity_checks : bool - whether to perform sanity checks, turn off for minimal overhead, default: True
         """
 
-        stages_is_list = isinstance(stages, list)
-        stages_ = stages if stages_is_list else [stages]
 
-        N = self.acados_ocp.dims.N
+        # get n_seeds
+        if seed_x is None:
+            seed_x = []
+        if seed_u is None:
+            seed_u = []
+        if len(seed_x) == 0 and len(seed_u) == 0:
+            raise Exception("seed_x and seed_u cannot both be empty.")
+        if len(seed_x) > 0:
+            if not isinstance(seed_x[0], tuple) or len(seed_x[0]) != 2:
+                raise Exception(f"seed_x[0] should be tuple of length 2, got seed_x[0] {seed_x[0]}")
+            s = seed_x[0][1]
+            if not isinstance(s, np.ndarray):
+                raise Exception(f"seed_x[0][1] should be np.ndarray, got {type(s)}")
+            n_seeds = seed_x[0][1].shape[1]
+        if len(seed_u) > 0:
+            if not isinstance(seed_u[0], tuple) or len(seed_u[0]) != 2:
+                raise Exception(f"seed_u[0] should be tuple of length 2, got seed_u[0] {seed_u[0]}")
+            s = seed_u[0][1]
+            if not isinstance(s, np.ndarray):
+                raise Exception(f"seed_u[0][1] should be np.ndarray, got {type(s)}")
+            n_seeds = seed_u[0][1].shape[1]
 
-        if not stages_is_list:
-            seed_x = [seed_x]
-            seed_u = [seed_u]
-
-        n_seeds = seed_x[0].shape[1]
-
+        # sanity checks
         if sanity_checks:
+            N = self.acados_ocp.dims.N
             self.sanity_check_parametric_sensitivities()
             nx = self.__acados_lib.ocp_nlp_dims_get_from_attr(self.nlp_config, self.nlp_dims, self.nlp_out, 0, "x".encode('utf-8'))
             nu = self.__acados_lib.ocp_nlp_dims_get_from_attr(self.nlp_config, self.nlp_dims, self.nlp_out, 0, "u".encode('utf-8'))
 
-            for s in stages_:
-                if not isinstance(s, int) or s < 0 or s > N:
-                    raise Exception(f"AcadosOcpSolver.eval_solution_sensitivity(): stages need to be int or list[int] and in [0, N], got stages = {stages_}.")
+            # check seeds
+            for seed, name, dim in [(seed_x, "seed_x", nx), (seed_u, "seed_u", nu)]:
+                if not isinstance(seed, Sequence):
+                    raise Exception(f"{name} should be tuple, got {type(seed)}")
+                for stage, seed_stage in seed:
+                    if not isinstance(stage, int) or stage < 0 or stage > N:
+                        raise Exception(f"AcadosOcpSolver.eval_solution_sensitivity(): stage {stage} for {name} is not valid.")
+                    if not isinstance(seed_stage, np.ndarray):
+                        raise Exception(f"{name} for stage {stage} should be np.ndarray, got {type(seed_stage)}")
+                    if seed_stage.shape != (dim, n_seeds):
+                        raise Exception(f"{name} for stage {stage} should have shape (dim, n_seeds) = ({dim}, {n_seeds}), got {seed_stage.shape}.")
 
-            if len(seed_x) != len(seed_u) or len(seed_x) != len(stages_):
-                raise Exception(f"AcadosOcpSolver.eval_solution_sensitivity(): seed_x, seed_u and stages need to have the same length, got {len(seed_x)}, {len(seed_u)}, {len(stages_)}.")
-
-            for stage, (sx, su) in enumerate(zip(seed_x, seed_u)):
-                if not isinstance(sx, np.ndarray):
-                    raise Exception(f"seed_x should be a np.ndarray, got {type(sx)}")
-                if sx.shape != (nx, n_seeds):
-                    raise Exception(f"seed_x at stage {stage} should have shape (nx, n_seeds) = ({nx}, {n_seeds}), got {sx.shape}.")
-                if not isinstance(su, np.ndarray):
-                    raise Exception(f"seed_u should be a np.ndarray, got {type(su)}")
-                if su.shape != (nu, n_seeds):
-                    raise Exception(f"seed_u at stage {stage} should have shape (nu, n_seeds) = ({nu}, {n_seeds}), got {su.shape}.")
-
+            # check that np is constant over all stages
             np0 = self.__acados_lib.ocp_nlp_dims_get_from_attr(self.nlp_config, self.nlp_dims, self.nlp_out, 0, "p".encode('utf-8'))
             for stage in range(self.N+1):
                 nparam = self.__acados_lib.ocp_nlp_dims_get_from_attr(self.nlp_config, self.nlp_dims, self.nlp_out, stage, "p".encode('utf-8'))
@@ -637,9 +648,10 @@ class AcadosOcpSolver:
             # set seed:
             for i_seed in range(n_seeds):
                 self.reset_sens_out()
-                for stage, x_seed, u_seed in zip(stages_, seed_x, seed_u):
-                    self.set(stage, 'sens_x', x_seed[:, i_seed])
-                    self.set(stage, 'sens_u', u_seed[:, i_seed])
+                for (stage, sx) in seed_x:
+                    self.set(stage, 'sens_x', sx[:, i_seed])
+                for (stage, su) in seed_u:
+                    self.set(stage, 'sens_u', su[:, i_seed])
 
                 c_grad_p = cast(grad_p[i_seed, :].ctypes.data, POINTER(c_double))
 
