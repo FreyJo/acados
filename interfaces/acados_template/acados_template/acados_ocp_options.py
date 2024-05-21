@@ -109,7 +109,6 @@ class AcadosOcpOptions:
         self.__adaptive_levenberg_marquardt_lam = 5.0
         self.__adaptive_levenberg_marquardt_mu_min = 1e-16
         self.__adaptive_levenberg_marquardt_mu0 = 1e-3
-        self.__log_primal_step_norm : bool = False
 
     @property
     def qp_solver(self):
@@ -440,7 +439,7 @@ class AcadosOcpOptions:
         Default: 4
         """
         return self.__as_rti_level
-
+    
     @property
     def with_adaptive_levenberg_marquardt(self):
         """
@@ -451,7 +450,7 @@ class AcadosOcpOptions:
         type: bool
         """
         return self.__with_adaptive_levenberg_marquardt
-
+    
     @property
     def adaptive_levenberg_marquardt_lam(self):
         """
@@ -461,7 +460,7 @@ class AcadosOcpOptions:
         type: float
         """
         return self.__adaptive_levenberg_marquardt_lam
-
+    
     @property
     def adaptive_levenberg_marquardt_mu_min(self):
         """
@@ -471,7 +470,7 @@ class AcadosOcpOptions:
         type: float
         """
         return self.__adaptive_levenberg_marquardt_mu_min
-
+    
     @property
     def adaptive_levenberg_marquardt_mu0(self):
         """
@@ -481,15 +480,6 @@ class AcadosOcpOptions:
         type: float
         """
         return self.__adaptive_levenberg_marquardt_mu0
-
-    @property
-    def log_primal_step_norm(self,):
-        """
-        Flag indicating whether the max norm of the primal steps should be logged.
-        This is implemented only for solver type `SQP`.
-        Default: False
-        """
-        return self.__log_primal_step_norm
 
     @property
     def tol(self):
@@ -1039,13 +1029,6 @@ class AcadosOcpOptions:
             self.__adaptive_levenberg_marquardt_mu0 = adaptive_levenberg_marquardt_mu0
         else:
             raise Exception('Invalid adaptive_levenberg_marquardt_mu0 value. adaptive_levenberg_marquardt_mu0 must be a positive float.')
-
-    @log_primal_step_norm.setter
-    def log_primal_step_norm(self, val):
-        if isinstance(val, bool):
-            self.__log_primal_step_norm = val
-        else:
-            raise Exception('Invalid log_primal_step_norm value. Expected bool.')
 
     @as_rti_iter.setter
     def as_rti_iter(self, as_rti_iter):
