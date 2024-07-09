@@ -33,11 +33,11 @@
 /// @{
 /// \addtogroup ocp_nlp_solver
 /// @{
-/// \addtogroup ocp_nlp_sqp ocp_nlp_sqp
+/// \addtogroup ocp_nlp_ddp ocp_nlp_ddp
 /// @{
 
-#ifndef ACADOS_OCP_NLP_OCP_NLP_SQP_H_
-#define ACADOS_OCP_NLP_OCP_NLP_SQP_H_
+#ifndef ACADOS_OCP_NLP_OCP_NLP_DDP_H_
+#define ACADOS_OCP_NLP_OCP_NLP_DDP_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,27 +60,32 @@ typedef struct
     double tol_eq;       // exit tolerance on equality constraints
     double tol_ineq;     // exit tolerance on inequality constraints
     double tol_comp;     // exit tolerance on complementarity condition
+    double tol_zero_res; // exit tolerance if objective function is 0 for least-squares problem
     int max_iter;
     int ext_qp_res;      // compute external QP residuals (i.e. at SQP level) at each SQP iteration (for debugging)
-    int qp_warm_start;   // qp_warm_start in all but the first sqp iterations
+    int qp_warm_start;   // qp_warm_start in all but the first ddp iterations
     bool warm_start_first_qp; // to set qp_warm_start in first iteration
     int rti_phase;       // only phase 0 at the moment
 
-} ocp_nlp_sqp_opts;
+    // Line search
+    double linesearch_eta;
+    double linesearch_minimum_step_size;
+    double linesearch_step_size_reduction_factor;
+
+} ocp_nlp_ddp_opts;
 
 //
-acados_size_t ocp_nlp_sqp_opts_calculate_size(void *config, void *dims);
+acados_size_t ocp_nlp_ddp_opts_calculate_size(void *config, void *dims);
 //
-void *ocp_nlp_sqp_opts_assign(void *config, void *dims, void *raw_memory);
+void *ocp_nlp_ddp_opts_assign(void *config, void *dims, void *raw_memory);
 //
-void ocp_nlp_sqp_opts_initialize_default(void *config, void *dims, void *opts);
+void ocp_nlp_ddp_opts_initialize_default(void *config, void *dims, void *opts);
 //
-void ocp_nlp_sqp_opts_update(void *config, void *dims, void *opts);
+void ocp_nlp_ddp_opts_update(void *config, void *dims, void *opts);
 //
-void ocp_nlp_sqp_opts_set(void *config_, void *opts_, const char *field, void* value);
+void ocp_nlp_ddp_opts_set(void *config_, void *opts_, const char *field, void* value);
 //
-void ocp_nlp_sqp_opts_set_at_stage(void *config_, void *opts_, size_t stage, const char *field, void* value);
-
+void ocp_nlp_ddp_opts_set_at_stage(void *config_, void *opts_, size_t stage, const char *field, void* value);
 
 
 /************************************************
@@ -111,16 +116,25 @@ typedef struct
     int stat_n;
 
     int status;
-    int sqp_iter;
+    int ddp_iter;
 
-} ocp_nlp_sqp_memory;
+    // ddp specific memory
+    double *tmp_nu_times_nx;
+    struct blasfeo_dmat K_mat;
+
+    // regularization for Levenberg-Marquardt
+    double mu;
+    double mu_bar;
+    double step_norm;
+
+} ocp_nlp_ddp_memory;
 
 //
-acados_size_t ocp_nlp_sqp_memory_calculate_size(void *config, void *dims, void *opts_);
+acados_size_t ocp_nlp_ddp_memory_calculate_size(void *config, void *dims, void *opts_);
 //
-void *ocp_nlp_sqp_memory_assign(void *config, void *dims, void *opts_, void *raw_memory);
+void *ocp_nlp_ddp_memory_assign(void *config, void *dims, void *opts_, void *raw_memory);
 //
-void ocp_nlp_sqp_memory_reset_qp_solver(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
+void ocp_nlp_ddp_memory_reset_qp_solver(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
     void *opts_, void *mem_, void *work_);
 
 
@@ -136,10 +150,10 @@ typedef struct
     ocp_qp_res *qp_res;
     ocp_qp_res_ws *qp_res_ws;
 
-} ocp_nlp_sqp_workspace;
+} ocp_nlp_ddp_workspace;
 
 //
-acados_size_t ocp_nlp_sqp_workspace_calculate_size(void *config, void *dims, void *opts_);
+acados_size_t ocp_nlp_ddp_workspace_calculate_size(void *config, void *dims, void *opts_);
 
 
 
@@ -148,24 +162,30 @@ acados_size_t ocp_nlp_sqp_workspace_calculate_size(void *config, void *dims, voi
  ************************************************/
 
 //
-int ocp_nlp_sqp(void *config, void *dims, void *nlp_in, void *nlp_out,
+int ocp_nlp_ddp(void *config, void *dims, void *nlp_in, void *nlp_out,
                 void *args, void *mem, void *work_);
 //
-void ocp_nlp_sqp_config_initialize_default(void *config_);
+void ocp_nlp_ddp_config_initialize_default(void *config_);
 //
-int ocp_nlp_sqp_precompute(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
+int ocp_nlp_ddp_precompute(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
                 void *opts_, void *mem_, void *work_);
 //
-void ocp_nlp_sqp_eval_lagr_grad_p(void *config_, void *dims_, void *nlp_in_, void *opts_, void *mem_, void *work_,
-                            const char *field, void *grad_p);
+void ocp_nlp_ddp_eval_lagr_grad_p(void *config_, void *dims_, void *nlp_in_, void *opts_, void *mem_, void *work_,
+                            const char *field, void *lagr_grad_wrt_params);
 //
-void ocp_nlp_sqp_get(void *config_, void *dims_, void *mem_, const char *field, void *return_value_);
+void ocp_nlp_ddp_get(void *config_, void *dims_, void *mem_, const char *field, void *return_value_);
+
+int ocp_nlp_ddp_backtracking_line_search(void *config, void *dims, void *nlp_in, void *nlp_out,
+                void *args, void *mem, void *work_);
+
+double ocp_nlp_ddp_compute_qp_objective_value(ocp_nlp_dims *dims, ocp_qp_in *qp_in, ocp_qp_out *qp_out,
+                ocp_nlp_workspace *nlp_work, ocp_nlp_memory *nlp_mem);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif  // ACADOS_OCP_NLP_OCP_NLP_SQP_H_
+#endif  // ACADOS_OCP_NLP_OCP_NLP_DDP_H_
 /// @}
 /// @}
 /// @}
