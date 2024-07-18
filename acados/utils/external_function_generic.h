@@ -177,7 +177,7 @@ void external_function_casadi_wrapper(void *self, ext_fun_arg_t *type_in, void *
                                       ext_fun_arg_t *type_out, void **out);
 
 /************************************************
- * casadi external parametric function
+ * external_function_param_casadi
  ************************************************/
 
 typedef struct
@@ -230,9 +230,9 @@ void external_function_param_casadi_set_n_in(external_function_param_casadi *fun
 //
 void external_function_param_casadi_set_n_out(external_function_param_casadi *fun, void *value);
 //
-acados_size_t external_function_param_casadi_calculate_size(external_function_param_casadi *fun, int np);
+acados_size_t external_function_param_casadi_calculate_size(external_function_param_casadi *fun, int np, bool external_param);
 //
-void external_function_param_casadi_assign(external_function_param_casadi *fun, void *mem);
+void external_function_param_casadi_assign(external_function_param_casadi *fun, void *mem, bool external_param);
 //
 void external_function_param_casadi_wrapper(void *self, ext_fun_arg_t *type_in, void **in,
                                             ext_fun_arg_t *type_out, void **out);

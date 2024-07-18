@@ -404,7 +404,7 @@ void {{ model.name }}_acados_create_3_create_and_set_functions({{ model.name }}_
         capsule->__CAPSULE_FNC__.casadi_sparsity_in = & __MODEL_BASE_FNC__ ## _sparsity_in; \
         capsule->__CAPSULE_FNC__.casadi_sparsity_out = & __MODEL_BASE_FNC__ ## _sparsity_out; \
         capsule->__CAPSULE_FNC__.casadi_work = & __MODEL_BASE_FNC__ ## _work; \
-        external_function_param_casadi_create(&capsule->__CAPSULE_FNC__ , {{ dims.np }}); \
+        external_function_param_casadi_create(&capsule->__CAPSULE_FNC__ , {{ dims.np }}, true); \
     } while(false)
 
 {%- if constraints.constr_type_0 == "BGH" and dims.nh_0 > 0 %}

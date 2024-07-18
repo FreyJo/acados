@@ -425,7 +425,7 @@ void {{ name }}_acados_create_3_create_and_set_functions({{ name }}_solver_capsu
         capsule->__CAPSULE_FNC__.casadi_sparsity_in = & __MODEL_BASE_FNC__ ## _sparsity_in; \
         capsule->__CAPSULE_FNC__.casadi_sparsity_out = & __MODEL_BASE_FNC__ ## _sparsity_out; \
         capsule->__CAPSULE_FNC__.casadi_work = & __MODEL_BASE_FNC__ ## _work; \
-        external_function_param_casadi_create(&capsule->__CAPSULE_FNC__, __NP__); \
+        external_function_param_casadi_create(&capsule->__CAPSULE_FNC__, __NP__, true); \
     } while(false)
 
 

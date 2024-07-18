@@ -1075,7 +1075,7 @@ static void external_function_param_casadi_set_param_sparse(void *self, int n_up
 }
 
 
-acados_size_t external_function_param_casadi_calculate_size(external_function_param_casadi *fun, int np)
+acados_size_t external_function_param_casadi_calculate_size(external_function_param_casadi *fun, int np, bool external_param)
 {
     // loop index
     int ii;
@@ -1132,7 +1132,7 @@ acados_size_t external_function_param_casadi_calculate_size(external_function_pa
 
 
 
-void external_function_param_casadi_assign(external_function_param_casadi *fun, void *raw_memory)
+void external_function_param_casadi_assign(external_function_param_casadi *fun, void *raw_memory, bool external_param)
 {
     // loop index
     int ii;

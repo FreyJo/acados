@@ -145,19 +145,19 @@ void external_function_casadi_free_array(int size, external_function_casadi *fun
  * casadi external parametric function
  ************************************************/
 
-void external_function_param_casadi_create(external_function_param_casadi *fun, int np)
+void external_function_param_casadi_create(external_function_param_casadi *fun, int np, bool external_param)
 {
-    acados_size_t fun_size = external_function_param_casadi_calculate_size(fun, np);
+    acados_size_t fun_size = external_function_param_casadi_calculate_size(fun, np, external_param);
     void *fun_mem = acados_malloc(1, fun_size);
     assert(fun_mem != 0);
-    external_function_param_casadi_assign(fun, fun_mem);
+    external_function_param_casadi_assign(fun, fun_mem, external_param);
 
     return;
 }
 
 
 
-void external_function_param_casadi_create_array(int size, external_function_param_casadi *funs, int np)
+void external_function_param_casadi_create_array(int size, external_function_param_casadi *funs, int np, bool external_param)
 {
     // loop index
     int ii;
@@ -173,7 +173,7 @@ void external_function_param_casadi_create_array(int size, external_function_par
     // compute sizes
     for (ii = 0; ii < size; ii++)
     {
-        funs_size[ii] = external_function_param_casadi_calculate_size(funs + ii, np);
+        funs_size[ii] = external_function_param_casadi_calculate_size(funs + ii, np, external_param);
         funs_size_tot += funs_size[ii];
     }
 
@@ -185,7 +185,7 @@ void external_function_param_casadi_create_array(int size, external_function_par
     c_ptr = funs_mem;
     for (ii = 0; ii < size; ii++)
     {
-        external_function_param_casadi_assign(funs + ii, c_ptr);
+        external_function_param_casadi_assign(funs + ii, c_ptr, external_param);
         c_ptr += funs_size[ii];
     }
 
