@@ -560,7 +560,7 @@ class AcadosOcpOptions:
         NLP solver tolerance for minimal step norm. Solver terminates if
         step norm is below given value. If value is 0.0, then the solver does not
         test for the small step.
-         
+
         Type: float
         Default: None
 
