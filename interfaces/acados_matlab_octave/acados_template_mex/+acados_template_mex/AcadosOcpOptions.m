@@ -114,7 +114,7 @@ classdef AcadosOcpOptions < handle
             obj.nlp_solver_tol_eq = 1e-6;
             obj.nlp_solver_tol_ineq = 1e-6;
             obj.nlp_solver_tol_comp = 1e-6;
-            obj.nlp_solver_tol_min_step_norm = 1e-12;
+            obj.nlp_solver_tol_min_step_norm = 0.0; % TODO: make None and set based on other options as in Python.
             obj.nlp_solver_max_iter = 50;
             obj.nlp_solver_ext_qp_res = 0;
             obj.nlp_solver_warm_start_first_qp = false;
@@ -149,11 +149,11 @@ classdef AcadosOcpOptions < handle
             obj.fixed_hess = 0;
             obj.ext_cost_num_hess = 0;
             obj.alpha_min = 0.05;
-            obj.alpha_reduction = 0.7;
+            obj.alpha_reduction = 0.7; % TODO: make None and set based on other options as in Python.
             obj.line_search_use_sufficient_descent = 0;
             obj.globalization_use_SOC = 0;
             obj.full_step_dual = 0;
-            obj.eps_sufficient_descent = 1e-4;
+            obj.eps_sufficient_descent = 1e-4;  % TODO: make None and set based on other options as in Python.
             obj.hpipm_mode = 'BALANCE';
             obj.with_solution_sens_wrt_params = 0;
             obj.with_value_sens_wrt_params = 0;
