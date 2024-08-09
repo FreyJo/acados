@@ -486,8 +486,22 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
     {
         for (int ii = 0; ii < nb; ii++)
         {
-            d_lb[idxb[ii]] = d_lb0[ii];
-            d_ub[idxb[ii]] = d_ub0[ii];
+            if (BLASFEO_DVECEL(qp_in->d_mask, ii) == 0.0)
+            {
+                d_lb[idxb[ii]] = -QPOASES_INFTY;
+            }
+            else
+            {
+                d_lb[idxb[ii]] = d_lb0[ii];
+            }
+            if (BLASFEO_DVECEL(qp_in->d_mask, ii+ng+nb) == 0.0)
+            {
+                d_ub[idxb[ii]] = QPOASES_INFTY;
+            }
+            else
+            {
+                d_ub[idxb[ii]] = d_ub0[ii];
+            }
         }
     }
 
