@@ -108,6 +108,7 @@ def main(constraint_variant='one_sided',
 
     # set options
     ocp.solver_options.qp_solver = qp_solver
+    ocp.solver_options.qp_solver_iter_max = 500
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
     ocp.solver_options.integrator_type = 'ERK'
     ocp.solver_options.nlp_solver_type = 'SQP'
@@ -155,10 +156,10 @@ def main(constraint_variant='one_sided',
     ocp_solver = None
 
 if __name__ == "__main__":
-    for qp_solver in ['FULL_CONDENSING_HPIPM', 'PARTIAL_CONDENSING_HPIPM', 'FULL_CONDENSING_DAQP']:
-        for constraint_variant in ['one_sided', 'one_sided_wrong_infty']:
-            print(80*'-')
-            print(f'constraint_variant = {constraint_variant}, qp_solver = {qp_solver}')
-            main(constraint_variant=constraint_variant, qp_solver=qp_solver)
+    # for qp_solver in ['FULL_CONDENSING_HPIPM', 'PARTIAL_CONDENSING_HPIPM', 'FULL_CONDENSING_DAQP']:
+    #     for constraint_variant in ['one_sided', 'one_sided_wrong_infty']:
+    #         print(80*'-')
+    #         print(f'constraint_variant = {constraint_variant}, qp_solver = {qp_solver}')
+    #         main(constraint_variant=constraint_variant, qp_solver=qp_solver)
 
-    # main(constraint_variant='one_sided', qp_solver='PARTIAL_CONDENSING_HPIPM')
+    main(constraint_variant='one_sided', qp_solver='FULL_CONDENSING_QPOASES')
