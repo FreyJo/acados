@@ -400,6 +400,7 @@ void {{ model.name }}_acados_create_setup_functions({{ model.name }}_solver_caps
     *  external functions
     ************************************************/
 
+    // TODO: add argument: max_work_size
 #define MAP_CASADI_FNC(__CAPSULE_FNC__, __MODEL_BASE_FNC__) do{ \
         capsule->__CAPSULE_FNC__.casadi_fun = & __MODEL_BASE_FNC__ ;\
         capsule->__CAPSULE_FNC__.casadi_n_in = & __MODEL_BASE_FNC__ ## _n_in; \
@@ -408,7 +409,9 @@ void {{ model.name }}_acados_create_setup_functions({{ model.name }}_solver_caps
         capsule->__CAPSULE_FNC__.casadi_sparsity_out = & __MODEL_BASE_FNC__ ## _sparsity_out; \
         capsule->__CAPSULE_FNC__.casadi_work = & __MODEL_BASE_FNC__ ## _work; \
         external_function_external_param_casadi_create(&capsule->__CAPSULE_FNC__ ); \
+    // TODO: call max_work_size = max(max_work_size, fun->get_workspace_size)
     } while(false)
+    // size_t max_work_size = 0;
 
 {% if dims.np_global > 0 %}
     capsule->p_global_precompute_fun.casadi_fun = &{{ name }}_p_global_precompute_fun;

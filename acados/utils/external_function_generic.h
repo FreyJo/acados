@@ -250,6 +250,8 @@ typedef struct
     void (*evaluate)(void *, ext_fun_arg_t *, void **, ext_fun_arg_t *, void **);
     // public members for interfaces
     void (*set_param_pointer)(void *, double *);
+    size_t (*get_float_workspace_size)();
+    void (*set_float_workspace)(void *, void *);
     // private members
     void *ptr_ext_mem;  // pointer to external memory
     int (*casadi_fun)(const double **, double **, int *, double *, void *);
