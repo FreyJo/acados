@@ -87,9 +87,6 @@ EXAMPLES += mass_spring_nmpc_example
 ##EXAMPLES += mass_spring_fcond_split
 ##EXAMPLES += mass_spring_offline_fcond_qpoases_split
 EXAMPLES += nonlinear_chain_ocp_nlp
-# EXAMPLES += sim_crane_no_interface
-##EXAMPLES += mass_spring_example_no_interface
-#EXAMPLES += nonlinear_chain_ocp_nlp_no_interface
 EXAMPLES += wind_turbine_nmpc
 #EXAMPLES += engine_example
 EXAMPLES += regularization
@@ -113,9 +110,6 @@ RUN_EXAMPLES += run_mass_spring_nmpc_example
 ##RUN_EXAMPLES += run_mass_spring_fcond_split
 #RUN_EXAMPLES += run_mass_spring_offline_fcond_qpoases_split
 RUN_EXAMPLES += run_nonlinear_chain_ocp_nlp
-# RUN_EXAMPLES += run_sim_crane_no_interface
-##RUN_EXAMPLES += run_mass_spring_example_no_interface
-#RUN_EXAMPLES += run_nonlinear_chain_ocp_nlp_no_interface
 RUN_EXAMPLES += run_wind_turbine_nmpc
 #RUN_EXAMPLES += run_engine_example
 RUN_EXAMPLES += run_regularization
@@ -143,15 +137,6 @@ CRANE_OBJS += crane_model/vde_hess_model.o
 CRANE_OBJS += crane_model/impl_ode_fun.o
 CRANE_OBJS += crane_model/impl_ode_fun_jac_x_xdot.o
 CRANE_OBJS += crane_model/impl_ode_jac_x_xdot_u.o
-
-#sim_crane_no_interface: $(CRANE_OBJS) sim_crane_no_interface.o
-#	$(CCC) -o sim_crane_no_interface.out sim_crane_no_interface.o  $(CRANE_OBJS) $(LDFLAGS) $(LIBS)
-#	@echo
-#	@echo " Example sim_crane_no_interface build complete."
-#	@echo
-
-#run_sim_crane_no_interface:
-#	./sim_crane_no_interface.out
 
 #sim_erk_crane: $(CRANE_OBJS) sim_erk_crane.o
 #	$(CCC) -o sim_erk_crane.out sim_erk_crane.o  $(CRANE_OBJS) $(LDFLAGS) $(LIBS)
@@ -294,78 +279,6 @@ run_sim_pendulum_dae:
 
 
 
-#################################################
-# (linear) mass spring model
-#################################################
-
-MASS_SPRING_OBJS =
-MASS_SPRING_OBJS += no_interface_examples/mass_spring_model/mass_spring_qp.o
-
-mass_spring_example_no_interface: $(MASS_SPRING_OBJS) no_interface_examples/mass_spring_example_no_interface.o
-	$(CCC) -o mass_spring_example_no_interface.out $(MASS_SPRING_OBJS) no_interface_examples/mass_spring_example_no_interface.o $(LDFLAGS) $(LIBS)
-	@echo
-	@echo " Example mass_spring_example_no_interface build complete."
-	@echo
-
-run_mass_spring_example_no_interface:
-	./mass_spring_example_no_interface.out
-
-
-
-mass_spring_example: $(MASS_SPRING_OBJS) no_interface_examples/mass_spring_example.o
-	$(CCC) -o mass_spring_example.out $(MASS_SPRING_OBJS) no_interface_examples/mass_spring_example.o $(LDFLAGS) $(LIBS)
-	@echo
-	@echo " Example mass_spring_example build complete."
-	@echo
-
-run_mass_spring_example:
-	./mass_spring_example.out
-
-
-
-mass_spring_nmpc_example: $(MASS_SPRING_OBJS) no_interface_examples/mass_spring_nmpc_example.o
-	$(CCC) -o mass_spring_nmpc_example.out $(MASS_SPRING_OBJS) no_interface_examples/mass_spring_nmpc_example.o $(LDFLAGS) $(LIBS)
-	@echo
-	@echo " Example mass_spring_nmpc_example build complete."
-	@echo
-
-run_mass_spring_nmpc_example:
-	./mass_spring_nmpc_example.out
-
-
-
-mass_spring_pcond_split: $(MASS_SPRING_OBJS) no_interface_examples/mass_spring_pcond_split.o
-	$(CCC) -o mass_spring_pcond_split.out $(MASS_SPRING_OBJS) no_interface_examples/mass_spring_pcond_split.o $(LDFLAGS) $(LIBS)
-	@echo
-	@echo " Example mass_spring_pcond_split build complete."
-	@echo
-
-run_mass_spring_pcond_split:
-	./mass_spring_pcond_split.out
-
-
-
-mass_spring_fcond_split: $(MASS_SPRING_OBJS) no_interface_examples/mass_spring_fcond_split.o
-	$(CCC) -o mass_spring_fcond_split.out $(MASS_SPRING_OBJS) no_interface_examples/mass_spring_fcond_split.o $(LDFLAGS) $(LIBS)
-	@echo
-	@echo " Example mass_spring_fcond_split build complete."
-	@echo
-
-run_mass_spring_fcond_split:
-	./mass_spring_fcond_split.out
-
-
-
-mass_spring_offline_fcond_qpoases_split: $(MASS_SPRING_OBJS) no_interface_examples/mass_spring_offline_fcond_qpoases_split.o
-	$(CCC) -o mass_spring_offline_fcond_qpoases_split.out $(MASS_SPRING_OBJS) no_interface_examples/mass_spring_offline_fcond_qpoases_split.o $(LDFLAGS) $(LIBS)
-	@echo
-	@echo " Example mass_spring_offline_fcond_qpoases_split build complete."
-	@echo
-
-run_mass_spring_offline_fcond_qpoases_split:
-	./mass_spring_offline_fcond_qpoases_split.out
-
-
 
 #################################################
 # (nonlinear) chain model
@@ -442,17 +355,6 @@ CHAIN_OBJS += implicit_chain_model/impl_ode_fun_jac_x_xdot_u_chain_nm6.o
 CHAIN_OBJS += implicit_chain_model/impl_ode_jac_x_xdot_u_chain_nm6.o
 
 
-nonlinear_chain_ocp_nlp_no_interface: $(CHAIN_OBJS) no_interface_examples/nonlinear_chain_ocp_nlp_no_interface.o
-	$(CCC) -o nonlinear_chain_ocp_nlp_no_interface.out $(CHAIN_OBJS) no_interface_examples/nonlinear_chain_ocp_nlp_no_interface.o $(LDFLAGS) $(LIBS)
-	@echo
-	@echo " Example nonlinear_chain_ocp_nlp_no_interface build complete."
-	@echo
-
-run_nonlinear_chain_ocp_nlp_no_interface:
-	./nonlinear_chain_ocp_nlp_no_interface.out
-
-
-
 nonlinear_chain_ocp_nlp: $(CHAIN_OBJS) nonlinear_chain_ocp_nlp.o
 	$(CCC) -o nonlinear_chain_ocp_nlp.out $(CHAIN_OBJS) nonlinear_chain_ocp_nlp.o $(LDFLAGS) $(LIBS)
 	@echo
@@ -527,7 +429,7 @@ run_engine_example:
 # regularization
 #################################################
 
-REGULARIZATION = 
+REGULARIZATION =
 
 regularization: $(REGULARIZATION) regularization.o
 	$(CCC) -o regularization.out $(REGULARIZATION) regularization.o $(LDFLAGS) $(LIBS)
@@ -569,8 +471,6 @@ run_simple_dae_example:
 clean:
 	rm -f *.o
 	rm -f *.out
-	rm -f no_interface_examples/*.o
-	rm -f no_interface_examples/*.out
 
 clean_models:
 	rm -f chain_model/*.o

@@ -238,30 +238,10 @@ add_executable(simple_dae_example simple_dae_example.c
     simple_dae_model/simple_dae_impl_ode_fun_jac_x_xdot_z.c
     simple_dae_model/simple_dae_constr_h_fun_jac_ut_xt.c
     simple_dae_model/simple_dae_constr_h_fun_jac_ut_xt_hess.c)
-    
+
 target_link_libraries(simple_dae_example acados)
 add_test(simple_dae_example simple_dae_example)
 
-# -------------------- mass_spring
-add_executable(mass_spring_example no_interface_examples/mass_spring_example.c no_interface_examples/mass_spring_model/mass_spring_qp.c)
-target_link_libraries(mass_spring_example acados)
-add_test(mass_spring_example mass_spring_example)
-
-#add_executable(mass_spring_fcond_split no_interface_examples/mass_spring_fcond_split.c no_interface_examples/mass_spring_model/mass_spring_qp.c)
-#target_link_libraries(mass_spring_fcond_split acados)
-#add_test(mass_spring_fcond_split mass_spring_example)
-
-#add_executable(mass_spring_pcond_split no_interface_examples/mass_spring_pcond_split.c no_interface_examples/mass_spring_model/mass_spring_qp.c)
-#target_link_libraries(mass_spring_pcond_split acados)
-#add_test(mass_spring_pcond_split mass_spring_example)
-
-#add_executable(mass_spring_offline_fcond_qpoases_split no_interface_examples/mass_spring_offline_fcond_qpoases_split.c no_interface_examples/mass_spring_model/mass_spring_qp.c)
-#target_link_libraries(mass_spring_offline_fcond_qpoases_split acados)
-#add_test(mass_spring_offline_fcond_qpoases_split mass_spring_example)
-
-add_executable(mass_spring_nmpc_example no_interface_examples/mass_spring_nmpc_example.c no_interface_examples/mass_spring_model/mass_spring_qp.c)
-target_link_libraries(mass_spring_nmpc_example acados)
-add_test(mass_spring_nmpc_example mass_spring_example)
 
 add_executable(sim_crane_example sim_crane_example.c ${CRANE_MODEL_SRC})
 target_link_libraries(sim_crane_example acados)
