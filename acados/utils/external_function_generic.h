@@ -77,6 +77,7 @@ struct blasfeo_dvec_args
 typedef struct
 {
     bool external_workspace;
+    bool with_global_data;
 } external_function_opts;
 
 
@@ -231,6 +232,7 @@ typedef struct
     int int_work_size;        // number of ints for worksapce
     int float_work_size;         // number of doubles for workspace
     int np;             // number of parameters
+    int idx_in_p;
     external_function_opts opts;
 } external_function_param_casadi;
 
@@ -289,6 +291,8 @@ typedef struct
     int float_work_size;         // number of doubles for workspace
 
     bool param_mem_is_set;  // indicates if param memory is set;
+    int idx_in_p;
+
     external_function_opts opts;
 } external_function_external_param_casadi;
 
