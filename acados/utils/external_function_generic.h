@@ -98,6 +98,8 @@ size_t external_function_get_workspace_requirement_if_defined(external_function_
 
 void external_function_set_fun_workspace_if_defined(external_function_generic *fun, void *work_);
 
+void external_function_opts_set_to_default(external_function_opts *opts);
+
 
 
 

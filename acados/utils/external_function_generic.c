@@ -41,6 +41,13 @@
 void external_function_opts_copy(external_function_opts *from, external_function_opts* to)
 {
     to->external_workspace = from->external_workspace;
+    to->with_global_data = from->with_global_data;
+}
+
+void external_function_opts_set_to_default(external_function_opts *opts)
+{
+    opts->external_workspace = false;
+    opts->with_global_data = false;
 }
 
 size_t external_function_get_workspace_requirement_if_defined(external_function_generic *fun)
