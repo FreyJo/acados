@@ -365,7 +365,12 @@ int ocp_qp_hpipm(void *config_, void *qp_in_, void *qp_out_, void *opts_, void *
     // }
 
     /* print HPIPM opts */
-    // d_ocp_qp_ipm_arg_print(qp_in->dim, opts->hpipm_opts);
+    d_ocp_qp_ipm_arg_print(qp_in->dim, opts->hpipm_opts);
+    printf("qp_in->m\n");
+    for (int ii = 0; ii <= N; ii++)
+    {
+        blasfeo_print_tran_dvec(2*(qp_in->dim->nb[ii]), qp_in->m+ii, 0);
+    }
 
     // check exit conditions
     int acados_status = mem->status;

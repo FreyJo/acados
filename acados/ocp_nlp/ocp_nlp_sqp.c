@@ -761,7 +761,8 @@ int ocp_nlp_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
             printf("\n\nSQP: ocp_qp_out at iteration %d\n", sqp_iter);
             print_ocp_qp_out(qp_out);
         }
-
+        printf("\n\nSQP: ocp_qp_out at iteration %d\n", sqp_iter);
+        print_ocp_qp_out(qp_out);
 #if defined(ACADOS_DEBUG_SQP_PRINT_QPS_TO_FILE)
         ocp_nlp_dump_qp_out_to_file(qp_out, sqp_iter, 0);
 #endif

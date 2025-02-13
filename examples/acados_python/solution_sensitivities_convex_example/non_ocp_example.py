@@ -119,7 +119,7 @@ def main():
     labels_list.append(r"$\tau = 10^{-6}$")
     sol_list.append(solution)
 
-    tau_vals = [1e-4, 1e-3, 1e-2]
+    tau_vals = [1e-2]
     for tau in tau_vals:
         sol_tau, sens_x_tau = solve_and_compute_sens(p_test, tau)
         sens_list.append(sens_x_tau)

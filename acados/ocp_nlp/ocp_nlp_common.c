@@ -3149,6 +3149,8 @@ void ocp_nlp_res_compute(ocp_nlp_dims *dims, ocp_nlp_opts *opts, ocp_nlp_in *in,
         }
     }
 
+    printf("ux0\n");
+    blasfeo_print_exp_tran_dvec(nv[0], out->ux+0, 0);
     // res_comp = inf_norm(lam_i * ineq_fun_i - tau_min * ones)
     res->inf_norm_res_comp = 0.0;
     if (opts->tau_min != 0)
@@ -3163,17 +3165,17 @@ void ocp_nlp_res_compute(ocp_nlp_dims *dims, ocp_nlp_opts *opts, ocp_nlp_in *in,
         {
             if (ni[i] > 0)
             {
-            // printf("res_comp %d\n", i);
-            // printf("ineq_fun\n");
-            // blasfeo_print_exp_tran_dvec(2*ni[i], mem->ineq_fun+i, 0);
-            // printf("lam\n");
-            // blasfeo_print_exp_tran_dvec(2*ni[i], out->lam+i, 0);
+            printf("res_comp %d\n", i);
+            printf("ineq_fun\n");
+            blasfeo_print_exp_tran_dvec(2*ni[i], mem->ineq_fun+i, 0);
+            printf("lam\n");
+            blasfeo_print_exp_tran_dvec(2*ni[i], out->lam+i, 0);
             blasfeo_dvecmul(2 * ni[i], out->lam + i, 0, mem->ineq_fun+i, 0, res->res_comp + i, 0);
-            // printf("ineq_fun * lam\n");
-            // blasfeo_print_exp_tran_dvec(2*ni[i], res->res_comp+i, 0);
+            printf("ineq_fun * lam\n");
+            blasfeo_print_exp_tran_dvec(2*ni[i], res->res_comp+i, 0);
             blasfeo_dvecad(2 * ni[i], 1.0, &work->tmp_2ni, 0, res->res_comp + i, 0);
-            // printf("res_comp: + tau_min = %e\n", opts->tau_min);
-            // blasfeo_print_exp_tran_dvec(2*ni[i], res->res_comp+i, 0);
+            printf("res_comp: + tau_min = %e\n", opts->tau_min);
+            blasfeo_print_exp_tran_dvec(2*ni[i], res->res_comp+i, 0);
             blasfeo_dvecnrm_inf(2 * ni[i], res->res_comp + i, 0, &tmp_res);
             blasfeo_dvecse(1, tmp_res, &res->tmp, i);
             }
