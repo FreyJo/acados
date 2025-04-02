@@ -66,7 +66,7 @@ class AcadosOcpBatchSolver():
             print("Warning: Using AcadosOcpBatchSolver, but ocp.solver_options.with_batch_functionality is False.")
             print("Attempting to compile with openmp nonetheless.")
             ocp.solver_options.with_batch_functionality = True
-        
+
         self.__num_threads_in_batch_solve = num_threads_in_batch_solve
 
         self.__N_batch = N_batch
@@ -111,7 +111,8 @@ class AcadosOcpBatchSolver():
 
         msg += "i.e. with the flags -DACADOS_WITH_OPENMP=ON -DACADOS_NUM_THREADS=1.\n" + \
                    "See https://github.com/acados/acados/pull/1089 for more details."
-        print(msg)
+        if not self.ocp_solvers[0].acados_lib_uses_omp or verbose:
+            print(msg)
 
 
     @property
@@ -124,12 +125,12 @@ class AcadosOcpBatchSolver():
     def N_batch(self):
         """Batch size."""
         return self.__N_batch
-    
+
     @property
     def num_threads_in_batch_solve(self):
         """Number of threads used for parallelizing the batch methods."""
         return self.__num_threads_in_batch_solve
-    
+
     @num_threads_in_batch_solve.setter
     def num_threads_in_batch_solve(self, num_threads_in_batch_solve):
         self.__num_threads_in_batch_solve = num_threads_in_batch_solve
