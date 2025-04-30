@@ -980,7 +980,7 @@ int main()
 
             // evaluate parametric sensitivity of solution
 //            ocp_nlp_out_print(dims, nlp_out);
-            ocp_nlp_eval_param_sens(solver, "ex", 0, 0, sens_nlp_out);
+            // ocp_nlp_eval_param_sens(solver, "ex", 0, 0, sens_nlp_out);
 //            ocp_nlp_out_print(dims, nlp_out);
 
             // update initial condition
