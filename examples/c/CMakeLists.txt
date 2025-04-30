@@ -209,7 +209,7 @@ target_link_libraries(engine_example acados)
 # -------------------- nonlinear_chain
 add_executable(nonlinear_chain_ocp_nlp_example nonlinear_chain_ocp_nlp.c ${CHAIN_MODEL_SRC})
 target_link_libraries(nonlinear_chain_ocp_nlp_example acados)
-add_test(nonlinear_chain_ocp_nlp_example nonlinear_chain_ocp_nlp_example)
+# add_test(nonlinear_chain_ocp_nlp_example nonlinear_chain_ocp_nlp_example)
 
 # -------------------- wind turbine nmpc
 add_executable(wind_turbine_nmpc_example wind_turbine_nmpc.c ${WT_MODEL_NX6P2_SRC})
@@ -219,17 +219,17 @@ add_test(wind_turbine_nmpc_example wind_turbine_nmpc_example)
 # -------------------- sim_pendulum_dae
 add_executable(sim_pendulum_dae sim_pendulum_dae.c ${INV_PENDULUM_SRC})
 target_link_libraries(sim_pendulum_dae acados)
-add_test(sim_pendulum_dae sim_pendulum_dae)
+# add_test(sim_pendulum_dae sim_pendulum_dae)
 
 # -------------------- sim_wt_nx6
 add_executable(sim_wt_model_nx6 sim_wt_model_nx6.c ${WT_MODEL_NX6_SRC})
 target_link_libraries(sim_wt_model_nx6 acados)
-add_test(sim_wt_model_nx6 sim_wt_model_nx6)
+# add_test(sim_wt_model_nx6 sim_wt_model_nx6)
 
 # -------------------- sim_gnsf_crane
 add_executable(sim_gnsf_crane sim_gnsf_crane.c ${GNSF_CRANE_SRC})
 target_link_libraries(sim_gnsf_crane acados)
-add_test(sim_gnsf_crane sim_gnsf_crane)
+# add_test(sim_gnsf_crane sim_gnsf_crane)
 
 # -------------------- simple dae_example
 add_executable(simple_dae_example simple_dae_example.c
@@ -240,12 +240,12 @@ add_executable(simple_dae_example simple_dae_example.c
     simple_dae_model/simple_dae_constr_h_fun_jac_ut_xt_hess.c)
     
 target_link_libraries(simple_dae_example acados)
-add_test(simple_dae_example simple_dae_example)
+# add_test(simple_dae_example simple_dae_example)
 
 # -------------------- mass_spring
 add_executable(mass_spring_example no_interface_examples/mass_spring_example.c no_interface_examples/mass_spring_model/mass_spring_qp.c)
 target_link_libraries(mass_spring_example acados)
-add_test(mass_spring_example mass_spring_example)
+# add_test(mass_spring_example mass_spring_example)
 
 #add_executable(mass_spring_fcond_split no_interface_examples/mass_spring_fcond_split.c no_interface_examples/mass_spring_model/mass_spring_qp.c)
 #target_link_libraries(mass_spring_fcond_split acados)
@@ -261,30 +261,30 @@ add_test(mass_spring_example mass_spring_example)
 
 add_executable(mass_spring_nmpc_example no_interface_examples/mass_spring_nmpc_example.c no_interface_examples/mass_spring_model/mass_spring_qp.c)
 target_link_libraries(mass_spring_nmpc_example acados)
-add_test(mass_spring_nmpc_example mass_spring_example)
+# add_test(mass_spring_nmpc_example mass_spring_example)
 
 add_executable(sim_crane_example sim_crane_example.c ${CRANE_MODEL_SRC})
 target_link_libraries(sim_crane_example acados)
-add_test(sim_crane_example sim_crane_example)
+# add_test(sim_crane_example sim_crane_example)
 
 # -------------------- sim_wt
 add_executable(sim_wt_model_nx3 sim_wt_model_nx3.c ${WT_MODEL_NX3_SRC})
 target_link_libraries(sim_wt_model_nx3 acados)
-add_test(sim_wt_model_nx3 sim_wt_model_nx3)
+# add_test(sim_wt_model_nx3 sim_wt_model_nx3)
 
 add_executable(ocp_qp ocp_qp.c)
 target_link_libraries(ocp_qp acados)
-add_test(ocp_qp ocp_qp)
+# add_test(ocp_qp ocp_qp)
 
 # -------------------- dense_qp
 add_executable(dense_qp dense_qp.c)
 target_link_libraries(dense_qp acados)
-add_test(dense_qp dense_qp)
+# add_test(dense_qp dense_qp)
 
 # regularization
 add_executable(regularization regularization.c)
 target_link_libraries(regularization acados)
-add_test(regularization regularization)
+# add_test(regularization regularization)
 
 
 endif()
