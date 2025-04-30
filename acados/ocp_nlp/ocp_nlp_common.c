@@ -3659,6 +3659,7 @@ void ocp_nlp_common_eval_param_sens(ocp_nlp_config *config, ocp_nlp_dims *dims,
     int *nb = dims->nb;
     int *ng = dims->ng;
     int *ni_nl = dims->ni_nl;
+    printf("in ocp_nlp_common_eval_param_sens\n");
 
     struct blasfeo_dmat *jac_lag_stat_p_global = mem->jac_lag_stat_p_global;
     struct blasfeo_dmat *jac_ineq_p_global = mem->jac_ineq_p_global;
@@ -3666,8 +3667,10 @@ void ocp_nlp_common_eval_param_sens(ocp_nlp_config *config, ocp_nlp_dims *dims,
 
     ocp_qp_out *tmp_qp_out = work->tmp_qp_out;
     ocp_qp_seed *qp_seed = work->qp_seed;
+    printf("in ocp_nlp_common_eval_param_sens: set seed to zero\n");
     d_ocp_qp_seed_set_zero(qp_seed);
 
+    printf("in ocp_nlp_common_eval_param_sens: after set seed to zero\n");
     if ((!strcmp("ex", field)) && (stage==0))
     {
         int tmp_nbu;
@@ -3699,9 +3702,12 @@ void ocp_nlp_common_eval_param_sens(ocp_nlp_config *config, ocp_nlp_dims *dims,
 
     // d_ocp_qp_print(tmp_qp_in->dim, tmp_qp_in);
     // d_ocp_qp_seed_print(qp_seed->dim, qp_seed);
+    printf("in ocp_nlp_common_eval_param_sens: after set seed\n");
+
     config->qp_solver->eval_forw_sens(config->qp_solver, dims->qp_solver, mem->qp_in, qp_seed, tmp_qp_out,
                             opts->qp_solver_opts, mem->qp_solver_mem, work->qp_work);
     // d_ocp_qp_sol_print(tmp_qp_out->dim, tmp_qp_out);
+    printf("in ocp_nlp_common_eval_param_sens: after eval_forw_sens\n");
 
     /* copy tmp_qp_out into sens_nlp_out */
     for (i = 0; i <= N; i++)
@@ -3713,6 +3719,8 @@ void ocp_nlp_common_eval_param_sens(ocp_nlp_config *config, ocp_nlp_dims *dims,
 
         blasfeo_dveccp(2 * ni[i], tmp_qp_out->lam + i, 0, sens_nlp_out->lam + i, 0);
     }
+    printf("in ocp_nlp_common_eval_param_sens: end\n");
+
 }
 
 
