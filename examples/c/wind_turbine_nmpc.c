@@ -224,6 +224,7 @@ int main()
     /************************************************
     * problem dimensions
     ************************************************/
+    printf("problem dimensions\n");
 
     // optimization variables
     int nx[NN+1] = {}; // states
@@ -276,10 +277,12 @@ int main()
     ns[NN] = nsh[NN];
     ny[NN] = 2;
     nz[NN] = 0;
+    printf("end problem dimensions\n");
 
     /************************************************
     * problem data
     ************************************************/
+   printf("problem data\n");
 
     double *x_end = malloc(sizeof(double)*nx_);
     double *u_end = malloc(sizeof(double)*nu_);
@@ -313,6 +316,7 @@ int main()
 
 
     /* soft constraints */
+    printf("problem data: soft\n");
 
     // middle stage
     int *idxsh1 = malloc(nsh[1]*sizeof(int));
@@ -416,6 +420,8 @@ int main()
     ubxN[2] = M_gen_max;
 
     // to shift
+    printf("problem data: to shift\n");
+
     double *specific_u = malloc(nu_*sizeof(double));
     double *specific_x = malloc(nx_*sizeof(double));
 
@@ -435,6 +441,7 @@ int main()
 
 
     /* nonlinear constraints */
+    printf("problem data: nonlinear constr\n");
 
     // middle stages
     external_function_generic h1;
@@ -463,6 +470,7 @@ int main()
 
 
     /* linear least squares */
+    printf("problem data: linear ls\n");
 
     // output definition
     // y = {x[0], x[4]; u[0]; u[1]; u[2]};
