@@ -538,6 +538,7 @@ int main()
     * plan + config
     ************************************************/
 
+    printf("Creating OCP NLP plan and configuration...\n");
     ocp_nlp_plan_t *plan = ocp_nlp_plan_create(NN);
 
     plan->nlp_solver = SQP;
@@ -564,11 +565,13 @@ int main()
         plan->nlp_constraints[i] = BGH;
 
     ocp_nlp_config *config = ocp_nlp_config_create(*plan);
+    printf("OCP NLP plan and configuration created.\n");
 
     /************************************************
     * ocp_nlp_dims
     ************************************************/
 
+    printf("Creating OCP NLP dimensions...\n");
     ocp_nlp_dims *dims = ocp_nlp_dims_create(config);
 
     ocp_nlp_dims_set_opt_vars(config, dims, "nx", nx);
@@ -608,6 +611,7 @@ int main()
     external_function_param_casadi *f_lo_jac_x1_x1dot_u_z = malloc(NN*sizeof(external_function_param_casadi));
 
     select_dynamics_wt_casadi(NN, expl_vde_for, impl_ode_fun, impl_ode_fun_jac_x_xdot, impl_ode_jac_x_xdot_u, impl_ode_fun_jac_x_xdot_u, phi_fun, phi_fun_jac_y, phi_jac_y_uhat, f_lo_jac_x1_x1dot_u_z);
+    printf("Dynamics setup completed.\n");
 
     // explicit model
     external_function_param_casadi_create_array(NN, expl_vde_for, np, &ext_fun_opts);
@@ -651,18 +655,20 @@ int main()
             ocp_nlp_dims_set_dynamics(config, dims, i, "gnsf_nuhat", &gnsf_nuhat);
         }
     }
+    printf("after ocp_nlp_dims_set_dynamics...\n");
+
 
     /************************************************
     * ocp_nlp_out
     ************************************************/
-
+    printf("Creating OCP NLP output...\n");
     ocp_nlp_out *nlp_out = ocp_nlp_out_create(config, dims);
     ocp_nlp_out *sens_nlp_out = ocp_nlp_out_create(config, dims);
 
     /************************************************
     * ocp_nlp_in
     ************************************************/
-
+    printf("Creating OCP NLP input...\n");
     ocp_nlp_in *nlp_in = ocp_nlp_in_create(config, dims);
 
     // sampling times
@@ -677,7 +683,7 @@ int main()
 
     // linear ls
     int status = ACADOS_SUCCESS;
-
+    printf("Setting cost model...\n");
     for (int i = 0; i <= NN; i++)
     {
         // Cyt
@@ -707,7 +713,7 @@ int main()
     /* dynamics */
 
     int set_fun_status;
-
+    printf("Setting dynamics model...\n");
     for (int i=0; i<NN; i++)
     {
         if (plan->sim_solver_plan[i].sim_solver == ERK)
@@ -755,6 +761,7 @@ int main()
     /* constraints */
 
     /* box constraints */
+    printf("Setting constraints model...\n");
 
     // fist stage
     ocp_nlp_constraints_model_set(config, dims, nlp_in, nlp_out, 0, "idxbu", idxbu0);
@@ -808,7 +815,7 @@ int main()
     /************************************************
     * sqp opts
     ************************************************/
-
+    printf("Creating OCP NLP solver options...\n");
     // create opts
     void *nlp_opts = ocp_nlp_solver_opts_create(config, dims);
 
@@ -902,19 +909,20 @@ int main()
     /************************************************
     * ocp_nlp_solver
     ************************************************/
-
+    printf("Creating OCP NLP solver...\n");
     ocp_nlp_solver *solver = ocp_nlp_solver_create(config, dims, nlp_opts, nlp_in);
 
     /************************************************
     * precomputation (after all options are set)
     ************************************************/
-
+    printf("Precomputing OCP NLP...\n");
     status = ocp_nlp_precompute(solver, nlp_in, nlp_out);
 
     /************************************************
     * sqp solve
     ************************************************/
 
+printf("Starting SQP solve...\n");
     int n_sim = 40;
 
     double *x_sim = malloc(nx_*(n_sim+1)*sizeof(double));
@@ -939,7 +947,7 @@ int main()
 
         // store x0
         for(int ii=0; ii<nx_; ii++) x_sim[ii] = x0_ref[ii];
-
+        printf("setting parameters...\n");
         for (int idx = 0; idx < n_sim; idx++)
         {
             // update wind distrurbance as external function parameter
@@ -974,9 +982,12 @@ int main()
             {
                 ocp_nlp_cost_model_set(config, dims, nlp_in, i, "yref", &y_ref[(idx + i)*4]);
             }
+            printf("call solve...\n");
 
             // solve NLP
             status = ocp_nlp_solve(solver, nlp_in, nlp_out);
+
+            printf("before ocp_nlp_eval_param_sens...\n");
 
             // evaluate parametric sensitivity of solution
 //            ocp_nlp_out_print(dims, nlp_out);
