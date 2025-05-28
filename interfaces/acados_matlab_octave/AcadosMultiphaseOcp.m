@@ -260,7 +260,7 @@ classdef AcadosMultiphaseOcp < handle
             end
         end
 
-        function template_list = get_template_list(self)
+        function template_list = get_template_list(self, reuse_model)
             % returns a cell of cells in the form:
             % (input_filename, output_filname)
             % or
@@ -270,8 +270,13 @@ classdef AcadosMultiphaseOcp < handle
             template_list{end+1} = {'main_multi.in.c', ['main_', self.name, '.c']};
             template_list{end+1} = {'acados_multi_solver.in.h', ['acados_solver_', self.name, '.h']};
             template_list{end+1} = {'acados_multi_solver.in.c', ['acados_solver_', self.name, '.c']};
-            template_list{end+1} = {'multi_CMakeLists.in.txt', 'CMakeLists.txt'};
-            template_list{end+1} = {'multi_Makefile.in', 'Makefile'};
+            if ~reuse_model
+                template_list{end+1} = {'multi_CMakeLists.in.txt', 'CMakeLists.txt'};
+                template_list{end+1} = {'multi_Makefile.in', 'Makefile'};
+                if self.phases_dims{1}.n_global_data > 0
+                    template_list{end+1} = {'p_global_precompute_fun.in.h',  [self.name, '_p_global_precompute_fun.h']};
+                end
+            end
 
             % MEX files
             matlab_template_path = 'matlab_templates';
@@ -281,9 +286,7 @@ classdef AcadosMultiphaseOcp < handle
             template_list{end+1} = {fullfile(matlab_template_path, 'acados_mex_free.in.c'), ['acados_mex_free_', self.name, '.c']};
             template_list{end+1} = {fullfile(matlab_template_path, 'acados_mex_solve.in.c'), ['acados_mex_solve_', self.name, '.c']};
             template_list{end+1} = {fullfile(matlab_template_path, 'acados_mex_set.in.c'), ['acados_mex_set_', self.name, '.c']};
-            if self.phases_dims{1}.n_global_data > 0
-                template_list{end+1} = {'p_global_precompute_fun.in.h',  [self.name, '_p_global_precompute_fun.h']};
-            end
+
             % Simulink
             if ~isempty(self.simulink_opts)
                 template_list{end+1} = {fullfile(matlab_template_path, 'acados_solver_sfun.in.c'), ['acados_solver_sfunction_', self.name, '.c']};
@@ -409,36 +412,38 @@ classdef AcadosMultiphaseOcp < handle
             fclose(fid);
         end
 
-        function render_templates(self)
+        function render_templates(self, reuse_model)
 
             main_dir = pwd;
             chdir(self.code_export_directory);
 
             % model templates
-            for i=1:self.n_phases
-                % this is the only option that can vary and influence external functions to be generated
-                self.dummy_ocp_list{i}.solver_options.integrator_type = self.mocp_opts.integrator_type{i};
-
-                template_list = self.dummy_ocp_list{i}.get_external_function_header_templates();
-                % dump dummy_ocp
-                tmp_json_file = 'tmp_ocp.json';
-                self.dummy_ocp_list{i}.dump_to_json(tmp_json_file);
-                tmp_json_path = fullfile(pwd, tmp_json_file);
-
-                for j = 1:length(template_list)
-                    in_file = template_list{j}{1};
-                    out_file = template_list{j}{2};
-                    if length(template_list{j}) == 3
-                        out_dir = template_list{j}{3};
-                        if ~(exist(out_dir, 'dir'))
-                            mkdir(out_dir);
+            if ~reuse_model
+                for i=1:self.n_phases
+                    % this is the only option that can vary and influence external functions to be generated
+                    self.dummy_ocp_list{i}.solver_options.integrator_type = self.mocp_opts.integrator_type{i};
+    
+                    template_list = self.dummy_ocp_list{i}.get_external_function_header_templates();
+                    % dump dummy_ocp
+                    tmp_json_file = 'tmp_ocp.json';
+                    self.dummy_ocp_list{i}.dump_to_json(tmp_json_file);
+                    tmp_json_path = fullfile(pwd, tmp_json_file);
+    
+                    for j = 1:length(template_list)
+                        in_file = template_list{j}{1};
+                        out_file = template_list{j}{2};
+                        if length(template_list{j}) == 3
+                            out_dir = template_list{j}{3};
+                            if ~(exist(out_dir, 'dir'))
+                                mkdir(out_dir);
+                            end
+                            out_file = fullfile(out_dir, out_file);
                         end
-                        out_file = fullfile(out_dir, out_file);
+                        render_file( in_file, out_file, tmp_json_path );
                     end
-                    render_file( in_file, out_file, tmp_json_path );
                 end
+                disp('rendered model templates successfully');
             end
-            disp('rendered model templates successfully');
 
             % check json file
             if ~(exist(self.json_file, 'file'))
@@ -446,7 +451,7 @@ classdef AcadosMultiphaseOcp < handle
             end
 
             % solver templates
-            template_list = self.get_template_list();
+            template_list = self.get_template_list(reuse_model);
 
             % Render templates
             for i = 1:length(template_list)

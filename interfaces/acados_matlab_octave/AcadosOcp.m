@@ -1187,14 +1187,14 @@ classdef AcadosOcp < handle
             end
         end
 
-        function render_templates(self)
+        function render_templates(self, reuse_model)
 
             %% render templates
             json_fullfile = fullfile(pwd, self.json_file);
             main_dir = pwd;
             chdir(self.code_export_directory);
 
-            template_list = self.get_template_list();
+            template_list = self.get_template_list(reuse_model);
             for i = 1:length(template_list)
                 in_file = template_list{i}{1};
                 out_file = template_list{i}{2};
@@ -1233,7 +1233,7 @@ classdef AcadosOcp < handle
         end
 
 
-        function template_list = get_template_list(self)
+        function template_list = get_template_list(self, reuse_model)
             % returns a cell of cells in the form:
             % (input_filename, output_filname)
             % or
@@ -1242,8 +1242,10 @@ classdef AcadosOcp < handle
             template_list{end+1} = {'main.in.c', ['main_', self.name, '.c']};
             template_list{end+1} = {'acados_solver.in.h', ['acados_solver_', self.name, '.h']};
             template_list{end+1} = {'acados_solver.in.c', ['acados_solver_', self.name, '.c']};
-            template_list{end+1} = {'CMakeLists.in.txt', ['CMakeLists.txt']};
-            template_list{end+1} = {'Makefile.in', ['Makefile']};
+            if ~reuse_model
+                template_list{end+1} = {'CMakeLists.in.txt', ['CMakeLists.txt']};
+                template_list{end+1} = {'Makefile.in', ['Makefile']};
+            end
 
             % integrator
             if ~strcmp(self.solver_options.integrator_type, 'DISCRETE')
@@ -1264,11 +1266,14 @@ classdef AcadosOcp < handle
                 template_list{end+1} = {fullfile(matlab_template_path, 'acados_mex_custom_update.in.c'), ['acados_mex_custom_update_', self.name, '.c']};
             end
 
-            % append headers
-            template_list = [template_list, self.get_external_function_header_templates()];
+            if ~reuse_model
 
-            if self.dims.n_global_data > 0
-                template_list{end+1} = {'p_global_precompute_fun.in.h',  [self.model.name, '_p_global_precompute_fun.h']};
+                % append headers
+                template_list = [template_list, self.get_external_function_header_templates()];
+
+                if self.dims.n_global_data > 0
+                    template_list{end+1} = {'p_global_precompute_fun.in.h',  [self.model.name, '_p_global_precompute_fun.h']};
+                end
             end
 
             % Simulink
