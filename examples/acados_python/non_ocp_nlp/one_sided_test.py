@@ -97,8 +97,8 @@ def create_solver(solver_name: str, nlp_solver_type: str = 'SQP_WITH_FEASIBLE_QP
     elif variant == 4:
         # doesnt work: res_stat in NLP solver does not converge
         # -> ignore contributions of masked slacked constraints?
-        ocp.cost.Zl_e = 1e2 * np.ones((1,))
         ocp.constraints.lsh_e = -ACADOS_INFTY * np.ones((1,))
+        ocp.cost.zl_e = 1e2 * np.ones((1,))
 
     # set options
     solver_options = ocp.solver_options
@@ -139,7 +139,7 @@ def call_solver(ocp_solver: AcadosOcpSolver) -> AcadosOcpFlattenedIterate:
 
 def main():
     print("Reference ...")
-    ocp, ocp_solver = create_solver("2", nlp_solver_type="SQP", variant=3)
+    ocp, ocp_solver = create_solver("2", nlp_solver_type="SQP", variant=4)
     sol = call_solver(ocp_solver)
     print(f"Reference solution: {sol}")
 
