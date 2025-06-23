@@ -101,6 +101,8 @@ def main():
     ocp.solver_options.integrator_type = 'ERK'
     ocp.solver_options.print_level = 0
     ocp.solver_options.nlp_solver_type = 'SQP_RTI' # SQP_RTI, SQP
+    ocp.solver_options.qpscaling_scale_constraints = "INF_NORM"
+    ocp.solver_options.qpscaling_scale_objective = "OBJECTIVE_GERSHGORIN"
 
     # set prediction horizon
     ocp.solver_options.tf = Tf
@@ -148,6 +150,10 @@ def main():
 
     # test getter
     assert np.allclose(ocp.constraints.C, ocp_solver.constraints_get(1, 'C'))
+
+    for i in range(N+1):
+        ocp_solver.get_qp_scaling_constraints(i)
+        print(f"qp scaling constraints at stage {i}: {ocp_solver.get_qp_scaling_constraints(i)}")
 
     PRINT_QP = False
 

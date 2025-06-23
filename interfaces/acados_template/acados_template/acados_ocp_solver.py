@@ -2132,6 +2132,7 @@ class AcadosOcpSolver:
         out = np.zeros((dims,), dtype=np.float64, order="C")
         out_data = cast(out.ctypes.data, POINTER(c_double))
         out_data_p = cast((out_data), c_void_p)
+        print(f"get_qp_scaling_constraints: dims = {dims}, field = {field_}, stage = {stage}")
         self.__acados_lib.ocp_nlp_get_at_stage(self.nlp_solver, stage, field, out_data_p)
 
         return out

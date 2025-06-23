@@ -371,6 +371,7 @@ class AcadosOcpOptions:
         """
         Minimum allowed lower bound for inf norm of qp gradient in QP scaling.
         Is attempted to be respected, respecting qpscaling_ub_max_abs_eig is prioritized.
+        For real-time algorithms with split into preparation and feedback phase, this might be not properly respected.
         Type: float >= 0.
         Default: 1e-4.
         """
