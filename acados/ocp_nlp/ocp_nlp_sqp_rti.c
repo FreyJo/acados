@@ -495,6 +495,10 @@ static void ocp_nlp_sqp_rti_preparation_step(ocp_nlp_config *config, ocp_nlp_dim
 
     if (opts->rti_phase == PREPARATION)
     {
+        // QP scaling
+        acados_tic(&timer1);
+        ocp_nlp_qpscaling_scale_qp_lhs(dims->qpscaling, nlp_opts->qpscaling, nlp_mem->qpscaling, nlp_mem->qp_in);
+        timings->time_qpscaling += acados_toc(&timer1);
         // regularize Hessian
         acados_tic(&timer1);
         config->regularize->regularize_lhs(config->regularize,
@@ -543,16 +547,20 @@ static void ocp_nlp_sqp_rti_feedback_step(ocp_nlp_config *config, ocp_nlp_dims *
     }
     nlp_mem->iter += 1;
 
-    // regularization
+    // regularization & scaling
     acados_tic(&timer1);
     if (opts->rti_phase == FEEDBACK)
     {
+        // QP scaling
+        ocp_nlp_qpscaling_scale_qp_rhs(dims->qpscaling, nlp_opts->qpscaling, nlp_mem->qpscaling, nlp_mem->qp_in);
         // finish regularization
         config->regularize->regularize_rhs(config->regularize,
             dims->regularize, opts->nlp_opts->regularize, nlp_mem->regularize_mem);
     }
     else if (opts->rti_phase == PREPARATION_AND_FEEDBACK)
     {
+        // QP scaling
+        ocp_nlp_qpscaling_scale_qp(dims->qpscaling, nlp_opts->qpscaling, nlp_mem->qpscaling, nlp_mem->qp_in);
         // full regularization
         config->regularize->regularize(config->regularize,
             dims->regularize, opts->nlp_opts->regularize, nlp_mem->regularize_mem);
@@ -853,10 +861,16 @@ static void ocp_nlp_sqp_rti_preparation_advanced_step(ocp_nlp_config *config, oc
         }
         nlp_mem->iter += 1;
 
+        // QP scaling
+        acados_tic(&timer1);
+        ocp_nlp_qpscaling_scale_qp_rhs(dims->qpscaling, nlp_opts->qpscaling, nlp_mem->qpscaling, nlp_mem->qp_in);
+        timings->time_qpscaling += acados_toc(&timer1);
+
         // regularization rhs
         acados_tic(&timer1);
         config->regularize->regularize_rhs(config->regularize,
             dims->regularize, opts->nlp_opts->regularize, nlp_mem->regularize_mem);
+        timings->time_reg += acados_toc(&timer1);
 
         // solve QP
         qp_status = ocp_nlp_solve_qp_and_correct_dual(config, dims, nlp_opts, nlp_mem, nlp_work, true, NULL, NULL, NULL, NULL, NULL);
@@ -904,6 +918,11 @@ static void ocp_nlp_sqp_rti_preparation_advanced_step(ocp_nlp_config *config, oc
                 ocp_nlp_res_compute(dims, nlp_opts, nlp_in, nlp_out, nlp_mem->nlp_res, nlp_mem, nlp_work);
                 rti_store_residuals_in_stats(opts, mem);
             }
+
+            // QP scaling
+            acados_tic(&timer1);
+            ocp_nlp_qpscaling_scale_qp_rhs(dims->qpscaling, nlp_opts->qpscaling, nlp_mem->qpscaling, nlp_mem->qp_in);
+            timings->time_qpscaling += acados_toc(&timer1);
 
             // rhs regularization
             acados_tic(&timer1);
@@ -974,6 +993,11 @@ static void ocp_nlp_sqp_rti_preparation_advanced_step(ocp_nlp_config *config, oc
                 ocp_nlp_res_compute(dims, nlp_opts, nlp_in, nlp_out, nlp_mem->nlp_res, nlp_mem, nlp_work);
                 rti_store_residuals_in_stats(opts, mem);
             }
+
+            // QP scaling
+            acados_tic(&timer1);
+            ocp_nlp_qpscaling_scale_qp_rhs(dims->qpscaling, nlp_opts->qpscaling, nlp_mem->qpscaling, nlp_mem->qp_in);
+            timings->time_qpscaling += acados_toc(&timer1);
 
             // rhs regularization
             acados_tic(&timer1);
@@ -1047,6 +1071,11 @@ static void ocp_nlp_sqp_rti_preparation_advanced_step(ocp_nlp_config *config, oc
                 rti_store_residuals_in_stats(opts, mem);
             }
 
+            // QP scaling
+            acados_tic(&timer1);
+            ocp_nlp_qpscaling_scale_qp(dims->qpscaling, nlp_opts->qpscaling, nlp_mem->qpscaling, nlp_mem->qp_in);
+            timings->time_qpscaling += acados_toc(&timer1);
+
             // full regularization
             acados_tic(&timer1);
             config->regularize->regularize(config->regularize,
@@ -1094,6 +1123,11 @@ static void ocp_nlp_sqp_rti_preparation_advanced_step(ocp_nlp_config *config, oc
         nlp_out, nlp_opts, nlp_mem, nlp_work);
     ocp_nlp_add_levenberg_marquardt_term(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work, 1.0, 0, nlp_mem->qp_in);
     timings->time_lin += acados_toc(&timer1);
+
+    // QP scaling
+    acados_tic(&timer1);
+    ocp_nlp_qpscaling_scale_qp_lhs(dims->qpscaling, nlp_opts->qpscaling, nlp_mem->qpscaling, nlp_mem->qp_in);
+    timings->time_qpscaling += acados_toc(&timer1);
 
     // regularize Hessian
     acados_tic(&timer1);
