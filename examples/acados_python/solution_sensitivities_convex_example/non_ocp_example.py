@@ -96,7 +96,11 @@ def solve_and_compute_sens(p_test, tau):
             # print(f"OCP solver returned status {status} at {i}th p value {p}, {tau=}.")
             # breakpoint()
 
-        status = ocp_solver.setup_qp_matrices_and_factorize()
+        nlp_iter = ocp_solver.get_stats("nlp_iter")
+        qp_iter = ocp_solver.get_stats("qp_iter")
+        if nlp_iter < 1 or sum(qp_iter) < 1:
+            print("solution sens will be wrong if no NLP iterations were performed.")
+        # status = ocp_solver.setup_qp_matrices_and_factorize()
         if status != 0:
             ocp_solver.print_statistics()
             raise Exception(f"OCP solver returned status {status} in setup_qp_matrices_and_factorize at {i}th p value {p}, {tau=}.")
@@ -139,8 +143,8 @@ def main():
 
     plot_solution_sensitivities_results(p_test, sol_list, sens_list, labels_list,
                  title=None, parameter_name=r"$\theta$", fig_filename=f"solution_sens_{PROBLEM_NAME}.pdf")
-    plot_solution_sensitivities_results(p_test, sol_list, sens_list, labels_list,
-                 title=None, parameter_name=r"$\theta$", fig_filename=f"solution_sens_{PROBLEM_NAME}_transposed.pdf", horizontal_plot=True)
+    # plot_solution_sensitivities_results(p_test, sol_list, sens_list, labels_list,
+    #              title=None, parameter_name=r"$\theta$", fig_filename=f"solution_sens_{PROBLEM_NAME}_transposed.pdf", horizontal_plot=True)
 
 def plot_solution_sensitivities_results(p_test, sol_list, sens_list, labels_list, title=None, parameter_name="", fig_filename=None, horizontal_plot=False):
     p_min = p_test[0]
