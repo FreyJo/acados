@@ -314,6 +314,9 @@ int ocp_qp_hpipm(void *config_, void *qp_in_, void *qp_out_, void *opts_, void *
         blasfeo_dvecse(nu[ii]+nx[ii]+2*ns[ii], 0.0, qp_out->ux+ii, 0);
     }
 
+    // require new factorization at exit
+    int tmp_int = 1;
+    opts->hpipm_opts->update_fact_exit = 1;
     // solve ipm
     acados_tic(&qp_timer);
     // print_ocp_qp_in(qp_in);
