@@ -59,7 +59,7 @@ def export_parametric_nlp() -> AcadosOcp:
     ocp.constraints.idxbx_e = np.array([0])
 
     ocp.cost.cost_type_e = "EXTERNAL"
-    ocp.solver_options.qp_solver = "FULL_CONDENSING_HPIPM"
+    ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
     ocp.solver_options.hessian_approx = "EXACT"
     ocp.solver_options.N_horizon = 0
 
@@ -82,6 +82,8 @@ def solve_and_compute_sens(p_test, tau):
 
     sens_x = np.zeros(np_test)
     solution = np.zeros(np_test)
+    P_solve_vals = np.zeros(np_test)
+    P_resolve_vals = np.zeros(np_test)
 
     for i, p in enumerate(p_test):
         p_val = np.array([p])
@@ -100,15 +102,30 @@ def solve_and_compute_sens(p_test, tau):
         qp_iter = ocp_solver.get_stats("qp_iter")
         if nlp_iter < 1 or sum(qp_iter) < 1:
             print("solution sens will be wrong if no NLP iterations were performed.")
-        # status = ocp_solver.setup_qp_matrices_and_factorize()
+        P_solve = ocp_solver.get_from_qp_in(0, "P")
+        print(f"P_solve at {i}th p value {p}, {tau=}: {P_solve}")
+        P_solve_vals[i] = P_solve[0, 0]
+
+        status = ocp_solver.setup_qp_matrices_and_factorize()
         if status != 0:
             ocp_solver.print_statistics()
             raise Exception(f"OCP solver returned status {status} in setup_qp_matrices_and_factorize at {i}th p value {p}, {tau=}.")
+
+        P_resolve = ocp_solver.get_from_qp_in(0, "P")
+        print(f"P_resolve at {i}th p value {p}, {tau=}: {P_resolve}")
+        P_resolve_vals[i] = P_resolve[0, 0]
 
         # Calculate the policy gradient
         out_dict = ocp_solver.eval_solution_sensitivity(0, "p_global", return_sens_x=True, return_sens_u=False)
         sens_x[i] = out_dict['sens_x'].item()
 
+    plt.figure()
+    plt.plot(p_test, P_solve_vals, label="P_solve")
+    plt.plot(p_test, P_resolve_vals, label="P_resolve")
+    plt.xlabel(r"$\theta$")
+    plt.ylabel(r"$P_{solve}$")
+    plt.legend()
+    plt.show()
     return solution, sens_x
 
 def main():
