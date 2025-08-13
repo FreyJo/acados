@@ -142,10 +142,10 @@ def main(formulation='s_slack', plot_traj=True):
     ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
     ocp.solver_options.integrator_type = 'IRK'
+    ocp.solver_options.sim_method_num_stages = 4
     ocp.solver_options.nlp_solver_type = 'SQP'
     # ocp.solver_options.print_level = 5
     # ocp.solver_options.nlp_solver_max_iter = 2
-
 
     nx = model.x.rows()
     nu = model.u.rows()
@@ -155,11 +155,23 @@ def main(formulation='s_slack', plot_traj=True):
     xtraj = np.zeros((N+1, nx))
     utraj = np.zeros((N, nu))
 
+    ocp_solver.reset()
+    initial_guess = ocp_solver.store_iterate_to_flat_obj()
     status = ocp_solver.solve()
     ocp_solver.print_statistics()
 
-    if status != 0:
-        raise Exception(f'acados returned status {status}.')
+    # multiple calls for timing
+    n_timings = 100
+    timing = ACADOS_INFTY
+    for i in range(n_timings):
+        ocp_solver.load_iterate_from_flat_obj(initial_guess)
+        status = ocp_solver.solve()
+        if i < 2:
+            ocp_solver.print_statistics()
+        if status != 0:
+            raise Exception(f'acados returned status {status} in execution {i}.')
+        tmp = ocp_solver.get_stats('time_tot')
+        timing = min(timing, tmp)
 
     # get solution
     for i in range(N):
@@ -205,15 +217,17 @@ def main(formulation='s_slack', plot_traj=True):
             x_max=None,
         )
 
-    return xtraj
+    return xtraj, timing
 
 
 if __name__ == '__main__':
     formulations = ['u_slack', 'u_slack2', 's_slack']
-    # formulations = ['s_slack']
+    # formulations = ['u_slack']
+    formulations = ['s_slack']
     xtraj_list = []
+    timings = []
     for i, formulation in enumerate(formulations):
-        xtraj = main(formulation, plot_traj=False)
+        xtraj, timing = main(formulation, plot_traj=False)
         if i == 0:
             xtraj_ref = xtraj
         else:
@@ -221,3 +235,7 @@ if __name__ == '__main__':
             print(f"diff xtraj {formulation} vs ref: {diff_x}")
             if diff_x > 1e-6:
                 raise Exception(f"xtraj {formulation} differs from reference by {diff_x}, expected to be close to zero.")
+        timings.append(timing)
+
+    for formulation, timing in zip(formulations, timings):
+        print(f"timing for {formulation}: {timing*1e3:.3f} ms")
