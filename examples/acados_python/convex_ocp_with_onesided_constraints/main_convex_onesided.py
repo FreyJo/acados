@@ -188,7 +188,7 @@ def solve_ocp(modification=1, constraint_formulation="BGH", hessian_approx="EXAC
     max_acc_xy = 3
     eps = 1e-16
 
-    lh = np.array([-ACADOS_INFTY, -ACADOS_INFTY])  # ACADOS_INFTY means corresponding constraints are ignored in acados.
+    lh = 1e-0 * np.array([-ACADOS_INFTY, -ACADOS_INFTY])  # ACADOS_INFTY means corresponding constraints are ignored in acados.
     uh = np.array([max_velocity_xy, max_acc_xy])
     if constraint_formulation.startswith("BGH"):
         velocity_and_acceleration_norms = cs.vertcat(cs.sqrt(cs.sumsqr(ocp.model.x[2:])+eps),
@@ -243,11 +243,11 @@ def solve_ocp(modification=1, constraint_formulation="BGH", hessian_approx="EXAC
     ocp.solver_options.integrator_type = 'ERK'
     ocp.solver_options.print_level = 1
     ocp.solver_options.qp_solver_iter_max = qp_solver_iter_max
-    ocp.solver_options.nlp_solver_max_iter = 1000
+    ocp.solver_options.nlp_solver_max_iter = 2
     ocp.solver_options.nlp_solver_type = 'SQP'
     ocp.solver_options.globalization = globalization
     ocp.solver_options.qp_solver_cond_N = N
-    ocp.solver_options.qp_solver_mu0 = 1e3
+    # ocp.solver_options.qp_solver_mu0 = 1e3
     ocp.solver_options.store_iterates = True
     ocp.solver_options.eval_residual_at_max_iter = True
     ocp.solver_options.nlp_solver_ext_qp_res = 1
@@ -369,4 +369,5 @@ def main(modification=1):
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    iterates, residual = solve_ocp(modification=2, constraint_formulation="BGH", hessian_approx="EXACT", globalization="MERIT_BACKTRACKING", plot=False)

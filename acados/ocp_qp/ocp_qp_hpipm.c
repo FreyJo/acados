@@ -321,10 +321,10 @@ int ocp_qp_hpipm(void *config_, void *qp_in_, void *qp_out_, void *opts_, void *
     d_ocp_qp_ipm_get_status(mem->hpipm_workspace, &mem->status);
 
     /* use this to send some QPs to Gianluca :) */
-    // printf("\ncodegen HPIPM QP\n");
-    // d_ocp_qp_dim_codegen("failing_ocp_data.c", "w", qp_in->dim);
-    // d_ocp_qp_codegen("failing_ocp_data.c", "a", qp_in->dim, qp_in);
-    // d_ocp_qp_ipm_arg_codegen("failing_ocp_data.c", "a", qp_in->dim, opts->hpipm_opts);
+    printf("\ncodegen HPIPM QP\n");
+    d_ocp_qp_dim_codegen("failing_ocp_data.c", "w", qp_in->dim);
+    d_ocp_qp_codegen("failing_ocp_data.c", "a", qp_in->dim, qp_in);
+    d_ocp_qp_ipm_arg_codegen("failing_ocp_data.c", "a", qp_in->dim, opts->hpipm_opts);
 
     info->solve_QP_time = acados_toc(&qp_timer);
     info->interface_time = 0;  // there are no conversions for hpipm
