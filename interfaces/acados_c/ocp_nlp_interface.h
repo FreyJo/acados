@@ -463,6 +463,13 @@ ACADOS_SYMBOL_EXPORT void ocp_nlp_get(ocp_nlp_solver *solver, const char *field,
 /// \param value The initial guess for the algebraic variables in the integrator (if continuous model is used).
 ACADOS_SYMBOL_EXPORT void ocp_nlp_set(ocp_nlp_solver *solver, int stage, const char *field, void *value);
 
+/// Dumps the last QP data to a JSON file.
+/// \param config The ocp_nlp_config struct.
+/// \param dims The ocp_nlp_dims struct.
+/// \param solver The ocp_nlp_solver struct.
+/// \param filename The filename to dump the QP data to.
+/// \param qp_type The type of QP to dump: "default", "relaxed" (SQP_WITH_FEASIBLE_QP), or "scaled" (qpscaling).
+ACADOS_SYMBOL_EXPORT void ocp_nlp_dump_last_qp_to_json(ocp_nlp_config *config, ocp_nlp_dims *dims, ocp_nlp_solver *solver, const char *filename, const char *qp_type);
 
 
 #ifdef __cplusplus

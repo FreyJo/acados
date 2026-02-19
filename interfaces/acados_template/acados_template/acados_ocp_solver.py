@@ -416,7 +416,7 @@ class AcadosOcpSolver:
 
         self.__acados_lib.ocp_nlp_out_set_values_to_zero.argtypes = [c_void_p, c_void_p, c_void_p]
 
-        self.__acados_lib.ocp_nlp_dump_last_qp_to_json.argtypes = [c_void_p, c_void_p, c_void_p, c_char_p]
+        self.__acados_lib.ocp_nlp_dump_last_qp_to_json.argtypes = [c_void_p, c_void_p, c_void_p, c_char_p, c_char_p]
         self.__acados_lib.ocp_nlp_dump_last_qp_to_json.restype = None
 
         getattr(self.shared_lib, f"{self.name}_acados_solve").argtypes = [c_void_p]
@@ -1416,13 +1416,14 @@ class AcadosOcpSolver:
         return qp_diagnostic
 
 
-    def dump_last_qp_to_json(self, filename: str = '', overwrite=False, backend: str = 'C'):
+    def dump_last_qp_to_json(self, filename: str = '', overwrite=False, backend: str = 'C', qp_type: str = 'default'):
         """
         Dumps the latest QP data into a json file
 
         :param filename: if not set, use name + timestamp + '.json'
         :param overwrite: if false and filename exists add timestamp to filename
         :param backend: string in ['Python', 'C'], whether to get the QP data from the Python function or to call the C function, default is 'C'.
+        :param qp_type: string in ['default', 'relaxed', 'scaled'], type of QP to dump; 'relaxed' requires SQP_WITH_FEASIBLE_QP solver, 'scaled' requires qpscaling option, default is 'default'.
         """
         if filename == '':
             filename = f'{self.name}_QP.json'
@@ -1444,7 +1445,8 @@ class AcadosOcpSolver:
             self.__acados_lib.ocp_nlp_dump_last_qp_to_json(self.nlp_config,
                                                            self.nlp_dims,
                                                            self.nlp_solver,
-                                                           filename.encode('utf-8'))
+                                                           filename.encode('utf-8'),
+                                                           qp_type.encode('utf-8'))
             print("\nDumping last QP to JSON file with C backend:", os.path.join(os.getcwd(), filename))
         else:
             raise ValueError("backend should be string with value 'Python' or 'C'")

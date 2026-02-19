@@ -37,13 +37,14 @@
 // mex
 #include "mex.h"
 
-extern void ocp_nlp_dump_last_qp_to_json(ocp_nlp_config *config, ocp_nlp_dims *dims, ocp_nlp_solver *solver, const char *filename);
+extern void ocp_nlp_dump_last_qp_to_json(ocp_nlp_config *config, ocp_nlp_dims *dims, ocp_nlp_solver *solver, const char *filename, const char *qp_type);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
     long long *ptr;
     char filename[256];
+    char qp_type[64];
 
     // C_ocp
     const mxArray *C_ocp = prhs[0];
@@ -59,7 +60,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     mxGetString(prhs[1], filename, sizeof(filename));
 
-    ocp_nlp_dump_last_qp_to_json(config, dims, solver, filename);
+    if (nrhs >= 3)
+        mxGetString(prhs[2], qp_type, sizeof(qp_type));
+    else
+        snprintf(qp_type, sizeof(qp_type), "default");
+
+    ocp_nlp_dump_last_qp_to_json(config, dims, solver, filename, qp_type);
 
     return;
 }
