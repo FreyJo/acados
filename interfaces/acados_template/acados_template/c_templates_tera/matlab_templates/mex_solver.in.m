@@ -125,6 +125,23 @@ classdef {{ name }}_mex_solver < handle
             ocp_eval_param_sens(obj.C_ocp, field, stage, index);
         end
 
+        function dump_last_qp_to_json(obj, varargin)
+            %%% Dumps the latest QP data into a json file using the C backend.
+            %%% param1: filename: if not set, use model_name + '_QP.json'
+            %%% param2: qp_type: 'default', 'relaxed', or 'scaled' (default: 'default')
+            if nargin>=2
+                filename = varargin{1};
+            else
+                filename = [obj.name, '_QP.json'];
+            end
+            if nargin>=3
+                qp_type = varargin{2};
+            else
+                qp_type = 'default';
+            end
+            ocp_dump_qp(obj.C_ocp, filename, qp_type);
+        end
+
         function value = get(varargin)
             % usage:
             % obj.get(field, value, [stage])

@@ -562,45 +562,95 @@ classdef AcadosOcpSolver < handle
         end
 
 
-        function dump_last_qp_to_json(obj, filename)
-            qp_data = struct();
+        function dump_last_qp_to_json(obj, varargin)
+            %%% Dumps the latest QP data into a json file
+            %%% param1: filename: if not set, use model_name + '_QP.json'
+            %%% param2: overwrite: if false and filename exists add timestamp to filename (default: false)
+            %%% param3: qp_type: 'default', 'relaxed', or 'scaled' (default: 'default')
+            %%% param4: backend: 'Matlab' or 'C' (default: 'C')
+            filename = '';
+            overwrite = false;
+            qp_type = 'default';
+            backend = 'C';
 
-            lN = length(num2str(obj.solver_options.N_horizon+1));
-            n_fields = length(obj.qp_gettable_fields);
-            for n=1:n_fields
-
-                field = obj.qp_gettable_fields{n};
-                for i=0:obj.solver_options.N_horizon-1
-                    s_indx = sprintf(strcat('%0', num2str(lN), 'd'), i);
-                    key = strcat(field, '_', s_indx);
-                    val = obj.get(field, i);
-                    qp_data = setfield(qp_data, key, val);
-                end
-                if strcmp(field, 'qp_Q') || ...
-                   strcmp(field, 'qp_q') || ...
-                   strcmp(field, 'qp_C') || ...
-                   strcmp(field, 'qp_lg') || ...
-                   strcmp(field, 'qp_ug') || ...
-                   strcmp(field, 'qp_lbx') || ...
-                   strcmp(field, 'qp_ubx') || ...
-                   strcmp(field, 'qp_zl') || ...
-                   strcmp(field, 'qp_zu') || ...
-                   strcmp(field, 'qp_Zl') || ...
-                   strcmp(field, 'qp_Zu')
-                    s_indx = sprintf(strcat('%0', num2str(lN), 'd'), obj.solver_options.N_horizon);
-                    key = strcat(field, '_', s_indx);
-                    val = obj.get(field, obj.solver_options.N_horizon);
-                    qp_data = setfield(qp_data, key, val);
-                end
+            if nargin >= 2
+                filename = varargin{1};
+            end
+            if nargin >= 3
+                overwrite = varargin{2};
+            end
+            if nargin >= 4
+                qp_type = varargin{3};
+            end
+            if nargin >= 5
+                backend = varargin{4};
+            end
+            if nargin > 5
+                error('dump_last_qp_to_json: wrong number of input arguments (up to 4 allowed)');
             end
 
-            % save
-            json_string = savejson('', qp_data, 'ForceRootName', 0, struct('FloatFormat', '%.5f'));
+            if strcmp(filename, '')
+                filename = [obj.name '_QP.json'];
+            end
+            if ~overwrite
+                if exist(filename, 'file')
+                    % append timestamp
+                    [~, name, ~] = fileparts(filename);
+                    timestamp = datestr(now,'yyyy-mm-dd-HH-MM-SS.FFF');
+                    filename = [name '_' timestamp '.json'];
+                end
+            end
+            filename = fullfile(pwd, filename);
 
-            fid = fopen(filename, 'w');
-            if fid == -1, error('Cannot create json file'); end
-            fwrite(fid, json_string, 'char');
-            fclose(fid);
+            if strcmp(backend, 'Matlab')
+                qp_data = struct();
+
+                lN = length(num2str(obj.solver_options.N_horizon+1));
+                n_fields = length(obj.qp_gettable_fields);
+                for n=1:n_fields
+
+                    field = obj.qp_gettable_fields{n};
+                    for i=0:obj.solver_options.N_horizon-1
+                        s_indx = sprintf(strcat('%0', num2str(lN), 'd'), i);
+                        key = strcat(field, '_', s_indx);
+                        val = obj.get(field, i);
+                        qp_data = setfield(qp_data, key, val);
+                    end
+                    if strcmp(field, 'qp_Q') || ...
+                       strcmp(field, 'qp_q') || ...
+                       strcmp(field, 'qp_C') || ...
+                       strcmp(field, 'qp_lg') || ...
+                       strcmp(field, 'qp_ug') || ...
+                       strcmp(field, 'qp_lbx') || ...
+                       strcmp(field, 'qp_ubx') || ...
+                       strcmp(field, 'qp_zl') || ...
+                       strcmp(field, 'qp_zu') || ...
+                       strcmp(field, 'qp_Zl') || ...
+                       strcmp(field, 'qp_Zu')
+                        s_indx = sprintf(strcat('%0', num2str(lN), 'd'), obj.solver_options.N_horizon);
+                        key = strcat(field, '_', s_indx);
+                        val = obj.get(field, obj.solver_options.N_horizon);
+                        qp_data = setfield(qp_data, key, val);
+                    end
+                end
+
+                acados_folder = getenv('ACADOS_INSTALL_DIR');
+                addpath(fullfile(acados_folder, 'external', 'jsonlab'));
+
+                json_string = savejson('', qp_data, 'ForceRootName', 0);
+
+                fid = fopen(filename, 'w');
+                if fid == -1, error('dump_last_qp_to_json: Cannot create JSON file'); end
+                fwrite(fid, json_string, 'char');
+                fclose(fid);
+
+                disp(['stored qp from solver memory in ' filename]);
+            elseif strcmp(backend, 'C')
+                obj.t_ocp.dump_last_qp_to_json(filename, qp_type);
+                disp(['stored qp (type: ' qp_type ') with C backend from solver memory in ' filename]);
+            else
+                error('dump_last_qp_to_json: backend not recognized, use ''Matlab'' or ''C''.');
+            end
         end
 
 

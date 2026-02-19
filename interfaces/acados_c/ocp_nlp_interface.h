@@ -464,6 +464,15 @@ ACADOS_SYMBOL_EXPORT void ocp_nlp_get(ocp_nlp_solver *solver, const char *field,
 ACADOS_SYMBOL_EXPORT void ocp_nlp_set(ocp_nlp_solver *solver, int stage, const char *field, void *value);
 
 
+/// Dumps the last QP data to a JSON file.
+///
+/// \param config The solver config struct.
+/// \param dims The solver dims struct.
+/// \param solver The solver struct.
+/// \param filename The name of the output JSON file.
+/// \param qp_type String specifying which QP to dump: "default", "relaxed", or "scaled".
+ACADOS_SYMBOL_EXPORT void ocp_nlp_dump_last_qp_to_json(ocp_nlp_config *config, ocp_nlp_dims *dims, ocp_nlp_solver *solver, const char *filename, const char *qp_type);
+
 
 #ifdef __cplusplus
 } /* extern "C" */

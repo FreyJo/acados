@@ -321,6 +321,12 @@ class AcadosOcpSolver:
         self.__relaxed_qp_constraint_int_fields = {f'relaxed_{field}' for field in self.__qp_constraint_int_fields}
         self.__all_relaxed_qp_fields = self.__relaxed_qp_dynamics_fields | self.__relaxed_qp_cost_fields | self.__relaxed_qp_constraint_fields | self.__relaxed_qp_constraint_int_fields
 
+        self.__scaled_qp_dynamics_fields = {f'scaled_{field}' for field in self.__qp_dynamics_fields}
+        self.__scaled_qp_cost_fields = {f'scaled_{field}' for field in self.__qp_cost_fields}
+        self.__scaled_qp_constraint_fields = {f'scaled_{field}' for field in self.__qp_constraint_fields}
+        self.__scaled_qp_constraint_int_fields = {f'scaled_{field}' for field in self.__qp_constraint_int_fields}
+        self.__all_scaled_qp_fields = self.__scaled_qp_dynamics_fields | self.__scaled_qp_cost_fields | self.__scaled_qp_constraint_fields | self.__scaled_qp_constraint_int_fields
+
         # set arg and res types
         self.__acados_lib.ocp_nlp_dims_get_from_attr.argtypes = [c_void_p, c_void_p, c_void_p, c_int, c_char_p]
         self.__acados_lib.ocp_nlp_dims_get_from_attr.restype = c_int
@@ -373,6 +379,9 @@ class AcadosOcpSolver:
         self.__acados_lib.ocp_nlp_set_all.restype = None
 
         self.__acados_lib.ocp_nlp_out_set_values_to_zero.argtypes = [c_void_p, c_void_p, c_void_p]
+
+        self.__acados_lib.ocp_nlp_dump_last_qp_to_json.argtypes = [c_void_p, c_void_p, c_void_p, c_char_p, c_char_p]
+        self.__acados_lib.ocp_nlp_dump_last_qp_to_json.restype = None
 
         getattr(self.shared_lib, f"{self.name}_acados_solve").argtypes = [c_void_p]
         getattr(self.shared_lib, f"{self.name}_acados_solve").restype = c_int
@@ -1316,12 +1325,16 @@ class AcadosOcpSolver:
         return qp_diagnostic
 
 
-    def dump_last_qp_to_json(self, filename: str = '', overwrite=False):
+    def dump_last_qp_to_json(self, filename: str = '', overwrite=False, qp_type: str = 'default', backend: str = 'C'):
         """
         Dumps the latest QP data into a json file
 
         :param filename: if not set, use name + timestamp + '.json'
         :param overwrite: if false and filename exists add timestamp to filename
+        :param qp_type: string in ['default', 'relaxed', 'scaled'], which QP to dump, default is 'default'.
+            'relaxed' is only available for SQP_WITH_FEASIBLE_QP solver.
+            'scaled' is only available if QP scaling is used.
+        :param backend: string in ['Python', 'C'], whether to get the QP data from the Python function or to call the C function, default is 'C'.
         """
         if filename == '':
             filename = f'{self.name}_QP.json'
@@ -1332,13 +1345,29 @@ class AcadosOcpSolver:
                 filename = filename[:-5]
                 filename += datetime.now().strftime('%Y-%m-%d-%H:%M:%S.%f') + '.json'
 
-        # get QP data:
-        qp_data = self.get_last_qp()
-
-        # save
-        with open(filename, 'w') as f:
-            json.dump(qp_data, f, default=make_object_json_dumpable, indent=4, sort_keys=True)
-        print("stored qp from solver memory in ", os.path.join(os.getcwd(), filename))
+        if backend == 'Python':
+            # get QP data:
+            if qp_type == 'default':
+                qp_data = self.get_last_qp()
+            elif qp_type == 'relaxed':
+                qp_data = self.get_last_relaxed_qp()
+            elif qp_type == 'scaled':
+                qp_data = self.get_last_scaled_qp()
+            else:
+                raise ValueError(f"qp_type should be 'default', 'relaxed' or 'scaled', got {qp_type}")
+            # save
+            with open(filename, 'w') as f:
+                json.dump(qp_data, f, default=make_object_json_dumpable, indent=4, sort_keys=True)
+            print("stored qp from solver memory in ", os.path.join(os.getcwd(), filename))
+        elif backend == 'C':
+            self.__acados_lib.ocp_nlp_dump_last_qp_to_json(self.nlp_config,
+                                                           self.nlp_dims,
+                                                           self.nlp_solver,
+                                                           filename.encode('utf-8'),
+                                                           qp_type.encode('utf-8'))
+            print(f"\nDumping last QP (type: {qp_type}) to JSON file with C backend:", os.path.join(os.getcwd(), filename))
+        else:
+            raise ValueError("backend should be string with value 'Python' or 'C'")
 
     def get_last_qp(self) -> dict:
         """
@@ -1377,6 +1406,31 @@ class AcadosOcpSolver:
                 qp_data[f'{field}_{i:0{lN}d}'] = self.get_from_qp_in(i,field)
 
         for field in self.__relaxed_qp_constraint_fields | self.__relaxed_qp_cost_fields | self.__relaxed_qp_constraint_int_fields:
+            for i in range(self.N+1):
+                qp_data[f'{field}_{i:0{lN}d}'] = self.get_from_qp_in(i,field)
+
+        # remove empty fields
+        for k in list(qp_data.keys()):
+            if len(qp_data[k]) == 0:
+                del qp_data[k]
+
+        return qp_data
+
+
+    def get_last_scaled_qp(self) -> dict:
+        """
+        Returns the latest scaled QP data as a dict.
+        Only available if QP scaling is used (qpscaling_scale_objective or qpscaling_scale_constraints != NO_*_SCALING).
+        """
+        # get QP data:
+        qp_data = dict()
+
+        lN = len(str(self.N+1))
+        for field in self.__scaled_qp_dynamics_fields:
+            for i in range(self.N):
+                qp_data[f'{field}_{i:0{lN}d}'] = self.get_from_qp_in(i,field)
+
+        for field in self.__scaled_qp_constraint_fields | self.__scaled_qp_cost_fields | self.__scaled_qp_constraint_int_fields:
             for i in range(self.N+1):
                 qp_data[f'{field}_{i:0{lN}d}'] = self.get_from_qp_in(i,field)
 
@@ -2088,7 +2142,11 @@ class AcadosOcpSolver:
             raise ValueError("stage should be <= self.N")
         if field_ in self.__qp_dynamics_fields and stage_ >= self.N:
             raise ValueError(f"dynamics field {field_} not available at terminal stage")
-        if field_ not in self.__all_qp_fields | self.__all_relaxed_qp_fields:
+        if field_ in self.__relaxed_qp_dynamics_fields and stage_ >= self.N:
+            raise ValueError(f"dynamics field {field_} not available at terminal stage")
+        if field_ in self.__scaled_qp_dynamics_fields and stage_ >= self.N:
+            raise ValueError(f"dynamics field {field_} not available at terminal stage")
+        if field_ not in self.__all_qp_fields | self.__all_relaxed_qp_fields | self.__all_scaled_qp_fields:
             raise ValueError(f"field {field_} not supported.")
         if field_ in self.__qp_pc_hpipm_fields:
             if self.__solver_options["qp_solver"] != "PARTIAL_CONDENSING_HPIPM" or self.__solver_options["qp_solver_cond_N"] != self.N:
@@ -2104,6 +2162,8 @@ class AcadosOcpSolver:
                 raise ValueError(f"stage should be <= qp_solver_cond_N for partial condensing fields")
         if field_ in self.__all_relaxed_qp_fields and not self.__solver_options["nlp_solver_type"] == "SQP_WITH_FEASIBLE_QP":
             raise ValueError(f"field {field_} only works for SQP_WITH_FEASIBLE_QP nlp_solver_type.")
+        if field_ in self.__all_scaled_qp_fields and self.__solver_options["qpscaling_scale_objective"] == "NO_OBJECTIVE_SCALING" and self.__solver_options["qpscaling_scale_constraints"] == "NO_CONSTRAINT_SCALING":
+            raise ValueError(f"field {field_} only works when QP scaling is used (qpscaling_scale_objective or qpscaling_scale_constraints != NO_*_SCALING).")
 
         field = field_.encode('utf-8')
         stage = c_int(stage_)
@@ -2116,7 +2176,7 @@ class AcadosOcpSolver:
             self.nlp_dims, self.nlp_out, stage_, field, dims_data)
 
         # create output data
-        if field_ in self.__qp_constraint_int_fields | self.__relaxed_qp_constraint_int_fields:
+        if field_ in self.__qp_constraint_int_fields | self.__relaxed_qp_constraint_int_fields | self.__scaled_qp_constraint_int_fields:
             out = np.zeros((np.prod(dims),), dtype=np.int32, order="C")
         else:
             out = np.zeros((np.prod(dims),), dtype=np.float64, order="C")
