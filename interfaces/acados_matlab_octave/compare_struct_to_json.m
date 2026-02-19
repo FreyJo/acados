@@ -38,11 +38,15 @@ function mismatched_fields = compare_struct_to_json(ocp_struct, json_struct)
     %   mismatched_fields: cell array of field paths that do not match
 
     % remove keys that should not affect the comparison (same as hash_struct)
-    ignored_fields = {'external_function_files_model', 'external_function_files_ocp', 'json_loaded', 'n_global_data'};
+    ignored_fields = {'external_function_files_model', 'external_function_files_ocp', 'json_loaded'};
     for i = 1:length(ignored_fields)
         if isfield(ocp_struct, ignored_fields{i})
             ocp_struct = rmfield(ocp_struct, ignored_fields{i});
         end
+    end
+    % n_global_data is only set during code generation, not in make_consistent
+    if isfield(ocp_struct, 'dims') && isfield(ocp_struct.dims, 'n_global_data')
+        ocp_struct.dims = rmfield(ocp_struct.dims, 'n_global_data');
     end
 
     mismatched_fields = compare_recursive(ocp_struct, json_struct, '');
