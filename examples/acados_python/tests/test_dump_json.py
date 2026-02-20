@@ -70,22 +70,19 @@ def formulate_ocp(Tf: float = 1.0, N: int = 20)-> AcadosOcp:
 
     return ocp
 
-def main():
+def test_dump_default_qp():
+    """Test dumping the default QP from both Python and C backends and compare results."""
     N_horizon = 20
     Tf = 1.0
     ocp = formulate_ocp(Tf, N_horizon)
 
     initial_iterate = ocp.create_default_initial_iterate()
 
-    ## solve using acados
-    # create acados solver
     ocp_solver = AcadosOcpSolver(ocp, verbose=False)
     ocp_solver.set_iterate(initial_iterate)
-    # solve with acados
-    status = ocp_solver.solve()
+    ocp_solver.solve()
     ocp_solver.dump_last_qp_to_json(filename='last_qp_pendulum_python.json', overwrite=True, backend='Python')
     ocp_solver.dump_last_qp_to_json(filename='last_qp_pendulum_C.json', overwrite=True, backend='C')
-    #compare the two json files
 
     with open('last_qp_pendulum_python.json', 'r') as f:
         python_json = json.load(f)
@@ -95,6 +92,55 @@ def main():
     assert python_json.keys() == C_json.keys(), f"Key mismatch: {python_json.keys() ^ C_json.keys()}"
     for k in python_json:
         np.testing.assert_allclose(python_json[k], C_json[k], atol=1e-6, equal_nan=True, err_msg=f"Error in {k}")
+    print("test_dump_default_qp passed.")
+
+
+def test_dump_scaled_qp():
+    """Test dumping the scaled QP requires qpscaling to be active."""
+    N_horizon = 20
+    Tf = 1.0
+    ocp = formulate_ocp(Tf, N_horizon)
+    ocp.solver_options.qpscaling_scale_objective = 'OBJECTIVE_GERSHGORIN'
+    ocp.solver_options.qpscaling_scale_constraints = 'INF_NORM'
+
+    initial_iterate = ocp.create_default_initial_iterate()
+
+    ocp_solver = AcadosOcpSolver(ocp, verbose=False)
+    ocp_solver.set_iterate(initial_iterate)
+    ocp_solver.solve()
+    ocp_solver.dump_last_qp_to_json(filename='last_scaled_qp_C.json', overwrite=True, backend='C', qp_type='scaled')
+    print("test_dump_scaled_qp passed.")
+
+
+def test_dump_qp_type_validation():
+    """Test that invalid qp_type values raise appropriate errors."""
+    N_horizon = 20
+    Tf = 1.0
+    ocp = formulate_ocp(Tf, N_horizon)
+
+    ocp_solver = AcadosOcpSolver(ocp, verbose=False)
+    ocp_solver.solve()
+
+    # 'relaxed' requires SQP_WITH_FEASIBLE_QP
+    try:
+        ocp_solver.dump_last_qp_to_json(filename='should_not_exist.json', overwrite=True, backend='C', qp_type='relaxed')
+        raise AssertionError("Expected ValueError for qp_type='relaxed' with SQP solver")
+    except ValueError as e:
+        print(f"Correctly raised ValueError: {e}")
+
+    # 'scaled' requires qpscaling to be active
+    try:
+        ocp_solver.dump_last_qp_to_json(filename='should_not_exist.json', overwrite=True, backend='C', qp_type='scaled')
+        raise AssertionError("Expected ValueError for qp_type='scaled' without qpscaling")
+    except ValueError as e:
+        print(f"Correctly raised ValueError: {e}")
+    print("test_dump_qp_type_validation passed.")
+
+
+def main():
+    test_dump_default_qp()
+    test_dump_scaled_qp()
+    test_dump_qp_type_validation()
 
 if __name__ == "__main__":
     main()
