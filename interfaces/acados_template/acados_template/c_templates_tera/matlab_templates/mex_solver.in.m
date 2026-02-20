@@ -145,6 +145,16 @@ classdef {{ name }}_mex_solver < handle
             else
                 qp_type = 'default';
             end
+            {%- if solver_options.nlp_solver_type != "SQP_WITH_FEASIBLE_QP" %}
+            if strcmp(qp_type, 'relaxed')
+                error('qp_type=''relaxed'' requires nlp_solver_type=''SQP_WITH_FEASIBLE_QP''.');
+            end
+            {%- endif %}
+            {%- if solver_options.qpscaling_scale_constraints == "NO_CONSTRAINT_SCALING" and solver_options.qpscaling_scale_objective == "NO_OBJECTIVE_SCALING" %}
+            if strcmp(qp_type, 'scaled')
+                error('qp_type=''scaled'' requires qpscaling to be active.');
+            end
+            {%- endif %}
             ocp_dump_qp(obj.C_ocp, filename, qp_type);
         end
 

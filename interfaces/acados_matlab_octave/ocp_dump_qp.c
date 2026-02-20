@@ -60,10 +60,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     mxGetString(prhs[1], filename, sizeof(filename));
 
-    if (nrhs >= 3)
-        mxGetString(prhs[2], qp_type, sizeof(qp_type));
-    else
-        snprintf(qp_type, sizeof(qp_type), "default");
+    mxGetString(prhs[2], qp_type, sizeof(qp_type));
 
     ocp_nlp_dump_last_qp_to_json(config, dims, solver, filename, qp_type);
 

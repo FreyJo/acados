@@ -1425,6 +1425,13 @@ class AcadosOcpSolver:
         :param backend: string in ['Python', 'C'], whether to get the QP data from the Python function or to call the C function, default is 'C'.
         :param qp_type: string in ['default', 'relaxed', 'scaled'], type of QP to dump; 'relaxed' requires SQP_WITH_FEASIBLE_QP solver, 'scaled' requires qpscaling option, default is 'default'.
         """
+        if qp_type == 'relaxed' and self.__solver_options['nlp_solver_type'] != 'SQP_WITH_FEASIBLE_QP':
+            raise ValueError("qp_type='relaxed' requires nlp_solver_type='SQP_WITH_FEASIBLE_QP'.")
+        if qp_type == 'scaled' and \
+                self.__solver_options['qpscaling_scale_constraints'] == 'NO_CONSTRAINT_SCALING' and \
+                self.__solver_options['qpscaling_scale_objective'] == 'NO_OBJECTIVE_SCALING':
+            raise ValueError("qp_type='scaled' requires qpscaling to be active, i.e., qpscaling_scale_constraints != 'NO_CONSTRAINT_SCALING' or qpscaling_scale_objective != 'NO_OBJECTIVE_SCALING'.")
+
         if filename == '':
             filename = f'{self.name}_QP.json'
 
