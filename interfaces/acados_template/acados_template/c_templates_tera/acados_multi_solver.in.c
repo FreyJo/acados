@@ -2393,8 +2393,11 @@ void {{ name }}_acados_create_set_opts({{ name }}_solver_capsule* capsule)
     double reg_min_epsilon = {{ solver_options.reg_min_epsilon }};
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "reg_min_epsilon", &reg_min_epsilon);
 
-    bool reg_adaptive_eps = {{ solver_options.reg_adaptive_eps }};
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "reg_adaptive_eps", &reg_adaptive_eps);
+    bool reg_adaptive_eps_cond = {{ solver_options.reg_adaptive_eps_cond }};
+    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "reg_adaptive_eps_cond", &reg_adaptive_eps_cond);
+
+    bool reg_use_min_pos_eig = {{ solver_options.reg_use_min_pos_eig }};
+    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "reg_use_min_pos_eig", &reg_use_min_pos_eig);
 {%- endif %}
 
     int nlp_solver_ext_qp_res = {{ solver_options.nlp_solver_ext_qp_res }};

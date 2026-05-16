@@ -200,7 +200,7 @@ void acados_mirror(int dim, double *A, double *V, double *d, double *e, double e
     acados_reconstruct_A(dim, A, V, d);
 }
 
-void acados_mirror_adaptive_eps(int dim, double *A, double *V, double *d, double *e, double max_cond_block, double min_eps)
+void acados_mirror_adaptive_eps_cond(int dim, double *A, double *V, double *d, double *e, double max_cond_block, double min_eps)
 {
     int i;
     acados_eigen_decomposition(dim, A, V, d, e);
@@ -244,14 +244,14 @@ void acados_project(int dim, double *A, double *V, double *d, double *e, double 
 }
 
 
-void acados_project_adaptive_eps(int dim, double *A, double *V, double *d, double *e, double max_cond_block, double min_eps)
+void acados_project_adaptive_eps_cond(int dim, double *A, double *V, double *d, double *e, double max_cond_block, double min_eps)
 {
     int i;
     acados_eigen_decomposition(dim, A, V, d, e);
     double max_eig = 0.0;
     double eps;
 
-    // compute max and min eigenvalues
+    // compute max eigenvalue
     for (i=0; i < dim; i++)
     {
         max_eig = MAX(max_eig, d[i]);
@@ -267,3 +267,33 @@ void acados_project_adaptive_eps(int dim, double *A, double *V, double *d, doubl
 
     acados_reconstruct_A(dim, A, V, d);
 }
+
+
+void acados_project_min_pos_eig(int dim, double *A, double *V, double *d, double *e, double min_eps)
+{
+    int i;
+    acados_eigen_decomposition(dim, A, V, d, e);
+    double min_pos_eig = ACADOS_INFTY;
+    double eps;
+
+    // compute smallest positive eigenvalue
+    for (i=0; i < dim; i++)
+    {
+        if (d[i] > 0)
+        {
+            min_pos_eig = MIN(min_pos_eig, d[i]);
+        }
+    }
+    eps = MAX(min_pos_eig, min_eps);
+
+    // project
+    for (i = 0; i < dim; i++)
+    {
+        if (d[i] < eps)
+            d[i] = eps;
+    }
+
+    acados_reconstruct_A(dim, A, V, d);
+}
+
+

@@ -72,7 +72,7 @@ def export_parametric_ocp() -> AcadosOcp:
     ocp.solver_options.nlp_solver_ext_qp_res = 1
     ocp.solver_options.nlp_solver_max_iter = 2
     ocp.solver_options.eval_residual_at_max_iter = False
-    ocp.solver_options.reg_adaptive_eps = True
+    ocp.solver_options.reg_adaptive_eps_cond = True
     ocp.solver_options.reg_max_cond_block = 1e3
     ocp.solver_options.reg_min_epsilon = 1e-7
 

@@ -65,7 +65,7 @@ typedef struct
 {
     double epsilon;
     double min_epsilon;
-    bool adaptive_eps;
+    bool adaptive_eps_cond;
     double max_cond_block;
 } ocp_nlp_reg_mirror_opts;
 

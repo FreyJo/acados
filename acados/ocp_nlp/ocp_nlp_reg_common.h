@@ -111,10 +111,10 @@ void *ocp_nlp_reg_config_assign(void *raw_memory);
 /* regularization help functions */
 void acados_reconstruct_A(int dim, double *A, double *V, double *d);
 void acados_mirror(int dim, double *A, double *V, double *d, double *e, double epsilon);
-void acados_mirror_adaptive_eps(int dim, double *A, double *V, double *d, double *e, double max_cond_block, double min_eps);
+void acados_mirror_adaptive_eps_cond(int dim, double *A, double *V, double *d, double *e, double max_cond_block, double min_eps);
 void acados_project(int dim, double *A, double *V, double *d, double *e, double epsilon);
-void acados_project_adaptive_eps(int dim, double *A, double *V, double *d, double *e, double max_cond_block, double min_eps);
-
+void acados_project_adaptive_eps_cond(int dim, double *A, double *V, double *d, double *e, double max_cond_block, double min_eps);
+void acados_project_min_pos_eig(int dim, double *A, double *V, double *d, double *e, double min_eps);
 
 #ifdef __cplusplus
 }

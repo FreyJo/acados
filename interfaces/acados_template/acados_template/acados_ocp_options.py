@@ -91,7 +91,8 @@ class AcadosOcpOptions:
         self.__regularize_method = 'NO_REGULARIZE'
         self.__reg_epsilon = 1e-4
         self.__reg_max_cond_block = 1e7
-        self.__reg_adaptive_eps = False
+        self.__reg_adaptive_eps_cond = False
+        self.__reg_use_min_pos_eig = False
         self.__reg_min_epsilon = 1e-8
         self.__exact_hess_cost = 1
         self.__exact_hess_dyn = 1
@@ -1591,7 +1592,7 @@ class AcadosOcpOptions:
 
     @property
     def reg_max_cond_block(self):
-        """Maximum condition number of each Hessian block after regularization with regularize_method in ['PROJECT', 'MIRROR'] and reg_adaptive_eps = True
+        """Maximum condition number of each Hessian block after regularization with regularize_method in ['PROJECT', 'MIRROR'] and reg_adaptive_eps_cond = True
 
         Type: float
         Default: 1e7
@@ -1605,7 +1606,7 @@ class AcadosOcpOptions:
         self.__reg_max_cond_block = reg_max_cond_block
 
     @property
-    def reg_adaptive_eps(self):
+    def reg_adaptive_eps_cond(self):
         """Determines if epsilon is chosen adaptively in regularization
         used if regularize_method in ['PROJECT', 'MIRROR']
 
@@ -1615,17 +1616,34 @@ class AcadosOcpOptions:
         Type: bool
         Default: False
         """
-        return self.__reg_adaptive_eps
+        return self.__reg_adaptive_eps_cond
 
-    @reg_adaptive_eps.setter
-    def reg_adaptive_eps(self, reg_adaptive_eps):
-        if not isinstance(reg_adaptive_eps, bool):
-            raise TypeError(f'Invalid reg_adaptive_eps value, expected bool, got {reg_adaptive_eps}')
-        self.__reg_adaptive_eps = reg_adaptive_eps
+    @reg_adaptive_eps_cond.setter
+    def reg_adaptive_eps_cond(self, reg_adaptive_eps_cond):
+        if not isinstance(reg_adaptive_eps_cond, bool):
+            raise TypeError(f'Invalid reg_adaptive_eps_cond value, expected bool, got {reg_adaptive_eps_cond}')
+        self.__reg_adaptive_eps_cond = reg_adaptive_eps_cond
+
+    @property
+    def reg_use_min_pos_eig(self):
+        """
+        Determines if PROJECT regularization uses the smallest positive eigenvalue as epsilon.
+        For each block, effective reg_epsilon is computed as max(reg_min_epsilon, min_pos_eig_before_reg)
+
+        Type: bool
+        Default: False
+        """
+        return self.__reg_use_min_pos_eig
+
+    @reg_use_min_pos_eig.setter
+    def reg_use_min_pos_eig(self, reg_use_min_pos_eig):
+        if not isinstance(reg_use_min_pos_eig, bool):
+            raise TypeError(f'Invalid reg_use_min_pos_eig value, expected bool, got {reg_use_min_pos_eig}')
+        self.__reg_use_min_pos_eig = reg_use_min_pos_eig
 
     @property
     def reg_min_epsilon(self):
-        """Minimum value for epsilon if regularize_method in ['PROJECT', 'MIRROR'] is used with reg_adaptive_eps.
+        """Minimum value for epsilon if regularize_method in ['PROJECT', 'MIRROR'] is used with reg_adaptive_eps_cond or 'PROJECT' with reg_use_min_pos_eig.
 
         Type: float
         Default: 1e-8
