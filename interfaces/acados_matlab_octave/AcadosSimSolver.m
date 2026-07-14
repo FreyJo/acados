@@ -58,7 +58,8 @@ classdef AcadosSimSolver < handle
             % - compile_interface: can be [], true or false. If [], the interface is compiled if it does not exist.
             % - output_dir: path to the directory where the MEX interface is compiled
             % - verbose: boolean, if true, print verbose output during compilation
-            % - force_cmake: force use of CMake instead of the default Make build system on Linux
+            % - force_make: force use of Make instead of the default CMake build system. Make only works on Linux.
+
             obj.sim = sim;
 
             % optional arguments
@@ -71,7 +72,7 @@ classdef AcadosSimSolver < handle
                     'compile_interface', [], ...
                     'output_dir', fullfile(pwd, 'build'), ...
                     'verbose', false, ...
-                    'force_cmake', false);
+                    'force_make', false);
             if length(varargin) > 0
                 solver_creation_opts = varargin{1};
                 % set non-specified opts to default
@@ -328,10 +329,13 @@ classdef AcadosSimSolver < handle
             return_dir = pwd;
             cd(export_dir);
 
-            force_cmake = obj.solver_creation_opts.force_cmake;
+            force_make = obj.solver_creation_opts.force_make;
             verbose = obj.solver_creation_opts.verbose;
 
-            if isunix && ~force_cmake
+            if force_make
+                if ~isunix()
+                    warning('Using Make build system. Not expected to work on Windows.')
+                end
                 [ status, result ] = system('make sim_shared_lib');
                 if status
                     cd(return_dir);
