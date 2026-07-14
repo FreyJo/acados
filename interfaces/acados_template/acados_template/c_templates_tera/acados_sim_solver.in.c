@@ -38,6 +38,7 @@
 // standard
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h> // memcpy
 
 {%- if solver_options.with_batch_functionality %}
 // openmp
@@ -58,6 +59,25 @@
 #include "{{ model.name }}_model/{{ model.name }}_model.h"
 #include "acados_sim_solver_{{ model.name }}.h"
 
+
+{%- set_global sparsity_threshold = 0.1 -%}
+
+{% if dims.np > 0 %}
+
+{%- set_global parameter_values_nnz = 0 -%}
+{%- for item in parameter_values -%}
+    {%- if item != 0.0 -%}
+        {%- set_global parameter_values_nnz = parameter_values_nnz + 1 -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{% if parameter_values_nnz / dims.np > sparsity_threshold %}
+// initial value of stagewise parameters
+static const double p_init[] = {
+    {%- for item in parameter_values -%}{{ item }}, {%- endfor -%}
+};
+{%- endif %}
+{%- endif %}{# if dims.np #}
 
 // ** solver data **
 
@@ -99,7 +119,7 @@ int {{ model.name }}_acados_sim_create({{ model.name }}_sim_solver_capsule * cap
     capsule->sim_impl_dae_fun_jac_x_xdot_z = (external_function_param_{{ model.dyn_ext_fun_type }} *) malloc(sizeof(external_function_param_{{ model.dyn_ext_fun_type }}));
     capsule->sim_impl_dae_jac_x_xdot_u_z = (external_function_param_{{ model.dyn_ext_fun_type }} *) malloc(sizeof(external_function_param_{{ model.dyn_ext_fun_type }}));
 
-    {% if solver_options.sens_forw_p %}
+    {% if code_gen_options.sens_forw_p %}
         capsule->sim_impl_dae_jac_p = (external_function_param_{{ model.dyn_ext_fun_type }} *) malloc(sizeof(external_function_param_{{ model.dyn_ext_fun_type }}));
     {% else %}
         capsule->sim_impl_dae_jac_p = NULL;
@@ -131,7 +151,7 @@ int {{ model.name }}_acados_sim_create({{ model.name }}_sim_solver_capsule * cap
     capsule->sim_impl_dae_jac_x_xdot_u_z->casadi_n_out = &{{ model.name }}_impl_dae_jac_x_xdot_u_z_n_out;
     external_function_param_{{ model.dyn_ext_fun_type }}_create(capsule->sim_impl_dae_jac_x_xdot_u_z, np, &ext_fun_opts);
 
-    {% if solver_options.sens_forw_p %}
+    {% if code_gen_options.sens_forw_p %}
         capsule->sim_impl_dae_jac_p->casadi_fun = &{{ model.name }}_impl_dae_jac_p;
         capsule->sim_impl_dae_jac_p->casadi_work = &{{ model.name }}_impl_dae_jac_p_work;
         capsule->sim_impl_dae_jac_p->casadi_sparsity_in = &{{ model.name }}_impl_dae_jac_p_sparsity_in;
@@ -163,7 +183,7 @@ int {{ model.name }}_acados_sim_create({{ model.name }}_sim_solver_capsule * cap
     capsule->sim_expl_vde_forw = (external_function_param_{{ model.dyn_ext_fun_type }} *) malloc(sizeof(external_function_param_{{ model.dyn_ext_fun_type }}));
     capsule->sim_vde_adj_casadi = (external_function_param_{{ model.dyn_ext_fun_type }} *) malloc(sizeof(external_function_param_{{ model.dyn_ext_fun_type }}));
     capsule->sim_expl_ode_fun_casadi = (external_function_param_{{ model.dyn_ext_fun_type }} *) malloc(sizeof(external_function_param_{{ model.dyn_ext_fun_type }}));
-    {% if solver_options.sens_forw_p %}
+    {% if code_gen_options.sens_forw_p %}
         capsule->sim_expl_vde_forw_p = (external_function_param_{{ model.dyn_ext_fun_type }} *) malloc(sizeof(external_function_param_{{ model.dyn_ext_fun_type }}));
     {% else %}
         capsule->sim_expl_vde_forw_p = NULL;
@@ -193,7 +213,7 @@ int {{ model.name }}_acados_sim_create({{ model.name }}_sim_solver_capsule * cap
     capsule->sim_expl_ode_fun_casadi->casadi_work = &{{ model.name }}_expl_ode_fun_work;
     external_function_param_{{ model.dyn_ext_fun_type }}_create(capsule->sim_expl_ode_fun_casadi, np, &ext_fun_opts);
 
-    {% if solver_options.sens_forw_p %}
+    {% if code_gen_options.sens_forw_p %}
         capsule->sim_expl_vde_forw_p->casadi_fun = &{{ model.name }}_expl_vde_forw_p;
         capsule->sim_expl_vde_forw_p->casadi_n_in = &{{ model.name }}_expl_vde_forw_p_n_in;
         capsule->sim_expl_vde_forw_p->casadi_n_out = &{{ model.name }}_expl_vde_forw_p_n_out;
@@ -327,7 +347,7 @@ int {{ model.name }}_acados_sim_create({{ model.name }}_sim_solver_capsule * cap
     sim_opts_set({{ model.name }}_sim_config, {{ model.name }}_sim_opts, "sens_hess", &tmp_bool);
     tmp_bool = {{ solver_options.output_z }};
     sim_opts_set({{ model.name }}_sim_config, {{ model.name }}_sim_opts, "output_z", &tmp_bool);
-    tmp_bool = {{ solver_options.sens_forw_p }};
+    tmp_bool = {{ code_gen_options.sens_forw_p }};
     sim_opts_set({{ model.name }}_sim_config, {{ model.name }}_sim_opts, "sens_forw_p", &tmp_bool);
 
 {% else %} {# num_stages and num_steps of first shooting interval are used #}
@@ -356,7 +376,7 @@ int {{ model.name }}_acados_sim_create({{ model.name }}_sim_solver_capsule * cap
                  "impl_ode_fun_jac_x_xdot", capsule->sim_impl_dae_fun_jac_x_xdot_z);
     {{ model.name }}_sim_config->model_set({{ model.name }}_sim_in->model,
                  "impl_ode_jac_x_xdot_u", capsule->sim_impl_dae_jac_x_xdot_u_z);
-    {% if solver_options.sens_forw_p %}
+    {% if code_gen_options.sens_forw_p %}
         {{ model.name }}_sim_config->model_set({{ model.name }}_sim_in->model,
                      "impl_dae_jac_p", capsule->sim_impl_dae_jac_p);
     {% endif %}
@@ -372,7 +392,7 @@ int {{ model.name }}_acados_sim_create({{ model.name }}_sim_solver_capsule * cap
                  "expl_vde_adj", capsule->sim_vde_adj_casadi);
     {{ model.name }}_sim_config->model_set({{ model.name }}_sim_in->model,
                  "expl_ode_fun", capsule->sim_expl_ode_fun_casadi);
-    {% if solver_options.sens_forw_p %}
+    {% if code_gen_options.sens_forw_p %}
         {{ model.name }}_sim_config->model_set({{ model.name }}_sim_in->model,
                      "expl_vde_forw_p", capsule->sim_expl_vde_forw_p);
     {%- endif %}
@@ -406,13 +426,17 @@ int {{ model.name }}_acados_sim_create({{ model.name }}_sim_solver_capsule * cap
 
 {% if dims.np > 0 %}
     /* initialize parameter values */
+    {% if parameter_values_nnz / dims.np > sparsity_threshold %}
+    double* p = malloc(np*sizeof(double));
+    memcpy(p, p_init, np*sizeof(double));
+    {%- else %}
     double* p = calloc(np, sizeof(double));
-    {% for item in parameter_values %}
+    {%- for item in parameter_values %}
         {%- if item != 0 %}
     p[{{ loop.index0 }}] = {{ item }};
         {%- endif %}
     {%- endfor %}
-
+    {%- endif %}
     {{ model.name }}_acados_sim_update_params(capsule, p, np);
     free(p);
 {% endif %}{# if dims.np #}
@@ -501,13 +525,13 @@ int {{ model.name }}_acados_sim_free({{ model.name }}_sim_solver_capsule *capsul
     external_function_param_{{ model.dyn_ext_fun_type }}_free(capsule->sim_impl_dae_fun);
     external_function_param_{{ model.dyn_ext_fun_type }}_free(capsule->sim_impl_dae_fun_jac_x_xdot_z);
     external_function_param_{{ model.dyn_ext_fun_type }}_free(capsule->sim_impl_dae_jac_x_xdot_u_z);
-    {% if solver_options.sens_forw_p %}
+    {% if code_gen_options.sens_forw_p %}
         external_function_param_{{ model.dyn_ext_fun_type }}_free(capsule->sim_impl_dae_jac_p);
     {% endif %}
     free(capsule->sim_impl_dae_fun);
     free(capsule->sim_impl_dae_fun_jac_x_xdot_z);
     free(capsule->sim_impl_dae_jac_x_xdot_u_z);
-    {% if solver_options.sens_forw_p %}
+    {% if code_gen_options.sens_forw_p %}
         free(capsule->sim_impl_dae_jac_p);
     {% endif %}
 {%- if hessian_approx == "EXACT" %}
@@ -518,13 +542,13 @@ int {{ model.name }}_acados_sim_free({{ model.name }}_sim_solver_capsule *capsul
     external_function_param_{{ model.dyn_ext_fun_type }}_free(capsule->sim_expl_vde_forw);
     external_function_param_{{ model.dyn_ext_fun_type }}_free(capsule->sim_vde_adj_casadi);
     external_function_param_{{ model.dyn_ext_fun_type }}_free(capsule->sim_expl_ode_fun_casadi);
-    {% if solver_options.sens_forw_p %}
+    {% if code_gen_options.sens_forw_p %}
         external_function_param_{{ model.dyn_ext_fun_type }}_free(capsule->sim_expl_vde_forw_p);
     {%- endif %}
     free(capsule->sim_expl_vde_forw);
     free(capsule->sim_vde_adj_casadi);
     free(capsule->sim_expl_ode_fun_casadi);
-    {% if solver_options.sens_forw_p %}
+    {% if code_gen_options.sens_forw_p %}
         free(capsule->sim_expl_vde_forw_p);
     {%- endif %}
 {%- if hessian_approx == "EXACT" %}
@@ -567,7 +591,7 @@ int {{ model.name }}_acados_sim_update_params({{ model.name }}_sim_solver_capsul
     capsule->sim_expl_vde_forw[0].set_param(capsule->sim_expl_vde_forw, p);
     capsule->sim_vde_adj_casadi[0].set_param(capsule->sim_vde_adj_casadi, p);
     capsule->sim_expl_ode_fun_casadi[0].set_param(capsule->sim_expl_ode_fun_casadi, p);
-    {% if solver_options.sens_forw_p %}
+    {% if code_gen_options.sens_forw_p %}
         capsule->sim_expl_vde_forw_p[0].set_param(capsule->sim_expl_vde_forw_p, p);
     {%- endif %}
 {%- if hessian_approx == "EXACT" %}
@@ -577,7 +601,7 @@ int {{ model.name }}_acados_sim_update_params({{ model.name }}_sim_solver_capsul
     capsule->sim_impl_dae_fun[0].set_param(capsule->sim_impl_dae_fun, p);
     capsule->sim_impl_dae_fun_jac_x_xdot_z[0].set_param(capsule->sim_impl_dae_fun_jac_x_xdot_z, p);
     capsule->sim_impl_dae_jac_x_xdot_u_z[0].set_param(capsule->sim_impl_dae_jac_x_xdot_u_z, p);
-    {% if solver_options.sens_forw_p %}
+    {% if code_gen_options.sens_forw_p %}
         capsule->sim_impl_dae_jac_p[0].set_param(capsule->sim_impl_dae_jac_p, p);
     {% endif %}
 {%- if hessian_approx == "EXACT" %}

@@ -285,10 +285,6 @@ class AcadosOcpBatchSolver():
                 self.__ocp_solvers[0].nlp_config, self.__ocp_solvers[0].nlp_dims, self.__ocp_solvers[0].nlp_out, 0, field)
 
             # compute jacobian wrt params
-            t0 = time.time()
-            getattr(self.__shared_lib, f"{self.__name}_acados_batch_eval_params_jac")(self.__ocp_solvers_pointer, n_batch, self.__num_threads_in_batch_solve)
-            self.time_solution_sens_lin = time.time() - t0
-
             t1 = time.time()
 
             grad_p = np.zeros((n_batch, n_seeds, np_global), order="C", dtype=np.float64)
@@ -439,12 +435,14 @@ class AcadosOcpBatchSolver():
         self.set_flat("lam", iterate.lam)
     
     def _create_missing_solvers(self, n_batch: int):
+
         n_batch_max_old = len(self.ocp_solvers)
         n_missing = n_batch - n_batch_max_old
+
         if n_missing > 0:
             template_solver = self.ocp_solvers[0]
             self.__ocp_solvers.extend([AcadosOcpSolver(template_solver.acados_ocp,
-                                                    json_file=template_solver.acados_ocp.code_gen_opts.json_file,
+                                                    json_file=template_solver.acados_ocp.code_gen_options.json_file,
                                                     build=False,
                                                     generate=False,
                                                     verbose=self.verbose if n==0 else False,
@@ -503,7 +501,7 @@ class AcadosOcpBatchSolver():
         for i, solver in enumerate(self.ocp_solvers[:n_batch]):
             solver.set_p_global_and_precompute_dependencies(data_[i])
 
-    def reset(self, n_batch: Optional[int] = None):
+    def reset(self, n_batch: Optional[int] = None, reset_qp_solver_mem: bool = True, reset_numerical_values: bool = False, reset_solver_options: bool = False, reset_x_to_x0_bar: bool = False):
         """
         Resets the first n_batch solvers.
         """
@@ -516,7 +514,7 @@ class AcadosOcpBatchSolver():
             self._create_missing_solvers(n_batch)
 
         for solver in self.ocp_solvers[:n_batch]:
-            solver.reset()
+            solver.reset(reset_qp_solver_mem=reset_qp_solver_mem, reset_numerical_values=reset_numerical_values, reset_solver_options=reset_solver_options, reset_x_to_x0_bar=reset_x_to_x0_bar)
 
     def set(self,  stage_: int, field_: str, data_: np.ndarray):
         """

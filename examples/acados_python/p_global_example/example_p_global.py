@@ -217,7 +217,7 @@ def main(use_cython=False, lut=True, use_p_global=True, blazing=True, with_matla
     ocp.solver_options.integrator_type = 'ERK'
     ocp.solver_options.print_level = 0
     ocp.solver_options.nlp_solver_type = 'SQP_RTI'
-    ocp.solver_options.ext_fun_compile_flags += ' -I' + ca.GlobalOptions.getCasadiIncludePath() + ' -ffast-math -march=native'
+    ocp.code_gen_options.ext_fun_compile_flags += ' -I' + ca.GlobalOptions.getCasadiIncludePath() + ' -ffast-math -march=native'
     if code_export_directory is not None:
         ocp.code_export_directory = code_export_directory
 
@@ -228,6 +228,7 @@ def main(use_cython=False, lut=True, use_p_global=True, blazing=True, with_matla
     # create ocp solver
     print(f"Creating ocp solver with p_global = {ocp.model.p_global}, p = {ocp.model.p}")
     if with_matlab_templates:
+        # TODO: proper multi-phase options.
         ocp.simulink_opts = get_simulink_default_opts()
     solver_json = 'acados_ocp_' + ocp.model.name + '.json'
     if use_cython:
@@ -244,7 +245,7 @@ def main(use_cython=False, lut=True, use_p_global=True, blazing=True, with_matla
         ocp_solver.set_p_global_and_precompute_dependencies(p_global_values)
         t_elapsed = time.time() - t_start
 
-        print(f"Precompute {t_elapsed}.")
+        print(f"Precompute: {1000*t_elapsed:.3f} ms.")
 
     timing = 0
     for i in range(20):
@@ -294,7 +295,7 @@ def main_mocp(lut=True, use_p_global=True, with_matlab_templates=False):
 
     if lut:
         # NOTE: these additional flags are required for code generation of CasADi functions using ca.blazing_spline
-        mocp.solver_options.ext_fun_compile_flags = '-I' + ca.GlobalOptions.getCasadiIncludePath() + ' -ffast-math -march=native'
+        mocp.code_gen_options.ext_fun_compile_flags = '-I' + ca.GlobalOptions.getCasadiIncludePath() + ' -ffast-math -march=native'
 
     # set prediction horizon
     mocp.solver_options.tf = Tf
@@ -320,7 +321,7 @@ def main_mocp(lut=True, use_p_global=True, with_matlab_templates=False):
         residuals+= list(ocp_solver.get_residuals(recompute=True))
         timing += ocp_solver.get_stats('time_lin')
 
-    return residuals, timing, mocp.code_gen_opts.json_file
+    return residuals, timing, mocp.code_gen_options.json_file
 
 def main_mocp_json_load(json_file: str):
     warnings.filterwarnings("ignore", message=".*not in dictionary.*", category=UserWarning)
@@ -371,8 +372,9 @@ if __name__ == "__main__":
     np.testing.assert_almost_equal(ref_nolut, res_mocp_nolut_p)
     np.testing.assert_almost_equal(ref_nolut, res_mocp_nolut_p_global)
 
+    with_matlab_templates = False # TODO: set this to True, when multiphase simulink is done properly in python.
     res_mocp_lut_p, _, mocp_json_file = main_mocp(use_p_global=False, lut=True)
-    res_mocp_lut_p_global, _, mocp_json_file = main_mocp(use_p_global=True, lut=True, with_matlab_templates=True)
+    res_mocp_lut_p_global, _, mocp_json_file = main_mocp(use_p_global=True, lut=True, with_matlab_templates=with_matlab_templates)
     res_mocp_load, _ = main_mocp_json_load(mocp_json_file)
 
     np.testing.assert_almost_equal(res_mocp_load, res_mocp_lut_p_global)
@@ -383,4 +385,4 @@ if __name__ == "__main__":
         np.testing.assert_almost_equal(ref_lut, ref_nolut)
 
     # to test transfer to MATLAB/Octave
-    res_lut, t_lin_lut = main(use_cython=False, use_p_global=True, lut=True, with_matlab_templates=True, code_export_directory='c_generated_code_single_phase')
+    res_lut, t_lin_lut = main(use_cython=False, use_p_global=True, lut=True, with_matlab_templates=with_matlab_templates, code_export_directory='c_generated_code_single_phase')

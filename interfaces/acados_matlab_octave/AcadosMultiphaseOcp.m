@@ -57,8 +57,8 @@ classdef AcadosMultiphaseOcp < handle
         external_function_files_ocp
         external_function_files_model
 
-        code_gen_opts
-        % moved to code_gen_opts, kept for backward compatibility, remove in future
+        code_gen_options
+        % moved to code_gen_options, kept for backward compatibility, remove in future
         code_export_directory
         json_file
         % meta
@@ -92,7 +92,7 @@ classdef AcadosMultiphaseOcp < handle
             obj.solver_options.N_horizon = obj.N_horizon; % NOTE: to not change options when making ocp consistent
 
             obj.mocp_opts = AcadosMultiphaseOptions();
-            obj.code_gen_opts = AcadosCodeGenOpts();
+            obj.code_gen_options = AcadosCodeGenOptions();
 
             obj.parameter_values = cell(n_phases, 1);
             obj.p_global_values = [];
@@ -134,31 +134,61 @@ classdef AcadosMultiphaseOcp < handle
         end
 
         function make_consistent(self)
-            % migrate deprecated top-level fields into code_gen_opts (backward compatibility)
+            % migrate deprecated top-level fields into code_gen_options (backward compatibility)
             deprecated_fields = {'json_file', 'code_export_directory'};
 
             for i = 1:length(deprecated_fields)
                 fld = deprecated_fields{i};
 
                 old_val = self.(fld);
-                new_val = self.code_gen_opts.(fld);
+                new_val = self.code_gen_options.(fld);
 
                 if ~isempty(old_val)
-                    warning(['AcadosMultiphaseOcp.', fld, ' is deprecated, please use AcadosMultiphaseOcp.code_gen_opts.', fld, '.']);
+                    warning(['AcadosMultiphaseOcp.', fld, ' is deprecated, please use AcadosMultiphaseOcp.code_gen_options.', fld, '.']);
                     if ~isempty(new_val)
-                        warning(['Both AcadosMultiphaseOcp.', fld, ' and AcadosMultiphaseOcp.code_gen_opts.', fld, ' are set, using AcadosMultiphaseOcp.code_gen_opts.', fld, '.']);
+                        warning(['Both AcadosMultiphaseOcp.', fld, ' and AcadosMultiphaseOcp.code_gen_options.', fld, ' are set, using AcadosMultiphaseOcp.code_gen_options.', fld, '.']);
                     else
-                        self.code_gen_opts.(fld) = old_val;
+                        self.code_gen_options.(fld) = old_val;
                     end
                 end
             end
 
+            code_gen_options_defaults = AcadosCodeGenOptions();
+            deprecated_fields_solver_opts = {...
+                'ext_fun_compile_flags', ...
+                'ext_fun_expand_dyn', ...
+                'ext_fun_expand_cost', ...
+                'ext_fun_expand_constr', ...
+                'ext_fun_expand_precompute', ...
+                'model_external_shared_lib_dir', ...
+                'model_external_shared_lib_name', ...
+                'with_value_sens_wrt_params', ...
+                'sens_forw_p'};
+
+            for i = 1:length(deprecated_fields_solver_opts)
+                fld = deprecated_fields_solver_opts{i};
+
+                old_val = self.solver_options.(fld);
+                new_val = self.code_gen_options.(fld);
+                default_val = code_gen_options_defaults.(fld);
+
+                if ~(isempty(old_val) && isempty(default_val))
+                    non_default_old_val = ~isequal(old_val, default_val);
+                    non_default_new_val = ~isequal(new_val, default_val);
+                    if non_default_old_val && non_default_new_val
+                        warning(['Both AcadosOcpOptions.', fld, ' and AcadosOcp.code_gen_options.', fld, ' are set, using AcadosOcp.code_gen_options.', fld, '.']);
+                    elseif non_default_old_val
+                        self.code_gen_options.(fld) = old_val;
+                    end
+                end
+            end
             % set default json file name if not set
-            if isempty(self.code_gen_opts.json_file)
-                self.code_gen_opts.json_file = [self.name, '_mocp.json'];
+            if isempty(self.code_gen_options.json_file)
+                self.code_gen_options.json_file = [self.name, '_mocp.json'];
             end
 
-            self.code_gen_opts.make_consistent();
+            self.code_gen_options.generate_hess = strcmp(self.solver_options.hessian_approx, 'EXACT');
+            self.code_gen_options.make_consistent();
 
             % check options
             self.mocp_opts.make_consistent(self.solver_options, self.n_phases);
@@ -212,6 +242,11 @@ classdef AcadosMultiphaseOcp < handle
                 end
                 disp('new model names are');
                 disp(model_name_list);
+            end
+
+            % p_global_values should be column vector
+            if ~isempty(self.p_global_values)
+                self.p_global_values = self.p_global_values(:);
             end
 
             % make phase OCPs consistent, warn about unused fields
@@ -350,18 +385,7 @@ classdef AcadosMultiphaseOcp < handle
             end
 
             % generate external functions
-            casadi_code_gen_opts = struct();
-            casadi_code_gen_opts.generate_hess = strcmp(self.solver_options.hessian_approx, 'EXACT');
-            casadi_code_gen_opts.with_solution_sens_wrt_params = self.solver_options.with_solution_sens_wrt_params;
-            casadi_code_gen_opts.with_value_sens_wrt_params = self.solver_options.with_value_sens_wrt_params;
-            casadi_code_gen_opts.code_export_directory = self.code_gen_opts.code_export_directory;
-            casadi_code_gen_opts.sens_forw_p = self.solver_options.sens_forw_p;
-
-            casadi_code_gen_opts.ext_fun_expand_dyn = self.solver_options.ext_fun_expand_dyn;
-            casadi_code_gen_opts.ext_fun_expand_cost = self.solver_options.ext_fun_expand_cost;
-            casadi_code_gen_opts.ext_fun_expand_constr = self.solver_options.ext_fun_expand_constr;
-            casadi_code_gen_opts.ext_fun_expand_precompute = self.solver_options.ext_fun_expand_precompute;
-            context = GenerateContext(self.model{1}.p_global, self.name, casadi_code_gen_opts);
+            context = GenerateContext(self.model{1}.p_global, self.name, self.code_gen_options);
 
             for i=1:self.n_phases
                 disp(['generating external functions for phase ', num2str(i)]);
@@ -379,7 +403,7 @@ classdef AcadosMultiphaseOcp < handle
 
                 % this is the only option that can vary and influence external functions to be generated
                 self.dummy_ocp_list{i}.solver_options.integrator_type = self.mocp_opts.integrator_type{i};
-                self.dummy_ocp_list{i}.code_gen_opts.code_export_directory = self.code_gen_opts.code_export_directory;
+                self.dummy_ocp_list{i}.code_gen_options.code_export_directory = self.code_gen_options.code_export_directory;
                 context = self.dummy_ocp_list{i}.setup_code_generation_context(context, ignore_initial, ignore_terminal);
             end
 
@@ -398,9 +422,17 @@ classdef AcadosMultiphaseOcp < handle
             else
                 publicProperties = fieldnames(self);
             end
+            % TODO remove once code_gen_opts is removed
+            publicProperties = setdiff(publicProperties, {'code_gen_opts'}, 'stable');
+            %
             s = struct();
             for fi = 1:numel(publicProperties)
                 s.(publicProperties{fi}) = self.(publicProperties{fi});
+            end
+
+            % TODO remove once top-level json_file is deprecated fully.
+            if isfield(s, 'json_file')
+                s = rmfield(s, 'json_file');
             end
             % delete keys that should not be used
             s = rmfield(s, 'dummy_ocp_list');
@@ -420,7 +452,7 @@ classdef AcadosMultiphaseOcp < handle
             end
             s.solver_options = orderfields(self.solver_options.convert_to_struct_for_json_dump());
             s.mocp_opts = orderfields(self.mocp_opts.to_struct());
-            s.code_gen_opts = orderfields(self.code_gen_opts.to_struct());
+            s.code_gen_options = orderfields(self.code_gen_options.to_struct());
 
             vector_fields = {'model', 'phases_dims', 'cost', 'constraints', 'parameter_values', 'p_global_values'};
             s = prepare_struct_for_json_dump(s, vector_fields, {});
@@ -434,7 +466,7 @@ classdef AcadosMultiphaseOcp < handle
             s.hash = hash_struct(s);
 
             % actual json dump
-            json_file = self.code_gen_opts.json_file;
+            json_file = self.code_gen_options.json_file;
             json_string = savejson('', s, 'ForceRootName', 0);
             fid = fopen(json_file, 'w');
             if fid == -1, error('Cannot create JSON file'); end
@@ -445,7 +477,7 @@ classdef AcadosMultiphaseOcp < handle
         function render_templates(self)
 
             main_dir = pwd;
-            chdir(self.code_gen_opts.code_export_directory);
+            chdir(self.code_gen_options.code_export_directory);
 
             % model templates
             for i=1:self.n_phases
@@ -474,8 +506,8 @@ classdef AcadosMultiphaseOcp < handle
             disp('rendered model templates successfully');
 
             % check json file
-            if ~(exist(self.code_gen_opts.json_file, 'file'))
-                error(['Path "', self.code_gen_opts.json_file, '" not found!']);
+            if ~(exist(self.code_gen_options.json_file, 'file'))
+                error(['Path "', self.code_gen_options.json_file, '" not found!']);
             end
 
             % solver templates
@@ -492,7 +524,7 @@ classdef AcadosMultiphaseOcp < handle
                     end
                     out_file = fullfile(out_dir, out_file);
                 end
-                render_file( in_file, out_file, self.code_gen_opts.json_file );
+                render_file( in_file, out_file, self.code_gen_options.json_file );
             end
 
             disp('rendered solver templates successfully!');
@@ -516,8 +548,7 @@ classdef AcadosMultiphaseOcp < handle
 
             % Handle postprocessing for arrays that were preprocessed for JSON
             % But exclude the nested object fields from vector processing
-            vector_fields = {};
-            % matrix_fields = {'p_global_values'};
+            vector_fields = {'p_global_values'};
             matrix_fields = {};
             s = postprocess_struct_from_json_dump(s, vector_fields, matrix_fields);
 
@@ -559,7 +590,7 @@ classdef AcadosMultiphaseOcp < handle
                     obj.(f) = new_list;
 
                 % Handle single nested objects that have from_struct
-                elseif ismember(f, {'solver_options', 'mocp_opts', 'code_gen_opts'})
+                elseif ismember(f, {'solver_options', 'mocp_opts', 'code_gen_options'})
                     field_struct = s.(f);
                     if isempty(field_struct)
                         error('Failed to load MOCP from struct. Field %s is not provided.', f);
@@ -581,9 +612,11 @@ classdef AcadosMultiphaseOcp < handle
                         if ~iscell(pv)
                             % Convert back to cell array structure
                             pv_cell = cell(obj.n_phases, 1);
-                            % Assume each phase has the same number of parameters
+                            % Assume each phase has the same number of
+                            % parameters, otherwise we would already have a
+                            % cell
                             if ~isempty(pv)
-                                n_params_per_phase = length(pv) / obj.n_phases;
+                                n_params_per_phase = numel(pv) / obj.n_phases;
                                 for i = 1:obj.n_phases
                                     start_idx = (i-1) * n_params_per_phase + 1;
                                     end_idx = i * n_params_per_phase;
@@ -606,19 +639,6 @@ classdef AcadosMultiphaseOcp < handle
                             end
                             obj.(f) = new_pv;
                         end
-                    end
-
-                elseif strcmp(f, 'p_global_values')
-                    % This should be handled by postprocess_struct_from_json_dump
-                    % but let's be safe
-                    pg = s.(f);
-                    if iscell(pg)
-                        pg = cell2mat(pg);
-                    end
-                    if ~isempty(pg)
-                        obj.(f) = reshape(pg, [length(pg), 1]);
-                    else
-                        obj.(f) = [];
                     end
 
                 elseif strcmp(f, 'hash')
