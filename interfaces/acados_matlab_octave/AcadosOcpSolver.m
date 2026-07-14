@@ -66,7 +66,7 @@ classdef AcadosOcpSolver < handle
             % - compile_interface: can be [], true or false. If [], the interface is compiled if it does not exist.
             % - output_dir: path to the directory where the MEX interface is compiled
             % - verbose: boolean, if true, print verbose output during compilation
-            % - force_cmake: force use of CMake instead of the default Make build system on MATLAB/Linux
+            % - force_make: force use of Make instead of the default CMake build system. Make only works on Linux.
             if isempty(ocp)
                 error(['AcadosOcpSolver: Creating an AcadosOcpSolver without providing the `ocp` formulation (ocp=[]) is deprecated. ', ...
                        'AcadosOcp/AcadosMultiphaseOcp objects can be loaded using AcadosOcp.from_json() / AcadosMultiphaseOcp.from_json().']);
@@ -87,7 +87,7 @@ classdef AcadosOcpSolver < handle
                     'compile_interface', [], ...
                     'output_dir', fullfile(pwd, 'build'), ...
                     'verbose', false, ...
-                    'force_cmake', false);
+                    'force_make', false);
             if length(varargin) > 0
                 solver_creation_opts = varargin{1};
                 % set non-specified opts to default
@@ -886,11 +886,14 @@ classdef AcadosOcpSolver < handle
             return_dir = pwd;
             cd(export_dir);
 
-            force_cmake = self.solver_creation_opts.force_cmake;
+            force_make = self.solver_creation_opts.force_make;
             verbose = self.solver_creation_opts.verbose;
 
             %% old code for make
-            if isunix && ~is_octave() && ~force_cmake
+            if force_make
+                if ~isunix()
+                    warning('Using Make build system. Not expected to work on Windows.')
+                end
                 % use Make build system
                 [ status, result ] = system('make ocp_shared_lib');
                 if status
