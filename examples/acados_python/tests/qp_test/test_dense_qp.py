@@ -11,7 +11,7 @@ def main(solver_name: str = 'HPIPM'):
     qp.set('idxs_rev', 0, -1 * np.ones((nv,)))
     qp.set('lbx', 0, -np.ones((nv,)))
     qp.set('ubx', 0, np.ones((nv,)))
-    qp.set('lbx_mask', 0, -np.ones((nv,)))
+    qp.set('lbx_mask', 0, np.ones((nv,)))
     qp.set('ubx_mask', 0, np.ones((nv,)))
     qp.set('idxb', 0, np.arange(nv))
 
