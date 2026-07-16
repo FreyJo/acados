@@ -365,6 +365,9 @@ class AcadosOcpQp:
                 assert len(self.idxs_rev[i]) == self.__dims.nb[i] + self.__dims.ng[i], f"Inconsistent number of slack variable indices at stage {i}."
 
                 # slack cost
+                ns = np.max(self.idxs_rev[i])+1 if not is_empty(self.idxs_rev[i]) else 0
+                assert ns == self.__dims.ns[i], f"Inconsistent slack dimension looking at lls and idxs_rev at stage {i}."
+
                 assert self.zl[i].shape == (self.__dims.ns[i],), f"Inconsistent dimensions in zl vector at stage {i}."
                 assert self.zu[i].shape == (self.__dims.ns[i],), f"Inconsistent dimensions in zu vector at stage {i}."
                 assert self.Zl[i].shape == (self.__dims.ns[i],), f"Inconsistent dimensions in Zl vector at stage {i}."
