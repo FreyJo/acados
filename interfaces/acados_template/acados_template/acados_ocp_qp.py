@@ -19,6 +19,22 @@ class AcadosOcpQpDims:
         self.ns = np.zeros((N + 1,), dtype=int)
         self.nbxe = np.zeros((N + 1,), dtype=int)
 
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(\n"
+            f"  N={self.N},\n"
+            f"  nx={self.nx.tolist()},\n"
+            f"  nu={self.nu.tolist()},\n"
+            f"  nbx={self.nbx.tolist()},\n"
+            f"  nbu={self.nbu.tolist()},\n"
+            f"  nb={self.nb.tolist()},\n"
+            f"  ng={self.ng.tolist()},\n"
+            f"  ns={self.ns.tolist()},\n"
+            f"  nbxe={self.nbxe.tolist()}\n"
+            f")"
+        )
+
+    __str__ = __repr__
 
 class AcadosOcpQp:
     r"""
