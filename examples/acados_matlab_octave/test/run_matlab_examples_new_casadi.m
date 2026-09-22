@@ -45,11 +45,10 @@ targets = {
 };
 
 
-pass = zeros(1, length(targets));  % keep track of test results
-messages = cell(1, length(targets));  % and error messages
+messages = cell(1, length(targets));  % keep track of error reports
 setenv("TEST_DIR", pwd)
 for idx = 1:length(targets)
-    setenv("TEST_MESSAGE", "")
+    message = "";
     [dir, file, extension] = fileparts(targets{idx});
 
     testpath = getenv("TEST_DIR");
@@ -63,9 +62,9 @@ for idx = 1:length(targets)
         run(targets{idx});
         test_val = true;
     catch exception
-        setenv("TEST_MESSAGE", exception.message)
+        message = string(getReport(exception, 'extended', 'hyperlinks', 'off'));
         disp(['test ', targets{idx}, ' failed!'])
-        disp(exception.message);
+        fprintf(2, '%s\n', message);
         clear exception
         test_val = false;
     end
@@ -73,8 +72,10 @@ for idx = 1:length(targets)
     % use absolute path, since current directory depends on point of failure
     testpath = getenv("TEST_DIR");
     load(strcat(testpath, "/test_workspace.mat"));
-    disp(['test', targets{idx},' success'])
-    messages{idx} = getenv("TEST_MESSAGE");
+    if test_val
+        disp(['test ', targets{idx}, ' success'])
+    end
+    messages{idx} = message;
     if contains(targets{idx},'simulink'); bdclose('all'); end
     delete(strcat(testpath, "/test_workspace.mat"));
     % delete generated code to avoid failure in examples using similar names
