@@ -473,6 +473,11 @@ void sim_opts_set_(sim_opts *opts, const char *field, void *value)
         int *newton_iter = (int *) value;
         opts->newton_iter = *newton_iter;
     }
+    else if (!strcmp(field, "num_forw_sens"))
+    {
+        int *num_forw_sens = (int *) value;
+        opts->num_forw_sens = *num_forw_sens;
+    }
     else if (!strcmp(field, "jac_reuse"))
     {
         bool *jac_reuse = (bool *) value;

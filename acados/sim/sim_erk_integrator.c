@@ -453,7 +453,7 @@ acados_size_t sim_erk_workspace_calculate_size(void *config_, void *dims_, void 
 
     int nx = dims->nx;
     int nu = dims->nu;
-    int nf = opts->num_forw_sens;                  // existing (Sx,Su) cols
+    int nf = opts->num_forw_sens;  // existing (Sx,Su) cols
     if (!opts->sens_forw && !opts->sens_forw_p) nf = 0;
 
     int np   = dims->np;
@@ -777,6 +777,10 @@ int sim_erk(void *config_, sim_in *in, sim_out *out, void *opts_, void *mem_, vo
     erk_model *model = in->model;
 
     double timing_ad = 0.0;
+
+    printf("S_forw_in\n");
+    d_print_mat(nx, nf, S_forw_in, nx);
+
 
     /************************************************
      * forward sweep

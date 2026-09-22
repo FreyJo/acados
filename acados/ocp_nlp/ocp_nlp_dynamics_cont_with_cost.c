@@ -304,17 +304,20 @@ static void ocp_nlp_dynamics_cont_with_cost_set_sim_input(
     }
 }
 
-static void ocp_nlp_dynamics_cont_with_cost_set_identity_seed(
+static void ocp_nlp_dynamics_cont_with_cost_set_seed(
         ocp_nlp_dynamics_cont_dims *dims, ocp_nlp_dynamics_cont_workspace *work)
 {
-    int nx_rk = dims->nx + 1;
+    int nx = dims->nx;
+    int nx_rk = nx + 1;
     int nu = dims->nu;
 
+    // zero full seed.
     for (int ii = 0; ii < nx_rk * (nx_rk + nu); ii++)
         work->sim_in->S_forw[ii] = 0.0;
-    for (int ii = 0; ii < nx_rk; ii++)
+    // identity seed for first nx states
+    for (int ii = 0; ii < nx; ii++)
         work->sim_in->S_forw[ii * (nx_rk + 1)] = 1.0;
-    work->sim_in->identity_seed = true;
+    work->sim_in->identity_seed = false;
 }
 
 static void ocp_nlp_dynamics_cont_with_cost_cast_workspace(void *config_, void *dims_,
@@ -377,9 +380,12 @@ void ocp_nlp_dynamics_cont_with_cost_update_qp_matrices(void *config_, void *dim
     int nx_rk = nx + 1;
     int nxu_rk = nx_rk + nu;
 
+    int num_forw_sens = nx+nu;
+    config->sim_solver->opts_set(config->sim_solver, opts->sim_solver, "num_forw_sens", &num_forw_sens);
+
     // set inputs
     ocp_nlp_dynamics_cont_with_cost_set_sim_input(dims, model, mem, work);
-    ocp_nlp_dynamics_cont_with_cost_set_identity_seed(dims, work);
+    ocp_nlp_dynamics_cont_with_cost_set_seed(dims, work);
 
     // dynamics Hessian contribution
     if (opts->compute_hess)
@@ -399,10 +405,11 @@ void ocp_nlp_dynamics_cont_with_cost_update_qp_matrices(void *config_, void *dim
     config->sim_solver->evaluate(config->sim_solver, work->sim_in, work->sim_out,
             opts->sim_solver, mem->sim_solver, work->sim_solver);
 
-    // extract
-    // nominal dynamics
-    blasfeo_pack_tran_dmat(nx1, nu, work->sim_out->S_forw + nx_rk * nx_rk,
+    /* extract nominal dynamics */
+    // B
+    blasfeo_pack_tran_dmat(nx1, nu, work->sim_out->S_forw + nx_rk * nx,
             nx_rk, mem->BAbt, 0, 0);
+    // A
     blasfeo_pack_tran_dmat(nx1, nx, work->sim_out->S_forw, nx_rk,
             mem->BAbt, nu, 0);
 
@@ -422,12 +429,12 @@ void ocp_nlp_dynamics_cont_with_cost_update_qp_matrices(void *config_, void *dim
         blasfeo_dveccp(nx1, mem->pi, 0, &mem->adj, nu + nx);
     }
 
-    // extract cost
+    /* extract cost */
     double cost_scaling;
     cost_config->model_get(cost_config, cost_capsule->dims, cost_capsule->model, "scaling", &cost_scaling);
     cost_memory->common->fun = work->sim_out->xn[nx] / cost_scaling;
 
-    blasfeo_pack_dvec(nu, work->sim_out->S_forw + nx + nx_rk * nx_rk, nx_rk,
+    blasfeo_pack_dvec(nu, work->sim_out->S_forw + nx_rk * nx + nx, nx_rk,
             &cost_memory->common->grad, 0);
     blasfeo_pack_dvec(nx, work->sim_out->S_forw + nx, nx_rk,
             &cost_memory->common->grad, nu);

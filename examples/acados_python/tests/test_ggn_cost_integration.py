@@ -132,13 +132,14 @@ def set_options(ocp, cost_discretization, num_stages, collocation_type, cost_typ
         ocp.solver_options.exact_hess_dyn = False
     else:
         ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
+        ocp.solver_options.integrator_type = 'IRK'
     ocp.solver_options.collocation_type = collocation_type
-    ocp.solver_options.integrator_type = 'IRK'
     ocp.solver_options.sim_method_num_stages = num_stages
     ocp.solver_options.sim_method_num_steps = 1
     ocp.solver_options.nlp_solver_type = 'SQP'  # SQP_RTI, SQP
     ocp.solver_options.cost_discretization = cost_discretization
-    ocp.solver_options.nlp_solver_max_iter = 100
+    ocp.solver_options.nlp_solver_max_iter = 2
+    ocp.solver_options.print_level = 5
     ocp.solver_options.tf = 1.0
 
 
@@ -201,8 +202,11 @@ def compare_iterates(cost_type):
 
 if __name__ == "__main__":
 
-    for cost_type in COST_TYPE:
-        compare_iterates(cost_type)
+    iterate = solve_ocp('INTEGRATOR', 'EXTERNAL', num_stages=1, collocation_type='EXPLICIT_RUNGE_KUTTA')
 
-    for cost_type in COST_TYPE:
-        solve_ocp('INTEGRATOR', cost_type, num_stages=3, collocation_type='GAUSS_LEGENDRE')
+
+    # for cost_type in COST_TYPE:
+    #     compare_iterates(cost_type)
+
+    # for cost_type in COST_TYPE:
+    #     solve_ocp('INTEGRATOR', cost_type, num_stages=3, collocation_type='GAUSS_LEGENDRE')
