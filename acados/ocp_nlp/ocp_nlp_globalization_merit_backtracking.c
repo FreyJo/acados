@@ -253,13 +253,13 @@ static double ocp_nlp_compute_merit_gradient(ocp_nlp_config *config, ocp_nlp_dim
                     if (j < nb[i])
                     {
                         // printf("lower idxb[%d] = %d dir %f, constraint_val %f, nb = %d\n", j, idxb[j], BLASFEO_DVECEL(mem->qp_out->ux, idxb[j]), constraint_val, nb[i]);
-                        merit_grad_ineq += weight * BLASFEO_DVECEL(mem->qp_out->ux+i, idxb[j]);
+                        merit_grad_ineq -= weight * BLASFEO_DVECEL(mem->qp_out->ux+i, idxb[j]);
                     }
                     else if (j < nb[i] + ng[i])
                     {
                         // merit_grad_ineq += weight * mem->qp_in->DCt_j * dux
                         blasfeo_dcolex(nx[i] + nu[i], mem->qp_in->DCt+i, j - nb[i], 0, &tmp_vec_nxu, 0);
-                        merit_grad_ineq += weight * blasfeo_ddot(nx[i] + nu[i], &tmp_vec_nxu, 0, mem->qp_out->ux+i, 0);
+                        merit_grad_ineq -= weight * blasfeo_ddot(nx[i] + nu[i], &tmp_vec_nxu, 0, mem->qp_out->ux+i, 0);
                         // printf("general linear constraint lower contribution = %e, val = %e\n", blasfeo_ddot(nx[i] + nu[i], &tmp_vec_nxu, 0, mem->qp_out->ux+i, 0), constraint_val);
                     }
                     else if (j < 2*nb[i] + ng[i])
