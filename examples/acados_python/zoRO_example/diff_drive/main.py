@@ -191,8 +191,7 @@ def solve_single_zoro_problem_visualize_uncertainty(feedback_optimization_mode: 
                     obs_position=cfg_zo.obs_pos.flatten(), obs_radius=cfg_zo.obs_radius, converg_thr=converg_thr, num_nominal4init=num_nominal4init)
 
     # get solution
-    iterate = zoroMPC.acados_ocp_solver.get_iterate()
-    x_opt = np.array(iterate.x)
+    x_opt = np.array(zoroMPC.acados_ocp_solver.get_iterate().x)
 
     print(f"x_opt = {x_opt}")
     print(f"status = {status}")
