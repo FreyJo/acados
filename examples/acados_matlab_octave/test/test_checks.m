@@ -48,7 +48,9 @@ try
     sim_solver.set('x', zeros(nx+1, 1));
     error('test_checks: setter accepted a state with the wrong dimension');
 catch exception
-    if contains(exception.message, 'setter accepted')
+    if contains(exception.message, 'wrong dimension')
+        disp('Success: setter rejects a state with the wrong dimension')
+    else
         rethrow(exception);
     end
 end
