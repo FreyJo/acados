@@ -21,24 +21,22 @@ num_steps = 4;
 Ts = 0.1;
 
 %% model
-model = linear_mass_spring_model();
+model = get_linear_mass_spring_model();
 
 model_name = ['lin_mass_' method];
-nx = model.nx;
-nu = model.nu;
+nx = length(model.x);
+nu = length(model.u);
 
 %% acados sim
 sim = AcadosSim();
+sim.model = model;
 sim.model.name = model_name;
-sim.model.x = model.sym_x;
-sim.model.u = model.sym_u;
-sim.model.xdot = model.sym_xdot;
 sim.solver_options.Tsim = Ts;
 sim.solver_options.integrator_type = upper(method);
 sim.solver_options.num_stages = num_stages;
 sim.solver_options.num_steps = num_steps;
 sim.solver_options.sens_forw = sens_forw;
-sim.model.f_impl_expr = model.dyn_expr_f_impl;
+sim.model.f_impl_expr = model.f_impl_expr;
 sim_solver = AcadosSimSolver(sim);
 
 % Note: this does not work with gnsf, because it needs to be available

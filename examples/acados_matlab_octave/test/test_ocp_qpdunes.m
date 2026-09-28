@@ -26,21 +26,12 @@ qp_solver_cond_N = 5; % for partial condensing
 sim_method = 'erk'; % erk, irk, irk_gnsf
 
 %% model dynamics
-old_model = pendulum_on_cart_model();
-nx = old_model.nx;
-nu = old_model.nu;
-model = AcadosModel();
+model = get_pendulum_on_cart_model();
+nx = length(model.x);
+nu = length(model.u);
 model.name = 'pendulum';
-model.x = old_model.sym_x;
-model.xdot = old_model.sym_xdot;
-model.u = old_model.sym_u;
-if strcmp(sim_method, 'erk')
-    model.f_expl_expr = old_model.dyn_expr_f_expl;
-else
-    model.f_impl_expr = old_model.dyn_expr_f_impl;
-end
-model.con_h_expr = old_model.constr_expr_h;
-model.con_h_expr_0 = old_model.constr_expr_h_0;
+model.con_h_expr = model.u;
+model.con_h_expr_0 = model.u;
 
 cost_type = 'LINEAR_LS';
 

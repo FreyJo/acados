@@ -26,23 +26,15 @@ qp_solver_cond_N = 5; % for partial condensing
 sim_method = 'erk'; % erk, irk, irk_gnsf
 
 %% model dynamics
-old_model = pendulum_on_cart_model();
-nx = old_model.nx;
-nu = old_model.nu;
-model = AcadosModel();
+model = get_pendulum_on_cart_model();
+nx = length(model.x);
+nu = length(model.u);
 model.name = 'pendulum';
-model.x = old_model.sym_x;
-model.xdot = old_model.sym_xdot;
-model.u = old_model.sym_u;
-model.cost_expr_ext_cost = old_model.cost_expr_ext_cost;
-model.cost_expr_ext_cost_e = old_model.cost_expr_ext_cost_e;
-model.con_h_expr = old_model.constr_expr_h;
-model.con_h_expr_0 = old_model.constr_expr_h_0;
-if strcmp(sim_method, 'erk')
-    model.f_expl_expr = old_model.dyn_expr_f_expl;
-else
-    model.f_impl_expr = old_model.dyn_expr_f_impl;
-end
+model.cost_expr_ext_cost = 0.5 * (model.x' * diag([1e3, 1e3, 1e-2, 1e-2]) * model.x ...
+    + model.u' * 1e-2 * model.u);
+model.cost_expr_ext_cost_e = 0.5 * model.x' * diag([1e3, 1e3, 1e-2, 1e-2]) * model.x;
+model.con_h_expr = model.u;
+model.con_h_expr_0 = model.u;
 
 %% acados OCP
 ocp = AcadosOcp();
@@ -56,6 +48,10 @@ ocp.solver_options.qp_solver = upper(qp_solver);
 ocp.solver_options.qp_solver_iter_max = 2000;
 ocp.solver_options.qp_solver_cond_N = qp_solver_cond_N;
 ocp.code_gen_options.ext_fun_compile_flags = '';
+ocp.cost.cost_type = 'EXTERNAL';
+ocp.cost.cost_type_0 = 'EXTERNAL';
+ocp.cost.cost_type_e = 'EXTERNAL';
+ocp.model.cost_expr_ext_cost_0 = 0.5 * model.u' * 1e-2 * model.u;
 
 U_max = 80;
 ocp.constraints.lh = -U_max;

@@ -25,28 +25,30 @@ for integrator = {'irk_gnsf', 'irk', 'erk'}
     FD_epsilon = 1e-6;
 
     %% model
-    model = pendulum_on_cart_model();
+    model = get_pendulum_on_cart_model();
 
     model_name = ['pendulum_' method];
-    nx = model.nx;
-    nu = model.nu;
+    nx = length(model.x);
+    nu = length(model.u);
 
 	%% acados sim
 	sim = AcadosSim();
+	sim.model = model;
 	sim.model.name = model_name;
-	sim.model.x = model.sym_x;
-	sim.model.u = model.sym_u;
-	sim.model.xdot = model.sym_xdot;
 	sim.solver_options.Tsim = Ts;
-	sim.solver_options.integrator_type = upper(method);
+	if strcmp(method, 'irk_gnsf')
+	    sim.solver_options.integrator_type = 'GNSF';
+	else
+	    sim.solver_options.integrator_type = upper(method);
+	end
 	sim.solver_options.num_stages = num_stages;
 	sim.solver_options.num_steps = num_steps;
 	sim.solver_options.sens_forw = true;
 	sim.solver_options.sens_adj = true;
 	if strcmp(method, 'erk')
-	    sim.model.f_expl_expr = model.dyn_expr_f_expl;
+	    sim.model.f_expl_expr = model.f_expl_expr;
 	else
-	    sim.model.f_impl_expr = model.dyn_expr_f_impl;
+	    sim.model.f_impl_expr = model.f_impl_expr;
 	end
 	sim_solver = AcadosSimSolver(sim);
 
@@ -65,9 +67,6 @@ for integrator = {'irk_gnsf', 'irk', 'erk'}
 	S_forw_ind = sim_solver.get('S_forw');
 
 	%% compute forward sensitivities through adjoint sensitivities with unit seeds
-% 	sim_opts.set('sens_forw', 'false');
-% 	sim_opts.set('sens_adj', 'true');
-
 	S_forw_adj = zeros(nx, nx+nu);
 	for ii=1:nx
 		% set seed

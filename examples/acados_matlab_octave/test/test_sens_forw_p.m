@@ -30,15 +30,23 @@ for integrator = {'erk', 'irk'}
     FD_epsilon = 1e-6;
 
     %% model
-    model = pendulum_on_cart_model_with_param();
+    old_model = pendulum_on_cart_model_with_param();
+    model = AcadosModel();
+    model.name = ['pendulum_sens_p_' method];
+    model.x = old_model.sym_x;
+    model.xdot = old_model.sym_xdot;
+    model.u = old_model.sym_u;
+    model.p = old_model.sym_p;
+    model.f_expl_expr = old_model.dyn_expr_f_expl;
+    model.f_impl_expr = old_model.dyn_expr_f_impl;
     model_name = ['pendulum_sens_p_' method];
 
-    nx = model.nx;
-    nu = model.nu;
+    nx = length(model.x);
+    nu = length(model.u);
 
     % detect parameters
-    if isfield(model, 'sym_p')
-        np = length(model.sym_p);
+    if ~isempty(model.p)
+        np = length(model.p);
     else
         np = 0;
     end
@@ -49,11 +57,8 @@ for integrator = {'erk', 'irk'}
 
     %% acados sim
     sim = AcadosSim();
+    sim.model = model;
     sim.model.name = model_name;
-    sim.model.x = model.sym_x;
-    sim.model.u = model.sym_u;
-    sim.model.xdot = model.sym_xdot;
-    sim.model.p = model.sym_p;
     sim.solver_options.Tsim = Ts;
     sim.solver_options.integrator_type = upper(method);
     sim.solver_options.num_stages = num_stages;
@@ -62,11 +67,6 @@ for integrator = {'erk', 'irk'}
     sim.solver_options.sens_forw = sens_forw;
     sim.solver_options.jac_reuse = jac_reuse;
     sim.code_gen_options.sens_forw_p = true;
-    if strcmp(method, 'erk')
-        sim.model.f_expl_expr = model.dyn_expr_f_expl;
-    else
-        sim.model.f_impl_expr = model.dyn_expr_f_impl;
-    end
     sim_solver = AcadosSimSolver(sim);
 
     % set nominal state, input, parameter

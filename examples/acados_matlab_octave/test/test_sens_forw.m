@@ -21,17 +21,16 @@ for integrator = {'irk_gnsf', 'irk', 'erk'}
     num_stages = 3;
     num_steps = 4;
     newton_iter = 3;
-    gnsf_detect_struct = 'true';
 
     Ts = 0.1;
     FD_epsilon = 1e-6;
 
     %% model
-    model = linear_mass_spring_model();
+    model = get_linear_mass_spring_model();
 
     model_name = ['lin_mass_' method];
-    nx = model.nx;
-    nu = model.nu;
+    nx = length(model.x);
+    nu = length(model.u);
     % x0 = [1e-1; 1e0; 2e-1; 2e0]; % pendulum
     % u = 0;
 
@@ -41,21 +40,23 @@ for integrator = {'irk_gnsf', 'irk', 'erk'}
 
     %% acados sim
     sim = AcadosSim();
+    sim.model = model;
     sim.model.name = model_name;
-    sim.model.x = model.sym_x;
-    sim.model.u = model.sym_u;
-    sim.model.xdot = model.sym_xdot;
     sim.solver_options.Tsim = Ts;
-    sim.solver_options.integrator_type = upper(method);
+    if strcmp(method, 'irk_gnsf')
+        sim.solver_options.integrator_type = 'GNSF';
+    else
+        sim.solver_options.integrator_type = upper(method);
+    end
     sim.solver_options.num_stages = num_stages;
     sim.solver_options.num_steps = num_steps;
     sim.solver_options.newton_iter = newton_iter;
     sim.solver_options.sens_forw = sens_forw;
     sim.solver_options.jac_reuse = jac_reuse;
     if strcmp(method, 'erk')
-        sim.model.f_expl_expr = model.dyn_expr_f_expl;
+        sim.model.f_expl_expr = model.f_expl_expr;
     else
-        sim.model.f_impl_expr = model.dyn_expr_f_impl;
+        sim.model.f_impl_expr = model.f_impl_expr;
     end
     sim_solver = AcadosSimSolver(sim);
 

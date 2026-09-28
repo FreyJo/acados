@@ -43,9 +43,9 @@ for integrator = {'irk_gnsf', 'irk'}
     % disp('state')
     % disp(model.sym_x)
 
-    nx = length(model.sym_x);
-    nu = length(model.sym_u);
-    nz = length(model.sym_z);
+    nx = length(model.x);
+    nu = length(model.u);
+    nz = length(model.z);
 
     %% acados sim
     sim = AcadosSim();
