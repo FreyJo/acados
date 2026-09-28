@@ -107,12 +107,10 @@ def main():
     if PLOT:
         Fmax = 80
         N = ocp.solver_options.N_horizon
-        acados_iterate = ocp_solver.get_iterate()
-        casadi_iterate = casadi_ocp_solver.get_iterate()
-        acados_u = np.array(acados_iterate.u)
-        acados_x = np.array(acados_iterate.x)
-        casadi_u = np.array(casadi_iterate.u)
-        casadi_x = np.array(casadi_iterate.x)
+        acados_u = np.array(ocp_solver.get_iterate().u)
+        acados_x = np.array(ocp_solver.get_iterate().x)
+        casadi_u = np.array(casadi_ocp_solver.get_iterate().u)
+        casadi_x = np.array(casadi_ocp_solver.get_iterate().x)
         plot_pendulum(np.linspace(0, Tf, N+1), Fmax, acados_u, acados_x, latexify=False)
         plot_pendulum(np.linspace(0, Tf, N+1), Fmax, casadi_u, casadi_x, latexify=False)
 
