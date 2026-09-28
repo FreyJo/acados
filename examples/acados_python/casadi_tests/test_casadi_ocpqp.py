@@ -17,25 +17,25 @@ def main():
 
         acados_solver = AcadosOcpQpSolver(qp, opts=opts)
         status = acados_solver.solve()
-        acados_u = np.array([acados_solver.get(i, "u") for i in range(qp.N)])
-        acados_x = np.array([acados_solver.get(i, "x") for i in range(qp.N+1)])
+        iterate_acados = acados_solver.get_iterate()
+        acados_u = np.array(iterate_acados.u)
+        acados_x = np.array(iterate_acados.x)
         acados_sl = np.concatenate([acados_solver.get(i, "sl") for i in range(qp.N+1)])
         acados_su = np.concatenate([acados_solver.get(i, "su") for i in range(qp.N+1)])
         acados_lam = np.concatenate([acados_solver.get(i, "lam") for i in range(qp.N+1)])
         acados_pi = np.concatenate([acados_solver.get(i, "pi") for i in range(qp.N)])
-        iterate_acados = acados_solver.get_iterate()
         # acados_cost = acados_solver.get_cost()
 
         casadi_solver = AcadosCasadiOcpQpSolver(qp)
         casadi_solver.set_iterate(iterate_acados) # set initial guess from acados solution
         status = casadi_solver.solve()
-        casadi_u = np.array([casadi_solver.get(i, "u") for i in range(qp.N)])
-        casadi_x = np.array([casadi_solver.get(i, "x") for i in range(qp.N+1)])
+        iterate_casadi = casadi_solver.get_iterate()
+        casadi_u = np.array(iterate_casadi.u)
+        casadi_x = np.array(iterate_casadi.x)
         casadi_sl = np.concatenate([casadi_solver.get(i, "sl") for i in range(qp.N+1)])
         casadi_su = np.concatenate([casadi_solver.get(i, "su") for i in range(qp.N+1)])
         casadi_lam = np.concatenate([casadi_solver.get(i, "lam") for i in range(qp.N+1)])
         casadi_pi = np.concatenate([casadi_solver.get(i, "pi") for i in range(qp.N)])
-        iterate_casadi = casadi_solver.get_iterate()
         # casadi_cost = casadi_solver.get_cost()
 
         # evaluate difference
