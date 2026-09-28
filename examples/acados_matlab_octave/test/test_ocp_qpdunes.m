@@ -7,25 +7,19 @@
 
 %
 
-%% test of native matlab interface
-
 import casadi.*
 addpath('../pendulum_on_cart_model/');
 
 
-%% discretization
 N = 20;
-T = 1; % time horizon length
+T = 1;
 x0 = [0; pi; 0; 0];
 
-nlp_solver = 'sqp'; % sqp, sqp_rti
-qp_solver = 'partial_condensing_qpdunes';
-    % full_condensing_hpipm, partial_condensing_hpipm, full_condensing_qpoases, partial_condensing_osqp
-qp_solver_cond_N = 5; % for partial condensing
-% integrator type
-sim_method = 'erk'; % erk, irk, irk_gnsf
+nlp_solver = 'SQP';
+qp_solver = 'PARTIAL_CONDENSING_QPDUNES';
+qp_solver_cond_N = 5;
+sim_method = 'ERK';
 
-%% model dynamics
 model = get_pendulum_on_cart_model();
 nx = length(model.x);
 nu = length(model.u);
@@ -34,26 +28,30 @@ model.con_h_expr = model.u;
 model.con_h_expr_0 = model.u;
 
 cost_type = 'LINEAR_LS';
+ny = nx + nu;
+ny_e = nx;
 
-ny = nx + nu
-ny_e = nx
-
-Vu = zeros(ny, nu); for ii=1:nu Vu(ii,ii)=1.0; end % input-to-output matrix in lagrange term
-Vx = zeros(ny, nx); for ii=1:nx Vx(nu+ii,ii)=1.0; end % state-to-output matrix in lagrange term
-Vx_e = zeros(ny_e, nx); for ii=1:nx Vx_e(ii,ii)=1.0; end % state-to-output matrix in mayer term
+Vu = zeros(ny, nu);
+for ii = 1:nu
+    Vu(ii,ii) = 1.0;
+end
+Vx = zeros(ny, nx);
+for ii = 1:nx
+    Vx(nu+ii,ii) = 1.0;
+end
+Vx_e = eye(ny_e, nx);
 W = diag([1, 100, 100, 1, 1]);
-W_e = W(nu+1:nu+nx, nu+1:nu+nx); % weight matrix in mayer term
-yr = zeros(ny, 1); % output reference in lagrange term
-yr_e = zeros(ny_e, 1); % output reference in mayer term
+W_e = W(nu+1:nu+nx, nu+1:nu+nx);
+yr = zeros(ny, 1);
+yr_e = zeros(ny_e, 1);
 
-%% acados OCP
 ocp = AcadosOcp();
 ocp.model = model;
 ocp.solver_options.N_horizon = N;
 ocp.solver_options.tf = T;
-ocp.solver_options.nlp_solver_type = upper(nlp_solver);
-ocp.solver_options.integrator_type = upper(sim_method);
-ocp.solver_options.qp_solver = upper(qp_solver);
+ocp.solver_options.nlp_solver_type = nlp_solver;
+ocp.solver_options.integrator_type = sim_method;
+ocp.solver_options.qp_solver = qp_solver;
 ocp.solver_options.qp_solver_iter_max = 2000;
 ocp.solver_options.qp_solver_cond_N = qp_solver_cond_N;
 ocp.code_gen_options.ext_fun_compile_flags = '';
@@ -74,34 +72,21 @@ ocp.constraints.lh = -U_max;
 ocp.constraints.uh = U_max;
 ocp.constraints.x0 = x0;
 
-%% create ocp solver
 ocp_solver = AcadosOcpSolver(ocp);
 
 x_traj_init = zeros(nx, N+1);
 u_traj_init = zeros(nu, N);
 
-%% call ocp solver
-% update initial state
-ocp_solver.set('constr_x0', x0);
-
-% set trajectory initialization
 ocp_solver.set('init_x', x_traj_init);
 ocp_solver.set('init_u', u_traj_init);
-ocp_solver.set('init_pi', zeros(nx, N))
 
-% change values for specific shooting node using:
-%   ocp_solver.set('field', value, optional: stage_index)
-ocp_solver.set('constr_lbx', x0, 0)
-
-% solve
 ocp_solver.solve();
 
-% get solution
 utraj = ocp_solver.get('u');
 xtraj = ocp_solver.get('x');
 
-status = ocp_solver.get('status'); % 0 - success
-ocp_solver.print('stat')
+status = ocp_solver.get('status');
+ocp_solver.print('stat');
 
 if status == 0
     disp('test_ocp_qpDUNES: success!');

@@ -7,22 +7,15 @@
 
 %
 
-%% test of native matlab interface
 clear VARIABLES
 
 addpath('../pendulum_dae/');
 
 i_method = 0;
-for integrator = {'irk_gnsf', 'irk'}
+for integrator = {'GNSF', 'IRK'}
     i_method = i_method + 1;
     method = integrator{1};
-    if strcmp(method, 'irk_gnsf')
-        integrator_type = 'GNSF';
-    else
-        integrator_type = upper(method);
-    end
 
-    %% arguments
     sens_forw = true;
     jac_reuse = false;
     num_stages = 3;
@@ -38,21 +31,16 @@ for integrator = {'irk_gnsf', 'irk'}
 
     u = 3.5;
 
-    %% model
-    model = pendulum_dae_model();
-    % disp('state')
-    % disp(model.sym_x)
-
+    model = get_pendulum_dae_model();
     nx = length(model.x);
     nu = length(model.u);
     nz = length(model.z);
 
-    %% acados sim
     sim = AcadosSim();
     sim.model = model;
     sim.model.name = model_name;
     sim.solver_options.Tsim = 0.1;
-    sim.solver_options.integrator_type = integrator_type;
+    sim.solver_options.integrator_type = method;
     sim.solver_options.num_stages = num_stages;
     sim.solver_options.num_steps = num_steps;
     sim.solver_options.newton_iter = newton_iter;
@@ -64,7 +52,6 @@ for integrator = {'irk_gnsf', 'irk'}
     sim_solver = AcadosSimSolver(sim);
     N_sim = 100;
 
-    % set initial state
     sim_solver.set('x', x0);
     sim_solver.set('u', u);
 
@@ -74,46 +61,37 @@ for integrator = {'irk_gnsf', 'irk'}
     tic
     for ii=1:N_sim
 
-        % set initial state
         sim_solver.set('x', x_sim(:,ii));
         sim_solver.set('u', u);
     
-        % set adjoint seed
         sim_solver.set('seed_adj', ones(nx,1));
     
-        % initialize implicit integrator
-        if (strcmp(method, 'irk'))
+        if strcmp(method, 'IRK')
             sim_solver.set('xdot', zeros(nx,1));
             sim_solver.set('z', zeros(nz,1));
-        elseif (strcmp(method, 'irk_gnsf'))
+        elseif strcmp(method, 'GNSF')
             n_out = sim_solver.sim.model.gnsf_model.dims.nout;
             sim_solver.set('phi_guess', zeros(n_out,1));
         end
 
-        % solve
         sim_solver.solve();
     
-        % get simulated state
         x_sim(:,ii+1) = sim_solver.get('xn');
 
     end
 	S_forw = sim_solver.get('S_forw');
     S_adj = sim_solver.get('S_adj')';
-    z = sim_solver.get('zn')'; % approximate value of algebraic variables at start of simulation
-    S_alg = sim_solver.get('S_algebraic'); % sensitivities of algebraic variables z
+    z = sim_solver.get('zn')';
+    S_alg = sim_solver.get('S_algebraic');
 
     required_accuracy = 1e-13;
     if i_method == 1
-        % store solution as reference
         x_sim_ref = x_sim;
         S_forw_ref = S_forw;
         S_adj_ref = S_adj;
         z_ref = z;
         S_alg_ref = S_alg;
     else
-%         S_alg
-%         S_alg_ref
-
         err_x = norm(x_sim - x_sim_ref);
         err_S_forw = norm(S_forw - S_forw_ref);
         err_S_adj = norm(S_adj - S_adj_ref);
