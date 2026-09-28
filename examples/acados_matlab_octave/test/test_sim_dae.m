@@ -16,13 +16,15 @@ i_method = 0;
 for integrator = {'irk_gnsf', 'irk'}
     i_method = i_method + 1;
     method = integrator{1};
+    if strcmp(method, 'irk_gnsf')
+        integrator_type = 'GNSF';
+    else
+        integrator_type = upper(method);
+    end
 
     %% arguments
-    compile_interface = 'auto'; % true, false
-    gnsf_detect_struct = 'true'; % true, false
-    % method = 'irk'; % irk, irk_gnsf, [erk]
-    sens_forw = 'true'; % true, false
-    jac_reuse = 'false'; % true, false
+    sens_forw = true;
+    jac_reuse = false;
     num_stages = 3;
     num_steps = 3;
     newton_iter = 5;
@@ -45,48 +47,21 @@ for integrator = {'irk_gnsf', 'irk'}
     nu = length(model.sym_u);
     nz = length(model.sym_z);
 
-    %% acados sim model
-    sim_model = acados_sim_model();
-    sim_model.set('name', model_name);
-    sim_model.set('T', 0.1); % simulation time
-
-    sim_model.set('sym_x', model.sym_x);
-    if isfield(model, 'sym_u')
-        sim_model.set('sym_u', model.sym_u);
-    end
-    if isfield(model, 'sym_p')
-        sim_model.set('sym_p', model.sym_p);
-    end
-
-    % Note: DAEs can only be used with implicit integrator
-    sim_model.set('dyn_type', 'implicit');
-    sim_model.set('dyn_expr_f', model.expr_f_impl);
-    sim_model.set('sym_xdot', model.sym_xdot);
-    if isfield(model, 'sym_z')
-        sim_model.set('sym_z', model.sym_z);
-    end
-
-    %% acados sim opts
-    sim_opts = acados_sim_opts();
-    sim_opts.set('compile_interface', compile_interface);
-    sim_opts.set('num_stages', num_stages);
-    sim_opts.set('num_steps', num_steps);
-    sim_opts.set('newton_iter', newton_iter);
-    sim_opts.set('method', method);
-    sim_opts.set('sens_forw', sens_forw);
-    sim_opts.set('sens_adj', 'true');
-    sim_opts.set('sens_algebraic', 'true');
-    sim_opts.set('output_z', 'true');
-    sim_opts.set('sens_hess', 'false');
-    sim_opts.set('jac_reuse', jac_reuse);
-    if (strcmp(method, 'irk_gnsf'))
-        sim_opts.set('gnsf_detect_struct', gnsf_detect_struct);
-    end
-
-
     %% acados sim
-    % create integrator
-    sim_solver = acados_sim(sim_model, sim_opts);
+    sim = AcadosSim();
+    sim.model = model;
+    sim.model.name = model_name;
+    sim.solver_options.Tsim = 0.1;
+    sim.solver_options.integrator_type = integrator_type;
+    sim.solver_options.num_stages = num_stages;
+    sim.solver_options.num_steps = num_steps;
+    sim.solver_options.newton_iter = newton_iter;
+    sim.solver_options.sens_forw = sens_forw;
+    sim.solver_options.sens_adj = true;
+    sim.solver_options.sens_algebraic = true;
+    sim.solver_options.output_z = true;
+    sim.solver_options.jac_reuse = jac_reuse;
+    sim_solver = AcadosSimSolver(sim);
     N_sim = 100;
 
     % set initial state

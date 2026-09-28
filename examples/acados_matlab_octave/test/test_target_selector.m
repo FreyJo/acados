@@ -68,57 +68,36 @@ nlp_solver = 'sqp'; % sqp, sqp_rti
 qp_solver = 'full_condensing_hpipm';
 sim_method = 'discrete'; % erk, irk, irk_gnsf
 
-%% model to create the solver
-ocp_model = acados_ocp_model();
-model_name = 'target_selector';
+model = AcadosModel();
+model.name = 'target_selector';
+model.x = x;
+model.disc_dyn_expr = x;
+model.cost_expr_ext_cost = J;
+model.cost_expr_ext_cost_e = SX.zeros(1);
+model.con_h_expr_e = xdot;
 
-%% acados ocp model
-ocp_model.set('name', model_name);
-ocp_model.set('T', 1);
-
-% symbolics
-ocp_model.set('sym_x', x);
-
-% cost
-ocp_model.set('cost_type', 'ext_cost'); % ext_cost, auto
-ocp_model.set('cost_type_e', 'auto'); % ext_cost, auto
-ocp_model.set('cost_expr_ext_cost', J);
-ocp_model.set('cost_expr_ext_cost_e', SX.zeros(1));
-
-% % dynamics
-ocp_model.set('dyn_type', 'discrete');
-ocp_model.set('dyn_expr_phi', x);
-% x_{k+1} = x_{k}
-
-% constraints
-% impose nonlinear constraint at terminal node.
-% Note: currently: nonlinear constr h is per default not enforced at
-% initial shooting node, because typically (in optimal control) there are
-% initial state constraints
-ocp_model.set('constr_type_e', 'auto');
-ocp_model.set('constr_expr_h_e', xdot);
-ocp_model.set('constr_lh_e', zeros(size(xdot))); % lower bound on h
-ocp_model.set('constr_uh_e', zeros(size(xdot)));  % upper bound on h
-
-%% acados ocp set opts
-ocp_opts = acados_ocp_opts();
-ocp_opts.set('param_scheme_N', N);
-ocp_opts.set('nlp_solver', nlp_solver);
-ocp_opts.set('sim_method', sim_method);
-ocp_opts.set('qp_solver', qp_solver);
-
+ocp = AcadosOcp();
+ocp.model = model;
+ocp.solver_options.N_horizon = N;
+ocp.solver_options.tf = T;
+ocp.solver_options.nlp_solver_type = upper(nlp_solver);
+ocp.solver_options.integrator_type = upper(sim_method);
+ocp.solver_options.qp_solver = upper(qp_solver);
+ocp.cost.cost_type = 'EXTERNAL';
+ocp.cost.cost_type_e = 'EXTERNAL';
+ocp.constraints.lh_e = zeros(size(xdot));
+ocp.constraints.uh_e = zeros(size(xdot));
 
 %% test with simulink options
-simulink_opts = AcadosOcpSimulinkOptions();
-simulink_opts.inputs.x_init = 1;
-simulink_opts.outputs.u0 = 0;
-
-simulink_opts.outputs.sqp_iter = 0;
-simulink_opts.outputs.CPU_time = 0;
-simulink_opts.outputs.x1 = 0;
+ocp.simulink_opts = AcadosOcpSimulinkOptions();
+ocp.simulink_opts.inputs.x_init = 1;
+ocp.simulink_opts.outputs.u0 = 0;
+ocp.simulink_opts.outputs.sqp_iter = 0;
+ocp.simulink_opts.outputs.CPU_time = 0;
+ocp.simulink_opts.outputs.x1 = 0;
 
 % create solver
-ocp_solver = acados_ocp(ocp_model, ocp_opts, simulink_opts);
+ocp_solver = AcadosOcpSolver(ocp);
 
 % initialize
 % 2 working initializations

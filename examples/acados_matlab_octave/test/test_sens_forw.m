@@ -13,12 +13,11 @@ clear VARIABLES
 addpath('../linear_mass_spring_model/');
 
 for integrator = {'irk_gnsf', 'irk', 'erk'}
-    method = integrator{1}; %'irk'; 'irk_gnsf'; 'erk';
+    method = integrator{1};
 
     %% arguments
-    compile_interface = 'auto';
-    sens_forw = 'true';
-    jac_reuse = 'true';
+    sens_forw = true;
+    jac_reuse = true;
     num_stages = 3;
     num_steps = 4;
     newton_iter = 3;
@@ -40,48 +39,25 @@ for integrator = {'irk_gnsf', 'irk', 'erk'}
     x0 = ones(nx,1);
     u = ones(nu,1);
 
-    %% acados sim model
-    sim_model = acados_sim_model();
-    sim_model.set('T', Ts);
-    sim_model.set('name', model_name);
-
-    sim_model.set('sym_x', model.sym_x);
-    if isfield(model, 'sym_u')
-        sim_model.set('sym_u', model.sym_u);
-    end
-    if isfield(model, 'sym_p')
-        sim_model.set('sym_p', model.sym_p);
-    end
-
-    if (strcmp(method, 'erk'))
-        sim_model.set('dyn_type', 'explicit');
-        sim_model.set('dyn_expr_f', model.dyn_expr_f_expl);
-    else % irk irk_gnsf
-        sim_model.set('dyn_type', 'implicit');
-        sim_model.set('dyn_expr_f', model.dyn_expr_f_impl);
-        sim_model.set('sym_xdot', model.sym_xdot);
-    %	if isfield(model, 'sym_z')
-    %		sim_model.set('sym_z', model.sym_z);
-    %	end
-    end
-
-
-    %% acados sim opts
-    sim_opts = acados_sim_opts();
-    sim_opts.set('compile_interface', compile_interface);
-    sim_opts.set('num_stages', num_stages);
-    sim_opts.set('num_steps', num_steps);
-    sim_opts.set('newton_iter', newton_iter);
-    sim_opts.set('method', method);
-    sim_opts.set('sens_forw', sens_forw);
-    sim_opts.set('jac_reuse', jac_reuse);
-    if (strcmp(method, 'irk_gnsf'))
-        sim_opts.set('gnsf_detect_struct', gnsf_detect_struct);
-    end
-
     %% acados sim
-    % create sim
-    sim_solver = acados_sim(sim_model, sim_opts);
+    sim = AcadosSim();
+    sim.model.name = model_name;
+    sim.model.x = model.sym_x;
+    sim.model.u = model.sym_u;
+    sim.model.xdot = model.sym_xdot;
+    sim.solver_options.Tsim = Ts;
+    sim.solver_options.integrator_type = upper(method);
+    sim.solver_options.num_stages = num_stages;
+    sim.solver_options.num_steps = num_steps;
+    sim.solver_options.newton_iter = newton_iter;
+    sim.solver_options.sens_forw = sens_forw;
+    sim.solver_options.jac_reuse = jac_reuse;
+    if strcmp(method, 'erk')
+        sim.model.f_expl_expr = model.dyn_expr_f_expl;
+    else
+        sim.model.f_impl_expr = model.dyn_expr_f_impl;
+    end
+    sim_solver = AcadosSimSolver(sim);
 
     % Note: this does not work with gnsf, because it needs to be available
     % in the precomputation phase
@@ -106,8 +82,6 @@ for integrator = {'irk_gnsf', 'irk', 'erk'}
     S_forw_ind = sim_solver.get('S_forw');
 
     %% compute forward sensitivities using finite differences
-    sim_opts.set('sens_forw', 'false');
-    sim_opts.set('sens_adj', 'false');
     S_forw_fd = zeros(nx, nx+nu);
 
     %% asymmetric finite differences

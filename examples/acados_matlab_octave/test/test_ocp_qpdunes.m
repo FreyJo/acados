@@ -26,28 +26,23 @@ qp_solver_cond_N = 5; % for partial condensing
 sim_method = 'erk'; % erk, irk, irk_gnsf
 
 %% model dynamics
-model = pendulum_on_cart_model();
-nx = model.nx;
-nu = model.nu;
+old_model = pendulum_on_cart_model();
+nx = old_model.nx;
+nu = old_model.nu;
+model = AcadosModel();
+model.name = 'pendulum';
+model.x = old_model.sym_x;
+model.xdot = old_model.sym_xdot;
+model.u = old_model.sym_u;
+if strcmp(sim_method, 'erk')
+    model.f_expl_expr = old_model.dyn_expr_f_expl;
+else
+    model.f_impl_expr = old_model.dyn_expr_f_impl;
+end
+model.con_h_expr = old_model.constr_expr_h;
+model.con_h_expr_0 = old_model.constr_expr_h_0;
 
-%% model to create the solver
-ocp_model = acados_ocp_model();
-model_name = 'pendulum';
-
-%% acados ocp model
-ocp_model.set('name', model_name);
-ocp_model.set('T', T);
-
-% symbolics
-ocp_model.set('sym_x', model.sym_x);
-ocp_model.set('sym_u', model.sym_u);
-ocp_model.set('sym_xdot', model.sym_xdot);
-
-% cost
-cost_type = 'linear_ls';
-
-ocp_model.set('cost_type', cost_type);
-ocp_model.set('cost_type_e', cost_type);
+cost_type = 'LINEAR_LS';
 
 ny = nx + nu
 ny_e = nx
@@ -60,47 +55,36 @@ W_e = W(nu+1:nu+nx, nu+1:nu+nx); % weight matrix in mayer term
 yr = zeros(ny, 1); % output reference in lagrange term
 yr_e = zeros(ny_e, 1); % output reference in mayer term
 
-ocp_model.set('cost_Vu', Vu);
-ocp_model.set('cost_Vx', Vx);
-ocp_model.set('cost_Vx_e', Vx_e);
-ocp_model.set('cost_W', W);
-ocp_model.set('cost_W_e', W_e);
-ocp_model.set('cost_y_ref', yr);
-ocp_model.set('cost_y_ref_e', yr_e);
+%% acados OCP
+ocp = AcadosOcp();
+ocp.model = model;
+ocp.solver_options.N_horizon = N;
+ocp.solver_options.tf = T;
+ocp.solver_options.nlp_solver_type = upper(nlp_solver);
+ocp.solver_options.integrator_type = upper(sim_method);
+ocp.solver_options.qp_solver = upper(qp_solver);
+ocp.solver_options.qp_solver_iter_max = 2000;
+ocp.solver_options.qp_solver_cond_N = qp_solver_cond_N;
+ocp.code_gen_options.ext_fun_compile_flags = '';
+ocp.cost.cost_type = cost_type;
+ocp.cost.cost_type_e = cost_type;
+ocp.cost.Vu = Vu;
+ocp.cost.Vx = Vx;
+ocp.cost.Vx_e = Vx_e;
+ocp.cost.W = W;
+ocp.cost.W_e = W_e;
+ocp.cost.yref = yr;
+ocp.cost.yref_e = yr_e;
 
-% dynamics
-if (strcmp(sim_method, 'erk'))
-    ocp_model.set('dyn_type', 'explicit');
-    ocp_model.set('dyn_expr_f', model.dyn_expr_f_expl);
-else % irk irk_gnsf
-    ocp_model.set('dyn_type', 'implicit');
-    ocp_model.set('dyn_expr_f', model.dyn_expr_f_impl);
-end
-
-% constraints
-ocp_model.set('constr_type', 'auto');
-ocp_model.set('constr_expr_h_0', model.constr_expr_h);
-ocp_model.set('constr_expr_h', model.constr_expr_h);
 U_max = 80;
-ocp_model.set('constr_lh_0', -U_max); % lower bound on h
-ocp_model.set('constr_uh_0', U_max);  % upper bound on h
-ocp_model.set('constr_lh', -U_max);
-ocp_model.set('constr_uh', U_max);
-
-ocp_model.set('constr_x0', x0);
-
-%% acados ocp set opts
-ocp_opts = acados_ocp_opts();
-ocp_opts.set('param_scheme_N', N);
-ocp_opts.set('nlp_solver', nlp_solver);
-ocp_opts.set('sim_method', sim_method);
-ocp_opts.set('qp_solver', qp_solver);
-ocp_opts.set('qp_solver_iter_max', 2000);
-ocp_opts.set('qp_solver_cond_N', qp_solver_cond_N);
-ocp_opts.set('ext_fun_compile_flags', '');
+ocp.constraints.lh_0 = -U_max;
+ocp.constraints.uh_0 = U_max;
+ocp.constraints.lh = -U_max;
+ocp.constraints.uh = U_max;
+ocp.constraints.x0 = x0;
 
 %% create ocp solver
-ocp_solver = acados_ocp(ocp_model, ocp_opts);
+ocp_solver = AcadosOcpSolver(ocp);
 
 x_traj_init = zeros(nx, N+1);
 u_traj_init = zeros(nu, N);
@@ -133,4 +117,3 @@ if status == 0
 else
     error(['test_ocp_qpDUNES: Failed with status ', num2str(status)]);
 end
-

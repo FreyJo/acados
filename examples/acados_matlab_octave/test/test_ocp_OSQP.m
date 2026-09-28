@@ -26,57 +26,46 @@ qp_solver_cond_N = 5; % for partial condensing
 sim_method = 'erk'; % erk, irk, irk_gnsf
 
 %% model dynamics
-model = pendulum_on_cart_model();
-nx = model.nx;
-nu = model.nu;
-
-%% model to create the solver
-ocp_model = acados_ocp_model();
-model_name = 'pendulum';
-
-%% acados ocp model
-ocp_model.set('name', model_name);
-ocp_model.set('T', T);
-
-% symbolics
-ocp_model.set('sym_x', model.sym_x);
-ocp_model.set('sym_u', model.sym_u);
-ocp_model.set('sym_xdot', model.sym_xdot);
-
-% cost
-ocp_model.set('cost_expr_ext_cost', model.cost_expr_ext_cost);
-ocp_model.set('cost_expr_ext_cost_e', model.cost_expr_ext_cost_e);
-
-% dynamics
-if (strcmp(sim_method, 'erk'))
-    ocp_model.set('dyn_type', 'explicit');
-    ocp_model.set('dyn_expr_f', model.dyn_expr_f_expl);
-else % irk irk_gnsf
-    ocp_model.set('dyn_type', 'implicit');
-    ocp_model.set('dyn_expr_f', model.dyn_expr_f_impl);
+old_model = pendulum_on_cart_model();
+nx = old_model.nx;
+nu = old_model.nu;
+model = AcadosModel();
+model.name = 'pendulum';
+model.x = old_model.sym_x;
+model.xdot = old_model.sym_xdot;
+model.u = old_model.sym_u;
+model.cost_expr_ext_cost = old_model.cost_expr_ext_cost;
+model.cost_expr_ext_cost_e = old_model.cost_expr_ext_cost_e;
+model.con_h_expr = old_model.constr_expr_h;
+model.con_h_expr_0 = old_model.constr_expr_h_0;
+if strcmp(sim_method, 'erk')
+    model.f_expl_expr = old_model.dyn_expr_f_expl;
+else
+    model.f_impl_expr = old_model.dyn_expr_f_impl;
 end
 
-% constraints
-ocp_model.set('constr_type', 'auto');
-ocp_model.set('constr_expr_h', model.constr_expr_h);
+%% acados OCP
+ocp = AcadosOcp();
+ocp.model = model;
+ocp.solver_options.N_horizon = N;
+ocp.solver_options.tf = T;
+ocp.solver_options.nlp_solver_type = upper(nlp_solver);
+ocp.solver_options.hessian_approx = 'GAUSS_NEWTON';
+ocp.solver_options.integrator_type = upper(sim_method);
+ocp.solver_options.qp_solver = upper(qp_solver);
+ocp.solver_options.qp_solver_iter_max = 2000;
+ocp.solver_options.qp_solver_cond_N = qp_solver_cond_N;
+ocp.code_gen_options.ext_fun_compile_flags = '';
+
 U_max = 80;
-ocp_model.set('constr_lh', -U_max); % lower bound on h
-ocp_model.set('constr_uh', U_max);  % upper bound on h
-
-ocp_model.set('constr_x0', x0);
-
-%% acados ocp set opts
-ocp_opts = acados_ocp_opts();
-ocp_opts.set('param_scheme_N', N);
-ocp_opts.set('nlp_solver', nlp_solver);
-ocp_opts.set('sim_method', sim_method);
-ocp_opts.set('qp_solver', qp_solver);
-ocp_opts.set('qp_solver_iter_max', 2000);
-ocp_opts.set('qp_solver_cond_N', qp_solver_cond_N);
-ocp_opts.set('ext_fun_compile_flags', '');
+ocp.constraints.lh = -U_max;
+ocp.constraints.uh = U_max;
+ocp.constraints.lh_0 = -U_max;
+ocp.constraints.uh_0 = U_max;
+ocp.constraints.x0 = x0;
 
 %% create ocp solver
-ocp_solver = acados_ocp(ocp_model, ocp_opts);
+ocp_solver = AcadosOcpSolver(ocp);
 
 x_traj_init = zeros(nx, N+1);
 u_traj_init = zeros(nu, N);
@@ -108,4 +97,3 @@ if status == 0
 else
     error(['test_ocp_OSQP: Failed with status ', num2str(status)]);
 end
-
