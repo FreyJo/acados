@@ -72,6 +72,16 @@ if (strcmp(cost_type, 'LINEAR_LS'))
     ocp.cost.yref_0 = yr;
     ocp.cost.yref = yr; 
     ocp.cost.yref_e = yr_e;
+elseif strcmp(cost_type, 'NONLINEAR_LS')
+    ocp.model.cost_y_expr_0 = sym_u;
+    ocp.model.cost_y_expr = [sym_u; sym_x];
+    ocp.model.cost_y_expr_e = sym_x;
+    ocp.cost.W_0 = W;
+    ocp.cost.W = W;
+    ocp.cost.W_e = W_e;
+    ocp.cost.yref_0 = yr;
+    ocp.cost.yref = yr;
+    ocp.cost.yref_e = yr_e;
 else
     cost_expr_ext_cost_0 = 0.5 * ymyr_0' * (dWu .* ymyr_0);
     cost_expr_ext_cost = 0.5 * ymyr' * ([dWu; dWx] .* ymyr);
