@@ -86,7 +86,7 @@ ocp.solver_options.integrator_type = 'IRK';
 
 ocp.solver_options.regularize_method = regularize_method;
 ocp.solver_options.nlp_solver_ext_qp_res = 1;
-ocp.solver_options.nlp_solver_step_length = 1.0;
+ocp.solver_options.globalization_fixed_step_length = 1.0;
 ocp.solver_options.nlp_solver_max_iter = nlp_solver_max_iter;
 ocp.solver_options.nlp_solver_tol_stat = nlp_solver_tol_stat;
 ocp.solver_options.nlp_solver_tol_eq = nlp_solver_tol_eq;

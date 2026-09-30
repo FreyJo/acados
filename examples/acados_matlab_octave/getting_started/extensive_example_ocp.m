@@ -264,12 +264,12 @@ iterate = ocp_solver.get_iterate(iteration);
 iterates = ocp_solver.get_iterates();
 x_traj = iterates.as_array('x');
 
-if ~(all(reshape(x_traj(iteration+1, end-1, :), 1, []) == reshape(iterate.x_traj{end-1}, 1, [])))
+if ~(all(reshape(x_traj(iteration+1, end-1, :), 1, []) == reshape(iterate.x{end-1}, 1, [])))
     error("iterates don't match");
 end
 
 disp(['u iterate at iteration = ' num2str(iteration)]);
-disp(cell2mat(iterate.u_traj)');
+disp(cell2mat(iterate.u)');
 
 %% Plot trajectories
 figure; hold on;

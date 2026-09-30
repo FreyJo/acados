@@ -39,15 +39,13 @@ ocp.simulink_opts.outputs.sqp_iter = 0;
 % parameter ports
 ocp.simulink_opts.inputs.parameter_traj = 0;
 ocp.simulink_opts.outputs.parameter_traj = 1;
-% define multiple ports for sparse parameter update:
-% Usage:
-% add_sparse_param_port_simulink(ocp.simulink_opts, idx_p, port_name, stage_idx_0, stage_idx_e)
-ocp.simulink_opts = add_sparse_param_port_simulink(ocp.simulink_opts, 0:7, 'first_8', 0, N);
-ocp.simulink_opts = add_sparse_param_port_simulink(ocp.simulink_opts, [42, 43], 'p4243', 0, N);
-ocp.simulink_opts = add_sparse_param_port_simulink(ocp.simulink_opts, 12, 'p12_stage3', 3, 3);
-ocp.simulink_opts = add_sparse_param_port_simulink(ocp.simulink_opts, 12, 'p12_stage6', 6, 6);
+% Define multiple ports for sparse parameter updates.
+ocp.simulink_opts.add_sparse_param_port(0:7, 'first_8', 0, N);
+ocp.simulink_opts.add_sparse_param_port([42, 43], 'p4243', 0, N);
+ocp.simulink_opts.add_sparse_param_port(12, 'p12_stage3', 3, 3);
+ocp.simulink_opts.add_sparse_param_port(12, 'p12_stage6', 6, 6);
 
-ocp.code_export_directory = 'acados_generated_code';
+ocp.code_gen_options.code_export_directory = 'acados_generated_code';
 ocp.name = ocp.model.name;
 
 %% create ocp solver
@@ -80,7 +78,7 @@ else
 end
 
 %% simulink test
-cd(ocp.code_export_directory)
+cd(ocp.code_gen_options.code_export_directory)
 make_sfun; % ocp solver
 cd ..;
 

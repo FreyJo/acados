@@ -11,13 +11,11 @@ check_acados_requirements()
 
 json_file = 'codegen_pendulum/pendulum.json';
 solver_creation_opts = struct();
-solver_creation_opts.json_file = json_file;
 solver_creation_opts.generate = false;
 solver_creation_opts.build = false;
 solver_creation_opts.compile_mex_wrapper = false;
-
-% TODO load sim from json
-% sim = [];
+sim = AcadosSim.from_json(json_file);
+sim.code_gen_options.json_file = json_file;
 
 % %% create integrator
 % sim_solver = AcadosSimSolver(sim, solver_creation_opts);
