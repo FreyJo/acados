@@ -19,36 +19,27 @@ end
 
 
 %% options
-compile_interface = 'auto'; % true, false
 % simulation
-sim_method = 'irk'; % erk, irk, irk_gnsf
-sim_sens_forw = 'false'; % true, false
+sim_method = 'IRK';
+sim_sens_forw = false;
 sim_num_stages = 4;
 sim_num_steps = 4;
 % ocp
 ocp_N = 100;
-%nlp_solver = 'sqp_rti';
-%nlp_solver_exact_hessian = 'false';
-nlp_solver = 'sqp'; % sqp, sqp_rti
-nlp_solver_exact_hessian = 'false';
-regularize_method = 'project_reduc_hess'; % no_regularize, project,...
-	% project_reduc_hess, mirror, convexify
-%regularize_method = 'mirror';
-%regularize_method = 'convexify';
+nlp_solver = 'SQP';
+nlp_solver_exact_hessian = false;
+regularize_method = 'PROJECT_REDUC_HESS';
 nlp_solver_max_iter = 100;
-qp_solver = 'partial_condensing_hpipm';
-        % full_condensing_hpipm, partial_condensing_hpipm, full_condensing_qpoases
+qp_solver = 'PARTIAL_CONDENSING_HPIPM';
 qp_solver_iter_max = 100;
 qp_solver_cond_N = 5;
 qp_solver_warm_start = 0;
 qp_solver_cond_ric_alg = 0; % 0: dont factorize hessian in the condensing; 1: factorize
 qp_solver_ric_alg = 0; % HPIPM specific
-ocp_sim_method = 'erk'; % erk, irk, irk_gnsf
-% ocp_sim_method = 'irk';
+ocp_sim_method = 'ERK';
 ocp_sim_method_num_stages = 4;
 ocp_sim_method_num_steps = 1;
-cost_type = 'linear_ls'; % linear_ls, ext_cost
-% cost_type = 'ext_cost'; % linear_ls, ext_cost
+cost_type = 'LINEAR_LS';
 
 
 %% create model entries
@@ -63,23 +54,6 @@ nu = length(model.u);
 
 ny = nu+nx; % number of outputs in lagrange term
 ny_e = nx; % number of outputs in mayer term
-
-ng = 0; % number of general linear constraints intermediate stages
-ng_e = 0; % number of general linear constraints final stage
-nbx = 0; % number of bounds on state x
-
-
-linear_constraints = 1; % 1: encode control bounds as bounds (efficient)
-    % 0: encode control bounds as external CasADi functions
-if linear_constraints
-	nbu = nu;
-	nh = 0;
-	nh_e = 0;
-else
-	nbu = 0;
-	nh = nu;
-	nh_e = 0;
-end
 
 % cost
 % linear least square cost: y^T * W * y, where y = Vx * x + Vu * u - y_ref
@@ -96,10 +70,6 @@ yr_e = zeros(ny_e, 1); % output reference in mayer term
 
 % constraints
 x0 = [0; pi; 0; 0];
-%Jbx = zeros(nbx, nx); for ii=1:nbx Jbx(ii,ii)=1.0; end
-%lbx = -4*ones(nbx, 1);
-%ubx =  4*ones(nbx, 1);
-Jbu = zeros(nbu, nu); for ii=1:nbu Jbu(ii,ii)=1.0; end
 lbu = -80*ones(nu, 1);
 ubu =  80*ones(nu, 1);
 
@@ -109,7 +79,7 @@ ubu =  80*ones(nu, 1);
 ocp = AcadosOcp();
 ocp.model = model;
 
-if strcmp(cost_type, 'ext_cost')
+if strcmp(cost_type, 'EXTERNAL')
 	ocp.cost.cost_type_0 = 'EXTERNAL';
 	ocp.cost.cost_type = 'EXTERNAL';
 	ocp.cost.cost_type_e = 'EXTERNAL';
@@ -118,7 +88,7 @@ else
 	ocp.cost.cost_type = 'LINEAR_LS';
 	ocp.cost.cost_type_e = 'LINEAR_LS';
 end
-if strcmp(cost_type, 'linear_ls')
+if strcmp(cost_type, 'LINEAR_LS')
 	ocp.cost.Vu_0 = Vu;
 	ocp.cost.Vx_0 = Vx;
 	ocp.cost.W_0 = W;
@@ -136,38 +106,29 @@ else
 	ocp.model.cost_expr_ext_cost_e = 0.5 * model.x' * diag([1e3, 1e3, 1e-2, 1e-2]) * model.x;
 end
 
-if strcmp(ocp_sim_method, 'erk')
+if strcmp(ocp_sim_method, 'ERK')
 	ocp.solver_options.integrator_type = 'ERK';
 else
 	ocp.solver_options.integrator_type = 'IRK';
 end
 ocp.constraints.x0 = x0;
-if nh > 0
-	ocp.model.con_h_expr_0 = model.u;
-	ocp.constraints.lh_0 = lbu;
-	ocp.constraints.uh_0 = ubu;
-	ocp.model.con_h_expr = model.u;
-	ocp.constraints.lh = lbu;
-	ocp.constraints.uh = ubu;
-else
-	ocp.constraints.idxbu = (0:nu-1)';
-	ocp.constraints.lbu = lbu;
-	ocp.constraints.ubu = ubu;
-end
+ocp.constraints.idxbu = (0:nu-1)';
+ocp.constraints.lbu = lbu;
+ocp.constraints.ubu = ubu;
 
 ocp.solver_options.N_horizon = ocp_N;
 ocp.solver_options.tf = T;
-ocp.solver_options.nlp_solver_type = upper(nlp_solver);
-if strcmp(nlp_solver_exact_hessian, 'true')
+ocp.solver_options.nlp_solver_type = nlp_solver;
+if nlp_solver_exact_hessian
 	ocp.solver_options.hessian_approx = 'EXACT';
 else
 	ocp.solver_options.hessian_approx = 'GAUSS_NEWTON';
 end
-ocp.solver_options.regularize_method = upper(regularize_method);
+ocp.solver_options.regularize_method = regularize_method;
 ocp.solver_options.nlp_solver_max_iter = nlp_solver_max_iter;
-ocp.solver_options.qp_solver = upper(qp_solver);
+ocp.solver_options.qp_solver = qp_solver;
 ocp.solver_options.qp_solver_iter_max = qp_solver_iter_max;
-if strcmp(qp_solver, 'partial_condensing_hpipm')
+if strcmp(qp_solver, 'PARTIAL_CONDENSING_HPIPM')
 	ocp.solver_options.qp_solver_cond_N = qp_solver_cond_N;
 	ocp.solver_options.qp_solver_cond_ric_alg = qp_solver_cond_ric_alg;
 	ocp.solver_options.qp_solver_ric_alg = qp_solver_ric_alg;
@@ -181,15 +142,11 @@ sim = AcadosSim();
 sim.model = model;
 sim.model.name = [model_name, '_plant'];
 
-if strcmp(sim_method, 'erk')
-	sim.solver_options.integrator_type = 'ERK';
-else
-	sim.solver_options.integrator_type = 'IRK';
-end
+sim.solver_options.integrator_type = sim_method;
 sim.solver_options.Tsim = T/ocp_N;
 sim.solver_options.num_stages = sim_num_stages;
 sim.solver_options.num_steps = sim_num_steps;
-sim.solver_options.sens_forw = strcmp(sim_sens_forw, 'true');
+sim.solver_options.sens_forw = sim_sens_forw;
 sim_solver = AcadosSimSolver(sim);
 
 

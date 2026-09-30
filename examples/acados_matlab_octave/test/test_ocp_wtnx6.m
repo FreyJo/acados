@@ -16,17 +16,15 @@ for itest = 1:3
 
 %% arguments
 % simulation
-sim_method = 'irk';
-sim_sens_forw = 'false';
+sim_method = 'IRK';
+sim_sens_forw = false;
 sim_num_stages = 4;
 sim_num_steps = 1;
 % ocp
 ocp_N = 40;
-ocp_nlp_solver = 'sqp';
-%ocp_nlp_solver = 'sqp_rti';
-ocp_nlp_solver_exact_hessian = 'false';
-%ocp_nlp_solver_exact_hessian = 'true';
-regularize_method = 'no_regularize';
+ocp_nlp_solver = 'SQP';
+hessian_approx = 'GAUSS_NEWTON';
+regularize_method = 'NO_REGULARIZE';
 ocp_nlp_solver_max_iter = 50;
 ocp_nlp_solver_tol_stat = 1e-8;
 ocp_nlp_solver_tol_eq   = 1e-8;
@@ -35,26 +33,22 @@ ocp_nlp_solver_tol_comp = 1e-8;
 ocp_nlp_solver_ext_qp_res = 1;
 switch itest
 case 1
-    ocp_qp_solver = 'partial_condensing_hpipm';
+    ocp_qp_solver = 'PARTIAL_CONDENSING_HPIPM';
 case 2
-    ocp_qp_solver = 'full_condensing_hpipm';
+    ocp_qp_solver = 'FULL_CONDENSING_HPIPM';
 case 3
-    ocp_qp_solver = 'full_condensing_daqp';
-case 4
-    ocp_qp_solver = 'full_condensing_qpoases';
+    ocp_qp_solver = 'FULL_CONDENSING_DAQP';
 end
 fprintf(['\n\nrunning with qp solver ', ocp_qp_solver, '\n'])
 ocp_qp_solver_cond_N = 5;
 ocp_qp_solver_cond_ric_alg = 0;
 ocp_qp_solver_ric_alg = 0;
 ocp_qp_solver_warm_start = 2;
-%ocp_sim_method = 'erk';
-ocp_sim_method = 'irk';
+ocp_sim_method = 'IRK';
 ocp_sim_method_num_stages = 4 * ones(ocp_N, 1); % scalar or vector of size ocp_N;
 ocp_sim_method_num_steps = 1 * ones(ocp_N, 1); % scalar or vector of size ocp_N;
 ocp_sim_method_newton_iter = 3; % * ones(ocp_N, 1); % scalar or vector of size ocp_N;
-%cost_type = 'linear_ls';
-cost_type = 'nonlinear_ls';
+cost_type = 'NONLINEAR_LS';
 
 % get references
 compute_setup;
@@ -145,16 +139,16 @@ ocp.model = model;
 model.cost_y_expr_0 = [model.x(1); model.x(5); model.u];
 model.cost_y_expr = [model.x(1); model.x(5); model.u];
 model.cost_y_expr_e = [model.x(1); model.x(5)];
-ocp.cost.cost_type_0 = upper(cost_type);
-ocp.cost.cost_type = upper(cost_type);
-ocp.cost.cost_type_e = upper(cost_type);
+ocp.cost.cost_type_0 = cost_type;
+ocp.cost.cost_type = cost_type;
+ocp.cost.cost_type_e = cost_type;
 ocp.cost.W_0 = W;
 ocp.cost.W = W;
 ocp.cost.W_e = W_e;
 ocp.cost.yref_0 = zeros(ny, 1);
 ocp.cost.yref = zeros(ny, 1);
 ocp.cost.yref_e = zeros(ny_e, 1);
-if strcmp(cost_type, 'linear_ls')
+if strcmp(cost_type, 'LINEAR_LS')
     ocp.cost.Vx_0 = Vx;
     ocp.cost.Vu_0 = Vu;
     ocp.cost.Vx = Vx;
@@ -192,19 +186,15 @@ ocp.parameter_values = wind0_ref(:,1);
 
 ocp.solver_options.N_horizon = ocp_N;
 ocp.solver_options.tf = T;
-ocp.solver_options.nlp_solver_type = upper(ocp_nlp_solver);
-if strcmp(ocp_nlp_solver_exact_hessian, 'false')
-    ocp.solver_options.hessian_approx = 'GAUSS_NEWTON';
-else
-    ocp.solver_options.hessian_approx = 'EXACT';
-end
+ocp.solver_options.nlp_solver_type = ocp_nlp_solver;
+ocp.solver_options.hessian_approx = hessian_approx;
 ocp.solver_options.nlp_solver_ext_qp_res = ocp_nlp_solver_ext_qp_res;
 ocp.solver_options.nlp_solver_max_iter = ocp_nlp_solver_max_iter;
 ocp.solver_options.nlp_solver_tol_stat = ocp_nlp_solver_tol_stat;
 ocp.solver_options.nlp_solver_tol_eq = ocp_nlp_solver_tol_eq;
 ocp.solver_options.nlp_solver_tol_ineq = ocp_nlp_solver_tol_ineq;
 ocp.solver_options.nlp_solver_tol_comp = ocp_nlp_solver_tol_comp;
-ocp.solver_options.qp_solver = upper(ocp_qp_solver);
+ocp.solver_options.qp_solver = ocp_qp_solver;
 ocp.solver_options.qp_solver_iter_max = 500;
 if strcmp(ocp_qp_solver, 'partial_condensing_hpipm')
     ocp.solver_options.qp_solver_cond_N = ocp_qp_solver_cond_N;
@@ -212,7 +202,7 @@ if strcmp(ocp_qp_solver, 'partial_condensing_hpipm')
     ocp.solver_options.qp_solver_ric_alg = ocp_qp_solver_ric_alg;
     ocp.solver_options.qp_solver_warm_start = ocp_qp_solver_warm_start;
 end
-ocp.solver_options.integrator_type = upper(ocp_sim_method);
+ocp.solver_options.integrator_type = ocp_sim_method;
 ocp.solver_options.sim_method_num_stages = ocp_sim_method_num_stages;
 ocp.solver_options.sim_method_num_steps = ocp_sim_method_num_steps;
 ocp.solver_options.sim_method_newton_iter = ocp_sim_method_newton_iter;
@@ -226,10 +216,10 @@ ocp_solver = AcadosOcpSolver(ocp);
 sim = AcadosSim();
 sim.model = model;
 sim.solver_options.Tsim = T/ocp_N;
-sim.solver_options.integrator_type = upper(sim_method);
+sim.solver_options.integrator_type = sim_method;
 sim.solver_options.num_stages = sim_num_stages;
 sim.solver_options.num_steps = sim_num_steps;
-sim.solver_options.sens_forw = strcmp(sim_sens_forw, 'true');
+sim.solver_options.sens_forw = sim_sens_forw;
 sim.parameter_values = zeros(np, 1);
 sim_solver = AcadosSimSolver(sim);
 
@@ -332,10 +322,6 @@ for ii=1:n_sim
     fprintf('\nstatus = %d, sqp_iter = %d, qp_iter = %d, time_ext = %f [ms], time_int = %f [ms] (time_lin = %f [ms], time_qp_sol = %f [ms]), Pel = %f',...
             status, sqp_iter, sum(qp_iter), time_ext(ii)*1e3, time_tot(ii)*1e3, time_lin(ii)*1e3, time_qp_sol(ii)*1e3, electrical_power);
 
-    if 0
-        ocp_solver.print('stat')
-    end
-
 end
 
 % get slack values
@@ -375,42 +361,6 @@ elseif sqp_iter > 2
     error('test_ocp_wtnx6: sqp_iter > 2, this problem is typically solved within less iterations!');
 else
     fprintf('\ntest_ocp_wtnx6: success!\n');
-end
-
-% figures
-if 0
-    figure;
-    subplot(3,1,1);
-    plot(0:n_sim, x_sim);
-    xlim([0 n_sim]);
-    ylabel('states');
-    %legend('p', 'theta', 'v', 'omega');
-    subplot(3,1,2);
-    plot(0:n_sim-1, u_sim);
-    xlim([0 n_sim]);
-    ylabel('inputs');
-    %legend('F');
-    subplot(3,1,3);
-    plot(0:n_sim, electrical_power);
-    hold on
-    plot([0 n_sim], [Pel_max Pel_max]);
-    hold off
-    xlim([0 n_sim]);
-    ylim([4.0 6.0]);
-    ylabel('electrical power');
-    %legend('F');
-
-    figure;
-    plot(1:n_sim, sqp_iter_sim, 'rx');
-    hold on
-    plot([1 n_sim], [ocp_nlp_solver_max_iter ocp_nlp_solver_max_iter]);
-    hold off
-    ylim([0 ocp_nlp_solver_max_iter+1])
-    ylabel('sqp iterations')
-    xlabel('sqp calls')
-    if is_octave()
-        waitforbuttonpress;
-    end
 end
 
 end

@@ -18,38 +18,27 @@ if (~strcmp(env_run, 'true'))
 end
 
 %% handy arguments
-compile_interface = 'auto';
 % simulation
-sim_method = 'irk';
-sim_sens_forw = 'false';
+sim_method = 'IRK';
+sim_sens_forw = false;
 sim_num_stages = 4;
 sim_num_steps = 4;
 % ocp
 ocp_N = 40;
-%ocp_nlp_solver = 'sqp';
-ocp_nlp_solver = 'sqp_rti';
-ocp_nlp_solver_exact_hessian = 'false';
-%ocp_nlp_solver_exact_hessian = 'true';
-regularize_method = 'no_regularize';
-%regularize_method = 'project';
-%regularize_method = 'project_reduc_hess';
-%regularize_method = 'mirror';
-%regularize_method = 'convexify';
+ocp_nlp_solver = 'SQP_RTI';
+ocp_nlp_solver_exact_hessian = false;
+regularize_method = 'NO_REGULARIZE';
 ocp_nlp_solver_max_iter = 100;
 ocp_nlp_solver_ext_qp_res = 1;
 ocp_nlp_solver_warm_start_first_qp = 1;
-ocp_qp_solver = 'partial_condensing_hpipm';
-%ocp_qp_solver = 'full_condensing_hpipm';
-%ocp_qp_solver = 'full_condensing_qpoases';
-%ocp_qp_solver = 'partial_condensing_osqp';
+ocp_qp_solver = 'PARTIAL_CONDENSING_HPIPM';
 ocp_qp_solver_cond_N = 5;
 %ocp_qp_solver_cond_N = ocp_N;
 ocp_qp_solver_cond_ric_alg = 0;
 ocp_qp_solver_ric_alg = 0;
 ocp_qp_solver_warm_start = 1;
 ocp_qp_solver_max_iter = 50;
-%ocp_sim_method = 'erk';
-ocp_sim_method = 'irk';
+ocp_sim_method = 'IRK';
 ocp_sim_method_num_stages = 4;
 ocp_sim_method_num_steps = 2;
 ocp_cost_type = 'linear_ls';
@@ -129,23 +118,23 @@ ocp.constraints.ubu = ubu;
 
 ocp.solver_options.N_horizon = ocp_N;
 ocp.solver_options.tf = T;
-ocp.solver_options.nlp_solver_type = upper(ocp_nlp_solver);
-if strcmp(ocp_nlp_solver_exact_hessian, 'true')
+ocp.solver_options.nlp_solver_type = ocp_nlp_solver;
+if ocp_nlp_solver_exact_hessian
 	ocp.solver_options.hessian_approx = 'EXACT';
 else
 	ocp.solver_options.hessian_approx = 'GAUSS_NEWTON';
 end
-ocp.solver_options.regularize_method = upper(regularize_method);
+ocp.solver_options.regularize_method = regularize_method;
 ocp.solver_options.nlp_solver_ext_qp_res = ocp_nlp_solver_ext_qp_res;
 ocp.solver_options.nlp_solver_warm_start_first_qp = ocp_nlp_solver_warm_start_first_qp;
-ocp.solver_options.qp_solver = upper(ocp_qp_solver);
-ocp.solver_options.integrator_type = upper(ocp_sim_method);
+ocp.solver_options.qp_solver = ocp_qp_solver;
+ocp.solver_options.integrator_type = ocp_sim_method;
 ocp.solver_options.qp_solver_iter_max = ocp_qp_solver_max_iter;
 ocp.solver_options.qp_solver_warm_start = ocp_qp_solver_warm_start;
-if contains(ocp_qp_solver, 'partial_condensing')
+if contains(ocp_qp_solver, 'PARTIAL_CONDENSING')
 	ocp.solver_options.qp_solver_cond_N = ocp_qp_solver_cond_N;
 end
-if strcmp(ocp_qp_solver, 'partial_condensing_hpipm')
+if strcmp(ocp_qp_solver, 'PARTIAL_CONDENSING_HPIPM')
 	ocp.solver_options.qp_solver_cond_ric_alg = ocp_qp_solver_cond_ric_alg;
 	ocp.solver_options.qp_solver_ric_alg = ocp_qp_solver_ric_alg;
 end
@@ -162,10 +151,10 @@ sim.model.xdot = model.sym_xdot;
 sim.model.f_impl_expr = model.expr_f_impl;
 sim.model.f_expl_expr = model.expr_f_expl;
 sim.solver_options.Tsim = T/ocp_N;
-sim.solver_options.integrator_type = upper(sim_method);
+sim.solver_options.integrator_type = sim_method;
 sim.solver_options.num_stages = sim_num_stages;
 sim.solver_options.num_steps = sim_num_steps;
-sim.solver_options.sens_forw = strcmp(sim_sens_forw, 'true');
+sim.solver_options.sens_forw = sim_sens_forw;
 sim_solver = AcadosSimSolver(sim);
 
 
@@ -178,10 +167,6 @@ u_sim = zeros(nu, n_sim);
 x_traj_init = repmat(model.x_ref, 1, ocp_N+1);
 u_traj_init = zeros(nu, ocp_N);
 pi_traj_init = zeros(nx, ocp_N);
-
-%ocp_solver.set('init_x', x_traj_init);
-%ocp_solver.set('init_u', u_traj_init);
-%ocp_solver.set('init_pi', pi_traj_init);
 
 tic;
 
@@ -201,7 +186,6 @@ for ii=1:n_sim
 	ocp_solver.set('rti_phase', 2);
 	ocp_solver.solve();
 
-	if 1
 		status = ocp_solver.get('status');
 		sqp_iter = ocp_solver.get('sqp_iter');
 		time_tot = ocp_solver.get('time_tot');
@@ -212,10 +196,6 @@ for ii=1:n_sim
 		qp_iter = ocp_solver.get('qp_iter_all');
 
 		fprintf('\nstatus = %d, sqp_iter = %d, time_int = %f [ms] (time_lin = %f [ms], time_qp_sol = %f [ms] (time_qp_solver_call = %f [ms]), time_reg = %f [ms])\n', status, sqp_iter, time_tot*1e3, time_lin*1e3, time_qp_sol*1e3, time_qp_solver_call*1e3, time_reg*1e3);
-%		fprintf('%e %d\n', time_qp_solver_call, qp_iter);
-
-%		ocp_solver.print('stat');
-	end
 
 	% get solution
 	x_traj = ocp_solver.get('x');
@@ -229,11 +209,6 @@ for ii=1:n_sim
 
 	% get solution for sim
 	u_sim(:,ii) = ocp_solver.get('u', 0);
-
-	% overwrite control to perturb the system
-%	if(ii<=5)
-%		u_sim(:,ii) = [-1; 1; 1];
-%	end
 
 	% set initial state of sim
 	sim_solver.set('x', x_sim(:,ii));

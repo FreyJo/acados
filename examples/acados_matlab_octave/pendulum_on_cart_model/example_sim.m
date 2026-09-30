@@ -16,13 +16,9 @@ if (~strcmp(env_run, 'true'))
 end
 
 %% arguments
-compile_interface = 'auto';
-gnsf_detect_struct = 'true';
-%method = 'erk';
-% method = 'irk';
-method = 'irk_gnsf';
-sens_forw = 'true';
-jac_reuse = 'true';
+method = 'GNSF';
+sens_forw = true;
+jac_reuse = true;
 num_stages = 4;
 num_steps = 4;
 newton_iter = 5;
@@ -43,16 +39,12 @@ sim = AcadosSim();
 sim.model = model;
 sim.model.name = model_name;
 sim.solver_options.Tsim = h;
-if strcmp(method, 'irk_gnsf')
-    sim.solver_options.integrator_type = 'GNSF';
-else
-    sim.solver_options.integrator_type = upper(method);
-end
+sim.solver_options.integrator_type = method;
 sim.solver_options.num_stages = num_stages;
 sim.solver_options.num_steps = num_steps;
 sim.solver_options.newton_iter = newton_iter;
-sim.solver_options.sens_forw = strcmp(sens_forw, 'true');
-sim.solver_options.jac_reuse = strcmp(jac_reuse, 'true');
+sim.solver_options.sens_forw = sens_forw;
+sim.solver_options.jac_reuse = jac_reuse;
 sim_solver = AcadosSimSolver(sim);
 % (re)set numerical part of model
 %sim_solver.set('T', 0.5);
@@ -73,9 +65,9 @@ for ii=1:N_sim
 	sim_solver.set('u', u);
 
     % initialize implicit integrator
-    if (strcmp(method, 'irk'))
+    if strcmp(method, 'IRK')
         sim_solver.set('xdot', zeros(nx,1));
-    elseif (strcmp(method, 'irk_gnsf'))
+    elseif strcmp(method, 'GNSF')
         n_out = sim_solver.sim.model.gnsf_model.dims.nout;
         sim_solver.set('phi_guess', zeros(n_out,1));
     end

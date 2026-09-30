@@ -16,44 +16,30 @@ if (~strcmp(env_run, 'true'))
 end
 
 %% arguments
-compile_interface = 'auto'; %'auto';
-gnsf_detect_struct = 'true';
-
 % discretization
 N = 20;
 T = 1; % horizon length time
 h = T/N;
 
-nlp_solver = 'sqp';
-%nlp_solver = 'sqp_rti';
-%nlp_solver_exact_hessian = 'false';
-nlp_solver_exact_hessian = 'true';
-%regularize_method = 'no_regularize';
-%regularize_method = 'project';
-regularize_method = 'project_reduc_hess';
-%regularize_method = 'mirror';
-%regularize_method = 'convexify';
+nlp_solver = 'SQP';
+nlp_solver_exact_hessian = true;
+regularize_method = 'PROJECT_REDUC_HESS';
 nlp_solver_max_iter = 100; %100;
 nlp_solver_tol_stat = 1e-8;
 nlp_solver_tol_eq   = 1e-8;
 nlp_solver_tol_ineq = 1e-8;
 nlp_solver_tol_comp = 1e-8;
 nlp_solver_ext_qp_res = 1;
-qp_solver = 'partial_condensing_hpipm';
-%qp_solver = 'full_condensing_hpipm';
-%qp_solver = 'full_condensing_qpoases';
+qp_solver = 'PARTIAL_CONDENSING_HPIPM';
 qp_solver_cond_N = 5;
 qp_solver_cond_ric_alg = 0;
 qp_solver_ric_alg = 0;
 qp_solver_warm_start = 0;
 qp_solver_max_iter = 100;
-%sim_method = 'erk';
-sim_method = 'irk';
-%sim_method = 'irk_gnsf';
+sim_method = 'IRK';
 sim_method_num_stages = 4;
 sim_method_num_steps = 3;
-cost_type = 'linear_ls';
-%cost_type = 'ext_cost';
+cost_type = 'LINEAR_LS';
 model_name = 'ocp_pendulum';
 
 
@@ -65,21 +51,7 @@ nx = length(model.x);
 nu = length(model.u);
 ny = nu+nx; % number of outputs in lagrange term
 ny_e = nx; % number of outputs in mayer term
-if 0
-    nbx = 0;
-    nbu = nu;
-    ng = 0;
-    ng_e = 0;
-    nh = 0;
-    nh_e = 0;
-else
-    nbx = 0;
-    nbu = 0;
-    ng = 0;
-    ng_e = 0;
-    nh = nu;
-    nh_e = 0;
-end
+nh = nu;
 
 % cost
 % input-to-output matrix in lagrange term
@@ -114,7 +86,7 @@ ocp = AcadosOcp();
 ocp.model = model;
 ocp.model.name = model_name;
 
-if strcmp(cost_type, 'ext_cost')
+if strcmp(cost_type, 'EXTERNAL')
     ocp.cost.cost_type = 'EXTERNAL';
     ocp.cost.cost_type_e = 'EXTERNAL';
     ocp.model.cost_expr_ext_cost = 0.5 * model.x' * diag([1e3, 1e3, 1e-2, 1e-2]) * model.x + 0.5 * model.u' * 1e-2 * model.u;
@@ -136,44 +108,38 @@ else
     ocp.cost.yref_e = y_ref_e;
 end
 
-if strcmp(sim_method, 'erk')
+if strcmp(sim_method, 'ERK')
     ocp.solver_options.integrator_type = 'ERK';
-elseif strcmp(sim_method, 'irk_gnsf')
+elseif strcmp(sim_method, 'GNSF')
     ocp.solver_options.integrator_type = 'GNSF';
 else
     ocp.solver_options.integrator_type = 'IRK';
 end
 
 ocp.constraints.x0 = x0;
-if nh > 0
-    ocp.model.con_h_expr_0 = model.u;
-    ocp.constraints.lh_0 = lbu;
-    ocp.constraints.uh_0 = ubu;
-    ocp.model.con_h_expr = model.u;
-    ocp.constraints.lh = lbu;
-    ocp.constraints.uh = ubu;
-else
-    ocp.constraints.idxbu = (0:nu-1)';
-    ocp.constraints.lbu = lbu;
-    ocp.constraints.ubu = ubu;
-end
+ocp.model.con_h_expr_0 = model.u;
+ocp.constraints.lh_0 = lbu;
+ocp.constraints.uh_0 = ubu;
+ocp.model.con_h_expr = model.u;
+ocp.constraints.lh = lbu;
+ocp.constraints.uh = ubu;
 
 ocp.solver_options.N_horizon = N;
 ocp.solver_options.tf = T;
-ocp.solver_options.nlp_solver_type = upper(nlp_solver);
-if strcmp(nlp_solver_exact_hessian, 'true')
+ocp.solver_options.nlp_solver_type = nlp_solver;
+if nlp_solver_exact_hessian
     ocp.solver_options.hessian_approx = 'EXACT';
 else
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON';
 end
-ocp.solver_options.regularize_method = upper(regularize_method);
+ocp.solver_options.regularize_method = regularize_method;
 ocp.solver_options.nlp_solver_ext_qp_res = nlp_solver_ext_qp_res;
 ocp.solver_options.nlp_solver_max_iter = nlp_solver_max_iter;
 ocp.solver_options.nlp_solver_tol_stat = nlp_solver_tol_stat;
 ocp.solver_options.nlp_solver_tol_eq = nlp_solver_tol_eq;
 ocp.solver_options.nlp_solver_tol_ineq = nlp_solver_tol_ineq;
 ocp.solver_options.nlp_solver_tol_comp = nlp_solver_tol_comp;
-ocp.solver_options.qp_solver = upper(qp_solver);
+ocp.solver_options.qp_solver = qp_solver;
 ocp.solver_options.qp_solver_cond_N = qp_solver_cond_N;
 ocp.solver_options.qp_solver_ric_alg = qp_solver_ric_alg;
 ocp.solver_options.qp_solver_cond_ric_alg = qp_solver_cond_ric_alg;
@@ -184,8 +150,6 @@ ocp.solver_options.sim_method_num_steps = sim_method_num_steps;
 ocp_solver = AcadosOcpSolver(ocp);
 
 % set trajectory initialization
-%x_traj_init = zeros(nx, N+1);
-%for ii=1:N x_traj_init(:,ii) = [0; pi; 0; 0]; end
 x_traj_init = [linspace(0, 0, N+1); linspace(pi, 0, N+1); linspace(0, 0, N+1); linspace(0, 0, N+1)];
 
 u_traj_init = zeros(nu, N);

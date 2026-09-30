@@ -23,12 +23,11 @@ track_file = 'LMS_Track.txt';
 
 %% Solver parameters
 compile_interface = 'auto';
-nlp_solver = 'sqp';
-qp_solver = 'partial_condensing_hpipm';
-nlp_solver_exact_hessian = 'false';
+nlp_solver = 'SQP';
+qp_solver = 'PARTIAL_CONDENSING_HPIPM';
 qp_solver_cond_N = 50;
-regularize_method = 'no_regularize';
-sim_method = 'erk';
+regularize_method = 'NO_REGULARIZE';
+sim_method = 'ERK';
 
 %% horizon parameters
 N = 50;
@@ -47,7 +46,7 @@ ocp.model.x = model.x;
 ocp.model.xdot = model.xdot;
 ocp.model.u = model.u;
 ocp.model.p = model.p;
-if strcmp(sim_method, 'erk')
+if strcmp(sim_method, 'ERK')
     ocp.model.f_expl_expr = model.f_expl_expr;
     ocp.solver_options.integrator_type = 'ERK';
 else
@@ -118,12 +117,12 @@ ocp.cost.yref_e = y_ref_e;
 
 ocp.solver_options.N_horizon = N;
 ocp.solver_options.tf = T;
-ocp.solver_options.nlp_solver_type = upper(nlp_solver);
+ocp.solver_options.nlp_solver_type = nlp_solver;
 ocp.solver_options.hessian_approx = 'GAUSS_NEWTON';
-ocp.solver_options.integrator_type = upper(sim_method);
+ocp.solver_options.integrator_type = sim_method;
 ocp.solver_options.sim_method_num_stages = 4;
 ocp.solver_options.sim_method_num_steps = 3;
-ocp.solver_options.qp_solver = upper(qp_solver);
+ocp.solver_options.qp_solver = qp_solver;
 ocp.solver_options.qp_solver_cond_N = qp_solver_cond_N;
 ocp.solver_options.nlp_solver_tol_stat = 1e-4;
 ocp.solver_options.nlp_solver_tol_eq = 1e-4;
