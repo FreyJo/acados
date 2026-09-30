@@ -55,7 +55,7 @@ function [state_trajectories, timing] = run_example_ocp(lut, use_p_global, blazi
     ocp = create_ocp_formulation_without_opts(p_global, m, l, coefficients, knots, lut, use_p_global, p_global_values, blazing);
     ocp = set_solver_options(ocp);
     ocp.model.name = ['ocp_blz_' mat2str(blazing) '_pglbl_' mat2str(use_p_global) '_lut_' mat2str(lut)];
-    ocp.json_file = [ ocp.model.name '.json'];
+    ocp.code_gen_options.json_file = [ocp.model.name '.json'];
     ocp.name = ocp.model.name;
 
     % OCP solver

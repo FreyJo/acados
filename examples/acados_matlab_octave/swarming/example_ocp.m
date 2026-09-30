@@ -104,7 +104,6 @@ ocp.cost.yref_e = y_ref_e;
 
 % Constraints
 expr_h = ocp.model.u; % constraints only on control inputs, for now
-% rand('seed', 2);
 pos0 = 10*rand(3*N,1);
 vel0 = 2*rand(3*N,1);
 x0 = [pos0; vel0];

@@ -48,7 +48,6 @@ ocp.solver_options.qp_solver_cond_N = 5;
 ocp.solver_options.integrator_type = 'DISCRETE';
 
 %% 3. Cost
-%cost_type = 'ext_cost'
 ocp.cost.cost_type = 'EXTERNAL';
 ocp.cost.cost_type_e = 'EXTERNAL';
 ocp.cost.cost_type_0 = 'EXTERNAL';

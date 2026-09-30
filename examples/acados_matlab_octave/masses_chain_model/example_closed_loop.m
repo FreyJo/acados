@@ -33,7 +33,6 @@ ocp_nlp_solver_ext_qp_res = 1;
 ocp_nlp_solver_warm_start_first_qp = 1;
 ocp_qp_solver = 'PARTIAL_CONDENSING_HPIPM';
 ocp_qp_solver_cond_N = 5;
-%ocp_qp_solver_cond_N = ocp_N;
 ocp_qp_solver_cond_ric_alg = 0;
 ocp_qp_solver_ric_alg = 0;
 ocp_qp_solver_warm_start = 1;
@@ -41,7 +40,6 @@ ocp_qp_solver_max_iter = 50;
 ocp_sim_method = 'IRK';
 ocp_sim_method_num_stages = 4;
 ocp_sim_method_num_steps = 2;
-ocp_cost_type = 'linear_ls';
 
 
 %% create model entries
@@ -61,7 +59,6 @@ ny_e = nx; % number of outputs in mayer term
 nbx = nfm;
 nbu = nu;
 ng = 0;
-nh = 0;
 nh_e = 0;
 
 % cost
@@ -193,7 +190,6 @@ for ii=1:n_sim
 		time_reg = ocp_solver.get('time_reg');
 		time_qp_sol = ocp_solver.get('time_qp_sol');
 		time_qp_solver_call = ocp_solver.get('time_qp_solver_call');
-		qp_iter = ocp_solver.get('qp_iter_all');
 
 		fprintf('\nstatus = %d, sqp_iter = %d, time_int = %f [ms] (time_lin = %f [ms], time_qp_sol = %f [ms] (time_qp_solver_call = %f [ms]), time_reg = %f [ms])\n', status, sqp_iter, time_tot*1e3, time_lin*1e3, time_qp_sol*1e3, time_qp_solver_call*1e3, time_reg*1e3);
 

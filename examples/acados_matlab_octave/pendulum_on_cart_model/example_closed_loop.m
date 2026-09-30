@@ -106,11 +106,7 @@ else
 	ocp.model.cost_expr_ext_cost_e = 0.5 * model.x' * diag([1e3, 1e3, 1e-2, 1e-2]) * model.x;
 end
 
-if strcmp(ocp_sim_method, 'ERK')
-	ocp.solver_options.integrator_type = 'ERK';
-else
-	ocp.solver_options.integrator_type = 'IRK';
-end
+ocp.solver_options.integrator_type = ocp_sim_method;
 ocp.constraints.x0 = x0;
 ocp.constraints.idxbu = (0:nu-1)';
 ocp.constraints.lbu = lbu;
@@ -230,29 +226,3 @@ for ii=1:N_sim
 end
 
 avg_time_solve = toc/N_sim
-
-
-DO_PLOT = 0;
-% figures
-if DO_PLOT
-
-    for ii=1:N_sim+1
-        x_cur = x_sim(:,ii);
-    % 	visualize;
-    end
-
-    figure;
-    subplot(2,1,1);
-    plot(0:N_sim, x_sim);
-    xlim([0 N_sim]);
-    legend('p', 'theta', 'v', 'omega');
-    subplot(2,1,2);
-    plot(0:N_sim-1, u_sim);
-    xlim([0 N_sim]);
-    legend('F');
-
-
-    if is_octave()
-        waitforbuttonpress;
-    end
-end

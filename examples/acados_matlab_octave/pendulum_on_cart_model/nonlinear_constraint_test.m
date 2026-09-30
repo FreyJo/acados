@@ -304,27 +304,3 @@ if ~flag_test
 else
     disp('Found max res_eq equal to res_eq_norm');
 end
-
-
-
-%% Plot trajectories
-if 0
-    figure; hold on;
-    States = {'p', 'theta', 'v', 'dtheta'};
-    for i=1:length(States)
-        subplot(length(States), 1, i);
-        plot(shooting_nodes, xtraj(i,:)); grid on;
-        ylabel(States{i});
-        xlabel('t [s]')
-    end
-
-    figure
-    stairs(shooting_nodes, [utraj'; utraj(end)])
-
-    ylabel('F [N]')
-    xlabel('t [s]')
-    grid on
-    if is_octave()
-        waitforbuttonpress;
-    end
-end

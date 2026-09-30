@@ -24,9 +24,7 @@ ocp.model = model;
 N = 100;
 h = 0.01;
 
-nlp_solver_step_length = 1.0;
-nlp_solver_exact_hessian = 'true';
-regularize_method = 'PROJECT'; % PROJECT_REDUC_HESS, PROJECT, GERSHGORIN_LEVENBERG_MARQUARDT
+regularize_method = 'PROJECT';
 nlp_solver_max_iter = 100; %100;
 nlp_solver_tol_stat = 1e-8;
 nlp_solver_tol_eq   = 1e-8;
@@ -88,7 +86,7 @@ ocp.solver_options.integrator_type = 'IRK';
 
 ocp.solver_options.regularize_method = regularize_method;
 ocp.solver_options.nlp_solver_ext_qp_res = 1;
-ocp.solver_options.nlp_solver_step_length = nlp_solver_step_length;
+ocp.solver_options.nlp_solver_step_length = 1.0;
 ocp.solver_options.nlp_solver_max_iter = nlp_solver_max_iter;
 ocp.solver_options.nlp_solver_tol_stat = nlp_solver_tol_stat;
 ocp.solver_options.nlp_solver_tol_eq = nlp_solver_tol_eq;

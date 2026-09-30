@@ -8,7 +8,6 @@
 
 function closed_loop_as_rti()
     algorithms = {'SQP', 'RTI', 'AS-RTI-A', 'AS-RTI-B', 'AS-RTI-C', 'AS-RTI-D'};
-    % algorithms = {'AS-RTI-B'};
     for i = 1:length(algorithms)
         main(algorithms{i}, 1);
     end
@@ -30,34 +29,16 @@ function [ocp_solver, integrator] = setup(x0, Fmax, N_horizon, Tf, algorithm, as
 
     nx = size(model.x, 1);
     nu = size(model.u, 1);
-    ny = nx + nu;
-    ny_e = nx;
 
     ocp.solver_options.N_horizon = N_horizon;
 
     % set cost module
     Q_mat = 2 * diag([1e3, 1e3, 1e-2, 1e-2]);
     R_mat = 2 * diag([1e-2]);
-    if 0
-        % NOTE: not yet implemented in MATLAB
-        ocp.cost.cost_type = 'NONLINEAR_LS';
-        ocp.cost.cost_type_e = 'NONLINEAR_LS';
-
-        ocp.cost.W = blkdiag(Q_mat, R_mat);
-        ocp.cost.W_e = Q_mat;
-
-        ocp.model.cost_y_expr = [model.x; model.u];
-        ocp.model.cost_y_expr_e = model.x;
-        ocp.cost.yref = zeros(ny, 1);
-        ocp.cost.yref_e = zeros(ny_e, 1);
-        ocp.translate_nls_cost_to_conl();
-    else
-        ocp.cost.cost_type = 'EXTERNAL';
-        ocp.cost.cost_type_e = 'EXTERNAL';
-
-        ocp.model.cost_expr_ext_cost = model.x' * Q_mat * model.x + model.u' * R_mat * model.u;
-        ocp.model.cost_expr_ext_cost_e = model.x' * Q_mat * model.x;
-    end
+    ocp.cost.cost_type = 'EXTERNAL';
+    ocp.cost.cost_type_e = 'EXTERNAL';
+    ocp.model.cost_expr_ext_cost = model.x' * Q_mat * model.x + model.u' * R_mat * model.u;
+    ocp.model.cost_expr_ext_cost_e = model.x' * Q_mat * model.x;
 
     % set constraints
     ocp.constraints.lbu = -Fmax;
@@ -198,20 +179,14 @@ function main(algorithm, as_rti_iter)
               ' median ', num2str(median(t)), ' max ', num2str(max(t))]);
     end
 
-    if 1 % plot
-        figure;
-        subplot(2,1,1);
-        plot(0:Nsim, simX);
-        xlim([0 Nsim]);
-        legend('p', 'theta', 'v', 'omega');
-        subplot(2,1,2);
-        plot(0:Nsim-1, simU);
-        xlim([0 Nsim]);
-        legend('F');
-        title(['algorithm: ', algorithm, '-', num2str(as_rti_iter)]);
-
-        % if is_octave()
-        %     waitforbuttonpress;
-        % end
-    end
+    figure;
+    subplot(2,1,1);
+    plot(0:Nsim, simX);
+    xlim([0 Nsim]);
+    legend('p', 'theta', 'v', 'omega');
+    subplot(2,1,2);
+    plot(0:Nsim-1, simU);
+    xlim([0 Nsim]);
+    legend('F');
+    title(['algorithm: ', algorithm, '-', num2str(as_rti_iter)]);
 end

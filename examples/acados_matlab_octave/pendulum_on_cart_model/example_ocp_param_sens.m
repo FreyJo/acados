@@ -51,7 +51,6 @@ nx = length(model.x);
 nu = length(model.u);
 ny = nu+nx; % number of outputs in lagrange term
 ny_e = nx; % number of outputs in mayer term
-nh = nu;
 
 % cost
 % input-to-output matrix in lagrange term
@@ -76,7 +75,6 @@ x0 = [0; pi; 0; 0];
 %Jbx = zeros(nbx, nx); for ii=1:nbx Jbx(ii,ii)=1.0; end
 %lbx = -4*ones(nbx, 1);
 %ubx =  4*ones(nbx, 1);
-Jbu = eye(nbu, nu);
 lbu = -80*ones(nu, 1);
 ubu =  80*ones(nu, 1);
 
@@ -108,13 +106,7 @@ else
     ocp.cost.yref_e = y_ref_e;
 end
 
-if strcmp(sim_method, 'ERK')
-    ocp.solver_options.integrator_type = 'ERK';
-elseif strcmp(sim_method, 'GNSF')
-    ocp.solver_options.integrator_type = 'GNSF';
-else
-    ocp.solver_options.integrator_type = 'IRK';
-end
+ocp.solver_options.integrator_type = sim_method;
 
 ocp.constraints.x0 = x0;
 ocp.model.con_h_expr_0 = model.u;
@@ -182,45 +174,16 @@ ocp_solver.print('stat');
 
 
 %% figures
-% plot trajectories
-if 1
-    for ii=1:N+1
-        x_cur = x(:,ii);
-    %    visualize;
-    end
-
-    figure;
-    subplot(2,1,1);
-    plot(0:N, x);
-    title('trajectories')
-    xlim([0 N]);
-    legend('p', 'theta', 'v', 'omega');
-    subplot(2,1,2);
-    plot(0:N-1, u);
-    xlim([0 N]);
-    legend('F');
-end
-
-% plot residuals over iteraions
-stat = ocp_solver.get('stat');
-if 0 && (strcmp(nlp_solver, 'sqp'))
-    figure;
-     plot([0: size(stat,1)-1], log10(stat(:,2)), 'r-x');
-     hold on
-     plot([0: size(stat,1)-1], log10(stat(:,3)), 'b-x');
-     plot([0: size(stat,1)-1], log10(stat(:,4)), 'g-x');
-     plot([0: size(stat,1)-1], log10(stat(:,5)), 'k-x');
-%    semilogy(0: size(stat,1)-1, stat(:,2), 'r-x');
-%    hold on
-%    semilogy(0: size(stat,1)-1, stat(:,3), 'b-x');
-%    semilogy(0: size(stat,1)-1, stat(:,4), 'g-x');
-%    semilogy(0: size(stat,1)-1, stat(:,5), 'k-x');
-    hold off
-    xlabel('iter')
-    ylabel('res')
-    legend('res stat', 'res eq', 'res ineq', 'res compl');
-end
-
+figure;
+subplot(2,1,1);
+plot(0:N, x);
+title('trajectories')
+xlim([0 N]);
+legend('p', 'theta', 'v', 'omega');
+subplot(2,1,2);
+plot(0:N-1, u);
+xlim([0 N]);
+legend('F');
 
 if status==0
     fprintf('\nsuccess!\n\n');
@@ -230,45 +193,37 @@ end
 
 
 %% paramteric sensitivity of solution
-if 1
-    field = 'ex'; % equality constraint on states
-    stage = 0;
-    index = 1;
-    ocp_solver.eval_param_sens(field, stage, index);
+field = 'ex';
+stage = 0;
+index = 1;
+ocp_solver.eval_param_sens(field, stage, index);
 
-    sens_u = ocp_solver.get('sens_u');
-    sens_x = ocp_solver.get('sens_x');
+sens_u = ocp_solver.get('sens_u');
+sens_x = ocp_solver.get('sens_x');
 
-    % plot sensitivity
-    figure
-    subplot(2,1,1);
-    plot(0:N, sens_x);
-    title('sensitivities')
-    xlim([0 N]);
-    legend('p', 'theta', 'v', 'omega');
-    subplot(2,1,2);
-    plot(0:N-1, sens_u);
-    xlim([0 N]);
-    legend('F');
+% plot sensitivity
+figure
+subplot(2,1,1);
+plot(0:N, sens_x);
+title('sensitivities')
+xlim([0 N]);
+legend('p', 'theta', 'v', 'omega');
+subplot(2,1,2);
+plot(0:N-1, sens_u);
+xlim([0 N]);
+legend('F');
 
-    % plot predicted solution
-    figure
-    subplot(2,1,1);
-    plot(0:N, x+sens_x);
-    title('predicted trajectories')
-    xlim([0 N]);
-    legend('p', 'theta', 'v', 'omega');
-    subplot(2,1,2);
-    plot(0:N-1, u+sens_u);
-    xlim([0 N]);
-    legend('F');
-
-    for ii=1:N+1
-        x_cur = x(:,ii)+sens_x(:,ii);
-    %    visualize;
-    end
-
-end
+% plot predicted solution
+figure
+subplot(2,1,1);
+plot(0:N, x+sens_x);
+title('predicted trajectories')
+xlim([0 N]);
+legend('p', 'theta', 'v', 'omega');
+subplot(2,1,2);
+plot(0:N-1, u+sens_u);
+xlim([0 N]);
+legend('F');
 
 sens_u = zeros(nx, N);
 % get sensitivities w.r.t. initial state value with index

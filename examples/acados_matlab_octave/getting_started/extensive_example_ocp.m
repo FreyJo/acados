@@ -21,13 +21,6 @@ N = 40;
 T = 2.0; % time horizon length
 h = T/N;
 
-% nonuniform time grid
-% N1 = 5;
-% N2 = N - N1;
-% time_steps = [( 1 * ones(N1,1)); 3 * ones(N2,1)];
-% time_steps = T/sum(time_steps) * time_steps;
-
-% uniform time grid
 time_steps = T/N * ones(N,1);
 
 shooting_nodes = zeros(N+1, 1);
@@ -38,18 +31,15 @@ end
 ocp.solver_options.tf = T;
 ocp.solver_options.N_horizon = N;
 ocp.solver_options.time_steps = time_steps;
-ocp.solver_options.nlp_solver_type = 'SQP_WITH_FEASIBLE_QP'; % 'SQP_RTI', 'SQP'
-ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'; % 'EXACT'
+ocp.solver_options.nlp_solver_type = 'SQP_WITH_FEASIBLE_QP';
+ocp.solver_options.hessian_approx = 'GAUSS_NEWTON';
 ocp.solver_options.regularize_method = 'CONVEXIFY';
-% NO_REGULARIZE, PROJECT, PROOJECT_REDUC_HESS, MIRROR, CONVEXIFY
 ocp.solver_options.nlp_solver_max_iter = 50;
 ocp.solver_options.nlp_solver_tol_stat = 1e-8;
 ocp.solver_options.nlp_solver_tol_eq = 1e-8;
 ocp.solver_options.nlp_solver_tol_ineq = 1e-8;
 ocp.solver_options.nlp_solver_tol_comp = 1e-8;
 ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM';
-% FULL_CONDENSING_HPIPM, PARTIAL_CONDENSING_HPIPM
-% FULL_CONDENSING_QPOASES, PARTIAL_CONDENSING_OSQP
 ocp.solver_options.qp_solver_cond_N = 5; % for partial condensing
 ocp.solver_options.qp_solver_cond_ric_alg = 0;
 ocp.solver_options.qp_solver_ric_alg = 0;
@@ -70,21 +60,7 @@ sim_method_num_stages(3:end) = 2;
 ocp.solver_options.sim_method_num_stages = sim_method_num_stages;
 ocp.solver_options.sim_method_num_steps = ones(N,1);
 
-% integrator type
-integrator = 1;
-switch integrator
-case 1
-    ocp.solver_options.integrator_type = 'ERK';
-case 2
-    ocp.solver_options.integrator_type = 'IRK';
-case 3
-    if ~all(time_steps == T/N)
-        error('nonuniform time discretization with discrete dynamics should not be used');
-    end
-    ocp.solver_options.integrator_type = 'DISCRETE';
-otherwise
-    ocp.solver_options.integrator_type = 'GNSF';
-end
+ocp.solver_options.integrator_type = 'ERK';
 
 %% MODEL
 model = get_pendulum_on_cart_model(T/N);
@@ -314,21 +290,3 @@ grid on
 if is_octave()
     waitforbuttonpress;
 end
-
-%% plot average compuation times
-% if ~is_octave()
-%     time_total = sum(time_tot);
-%     time_linearize = sum(time_lin);
-%     time_regulariz = sum(time_reg);
-%     time_qp_solution = sum(time_qp_sol);
-%
-%     figure;
-%
-%     bar_vals = 1000 * [time_linearize; time_regulariz; time_qp_solution; ...
-%         time_total - time_linearize - time_regulariz - time_qp_solution] / n_executions;
-%     bar([1; nan], [bar_vals, nan(size(bar_vals))]' ,'stacked')
-%     legend('linearization', 'regularization', 'qp solution', 'remaining')
-%     ylabel('time in [ms]')
-%     title( [ strrep(cost_type, '_',' '), ' , sim: ' strrep(sim_method, '_',' '), ...
-%        ';  ', strrep(qp_solver, '_', ' ')] )
-% end
