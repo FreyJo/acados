@@ -19,41 +19,25 @@ end
 
 
 %% arguments
-compile_interface = 'auto';
-gnsf_detect_struct = 'true';
 model_name = 'masses_chain';
 
 N = 40;
-nlp_solver = 'sqp';
-%nlp_solver = 'sqp_rti';
-nlp_solver_exact_hessian = 'false';
-%nlp_solver_exact_hessian = 'true';
-regularize_method = 'no_regularize';
-%regularize_method = 'project';
-%regularize_method = 'project_reduc_hess';
-%regularize_method = 'mirror';
-%regularize_method = 'convexify';
+nlp_solver = 'SQP';
+nlp_solver_exact_hessian = false;
+regularize_method = 'NO_REGULARIZE';
 nlp_solver_max_iter = 100;
 nlp_solver_ext_qp_res = 1;
 nlp_solver_warm_start_first_qp = 0;
-qp_solver = 'partial_condensing_hpipm';
-%qp_solver = 'full_condensing_hpipm';
-%qp_solver = 'full_condensing_qpoases';
-%qp_solver = 'partial_condensing_osqp';
+qp_solver = 'PARTIAL_CONDENSING_HPIPM';
 qp_solver_cond_N = 5;
 qp_solver_cond_ric_alg = 0;
 qp_solver_ric_alg = 0;
 qp_solver_warm_start = 0;
 qp_solver_max_iter = 100;
-%dyn_type = 'explicit';
 dyn_type = 'implicit';
-%dyn_type = 'discrete';
-%sim_method = 'erk';
-sim_method = 'irk';
-%sim_method = 'irk_gnsf';
+sim_method = 'IRK';
 sim_method_num_stages = 4;
 sim_method_num_steps = 2;
-cost_type = 'linear_ls';
 
 
 
@@ -142,31 +126,29 @@ ocp.constraints.ubu = ubu;
 
 ocp.solver_options.N_horizon = N;
 ocp.solver_options.tf = T;
-ocp.solver_options.nlp_solver_type = upper(nlp_solver);
-if strcmp(nlp_solver_exact_hessian, 'true')
+ocp.solver_options.nlp_solver_type = nlp_solver;
+if nlp_solver_exact_hessian
 	ocp.solver_options.hessian_approx = 'EXACT';
 else
 	ocp.solver_options.hessian_approx = 'GAUSS_NEWTON';
 end
-ocp.solver_options.regularize_method = upper(regularize_method);
+ocp.solver_options.regularize_method = regularize_method;
 ocp.solver_options.nlp_solver_ext_qp_res = nlp_solver_ext_qp_res;
 ocp.solver_options.nlp_solver_warm_start_first_qp = nlp_solver_warm_start_first_qp;
 ocp.solver_options.nlp_solver_max_iter = nlp_solver_max_iter;
-ocp.solver_options.qp_solver = upper(qp_solver);
+ocp.solver_options.qp_solver = qp_solver;
 ocp.solver_options.qp_solver_iter_max = qp_solver_max_iter;
 ocp.solver_options.qp_solver_warm_start = qp_solver_warm_start;
-if contains(qp_solver, 'partial_condensing')
+if contains(qp_solver, 'PARTIAL_CONDENSING')
 	ocp.solver_options.qp_solver_cond_N = qp_solver_cond_N;
 end
-if strcmp(qp_solver, 'partial_condensing_hpipm')
+if strcmp(qp_solver, 'PARTIAL_CONDENSING_HPIPM')
 	ocp.solver_options.qp_solver_cond_ric_alg = qp_solver_cond_ric_alg;
 	ocp.solver_options.qp_solver_ric_alg = qp_solver_ric_alg;
 end
 ocp.solver_options.sim_method_num_stages = sim_method_num_stages;
 ocp.solver_options.sim_method_num_steps = sim_method_num_steps;
-ocp.solver_options.compile_interface = [];
-
-if strcmp(sim_method, 'irk_gnsf')
+if strcmp(sim_method, 'IRK_GNSF')
 	ocp.solver_options.integrator_type = 'GNSF';
 end
 

@@ -16,7 +16,6 @@ for i = 1:length(json_files)
     disp('testing solver creation with code reuse with json file: ')
     disp(json_file)
     solver_creation_opts = struct();
-    solver_creation_opts.json_file = json_file;
     solver_creation_opts.generate = false;
     solver_creation_opts.build = false;
     solver_creation_opts.compile_mex_wrapper = true;
@@ -26,6 +25,7 @@ for i = 1:length(json_files)
     else
         ocp = AcadosOcp.from_json(json_file);
     end
+    ocp.code_gen_options.json_file = json_file;
     % create solver
     ocp_solver = AcadosOcpSolver(ocp, solver_creation_opts);
 
@@ -46,4 +46,3 @@ for i = 1:length(json_files)
     end
     clear ocp_solver
 end
-

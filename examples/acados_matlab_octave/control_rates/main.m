@@ -45,7 +45,7 @@ function run_simulation(timeout_max_time, timeout_heuristic)
     ocp = AcadosOcp();
     ocp.model = model;
     ocp.model.name = [ocp.model.name '_timeout_' mat2str(timeout_max_time > 0)];
-    ocp.json_file = [ocp.model.name '.json'];
+    ocp.code_gen_options.json_file = [ocp.model.name '.json'];
 
     % integrator
     ocp.solver_options.integrator_type = 'ERK';

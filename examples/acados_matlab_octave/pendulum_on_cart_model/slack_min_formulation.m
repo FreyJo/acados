@@ -119,7 +119,6 @@ function xtraj = slack_min_formulation(formulation)
     ocp.solver_options.integrator_type = 'IRK';
     ocp.solver_options.nlp_solver_type = 'SQP';
     % ocp.solver_options.print_level = 5;
-    % ocp.solver_options.nlp_solver_max_iter = 2;
 
     nx = length(model.x);
     nu = length(model.u);
@@ -167,4 +166,3 @@ function xtraj = slack_min_formulation(formulation)
         utraj = [utraj, slack_vals];
     end
 end
-

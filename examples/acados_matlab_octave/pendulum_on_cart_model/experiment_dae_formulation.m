@@ -25,17 +25,12 @@ constr_violation = zeros(1, ncases);
 constr_vals = zeros(N, ncases);
 for i = 1:3
     %% arguments
-    compile_interface = 'auto';
-
-    gnsf_detect_struct = 'true';
-
     % discretization
     h = 0.02;
 
-    nlp_solver = 'sqp';
-    %nlp_solver = 'sqp_rti';
-    nlp_solver_exact_hessian = 'false';
-    regularize_method = 'no_regularize';
+    nlp_solver = 'SQP';
+    nlp_solver_exact_hessian = false;
+    regularize_method = 'NO_REGULARIZE';
     nlp_solver_max_iter = 100;
     tol = 1e-12;
     nlp_solver_tol_stat = tol;
@@ -43,20 +38,16 @@ for i = 1:3
     nlp_solver_tol_ineq = tol;
     nlp_solver_tol_comp = tol;
     nlp_solver_ext_qp_res = 1;
-    qp_solver = 'partial_condensing_hpipm';
-%     qp_solver = 'full_condensing_hpipm';
-%     qp_solver = 'full_condensing_qpoases';
+    qp_solver = 'PARTIAL_CONDENSING_HPIPM';
     qp_solver_cond_N = 5;
     qp_solver_cond_ric_alg = 0;
     qp_solver_ric_alg = 0;
     qp_solver_warm_start = 1;
-    sim_method = 'irk';
     sim_method_num_stages = 1;
     sim_method_num_steps = 1;
     sim_method_exact_z_output = 0;
 
-    % cost_type = 'linear_ls';
-    cost_type = 'ext_cost';
+    cost_type = 'EXTERNAL';
     model_name = ['ocp_pendulum_' num2str(i)];
 
 
@@ -112,20 +103,20 @@ for i = 1:3
 
     ocp.solver_options.N_horizon = N;
     ocp.solver_options.tf = T;
-    ocp.solver_options.nlp_solver_type = upper(nlp_solver);
-    if strcmp(nlp_solver_exact_hessian, 'true')
+    ocp.solver_options.nlp_solver_type = nlp_solver;
+    if nlp_solver_exact_hessian
         ocp.solver_options.hessian_approx = 'EXACT';
     else
         ocp.solver_options.hessian_approx = 'GAUSS_NEWTON';
     end
-    ocp.solver_options.regularize_method = upper(regularize_method);
+    ocp.solver_options.regularize_method = regularize_method;
     ocp.solver_options.nlp_solver_ext_qp_res = nlp_solver_ext_qp_res;
     ocp.solver_options.nlp_solver_max_iter = nlp_solver_max_iter;
     ocp.solver_options.nlp_solver_tol_stat = nlp_solver_tol_stat;
     ocp.solver_options.nlp_solver_tol_eq = nlp_solver_tol_eq;
     ocp.solver_options.nlp_solver_tol_ineq = nlp_solver_tol_ineq;
     ocp.solver_options.nlp_solver_tol_comp = nlp_solver_tol_comp;
-    ocp.solver_options.qp_solver = upper(qp_solver);
+    ocp.solver_options.qp_solver = qp_solver;
     ocp.solver_options.qp_solver_cond_N = qp_solver_cond_N;
     ocp.solver_options.qp_solver_ric_alg = qp_solver_ric_alg;
     ocp.solver_options.qp_solver_cond_ric_alg = qp_solver_cond_ric_alg;

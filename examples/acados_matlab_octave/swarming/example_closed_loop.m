@@ -67,7 +67,7 @@ ocp.solver_options.nlp_solver_tol_ineq = tol;
 ocp.solver_options.nlp_solver_tol_comp = tol;
 ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM';
 ocp.solver_options.qp_solver_cond_N = nb_steps/2; % for partial condensing
-ocp.solver_options.nlp_solver_step_length = 0.2;
+ocp.solver_options.globalization_fixed_step_length = 0.2;
 ocp.solver_options.qp_solver_cond_ric_alg = 0;
 ocp.solver_options.qp_solver_ric_alg = 0;
 ocp.solver_options.qp_solver_warm_start = 0;
@@ -98,7 +98,7 @@ ocp.cost.yref_e = y_ref_e;
 
 % Constraints
 expr_h = ocp.model.u; % constraints only on control inputs, for now
-rand('seed', 2);
+rng(2);
 pos0 = 10*rand(3*N,1);
 vel0 = 2*rand(3*N,1);
 x0 = [pos0; vel0];

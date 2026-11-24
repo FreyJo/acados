@@ -3,10 +3,6 @@ import casadi.*
 
 %% solver settings
 T = 1; % [s] prediction horizon length
-nlp_solver = 'sqp'; % sqp, sqp_rti
-% integrator type
-sim_method = 'erk'; % erk, irk, irk_gnsf
-
 nx = 3; % state size
 nu = 3; % input size
 ny = nx+nu;

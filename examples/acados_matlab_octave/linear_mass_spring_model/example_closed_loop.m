@@ -34,7 +34,6 @@ ocp.solver_options.qp_solver_cond_N = 5; % for partial condensing
 ocp.solver_options.integrator_type = 'IRK'; % 'DISCRETE','ERK','IRK'
 ocp.solver_options.sim_method_num_stages = 2;
 ocp.solver_options.sim_method_num_steps = 2;
-ocp.solver_options.compile_interface = [];
 
 % cost
 cost_type = 'LINEAR_LS'; % 'LINEAR_LS','NONLINEAR_LS'.'EXT_COST'

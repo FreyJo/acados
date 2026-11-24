@@ -98,10 +98,4 @@ time_solve = toc / nsim
 
 x_sim(:, 1:nsim + 1)
 
-% Forward sensitivities
-% S_forw = sim_solver.get('S_forw');
-% Sx = sim_solver.get('Sx');
-% Su = sim_solver.get('Su');
-
 fprintf('\nsuccess!\n\n');
-

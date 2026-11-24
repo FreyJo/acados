@@ -23,11 +23,6 @@ load('CmDataSpline.mat')
 c_StVek = c_St';
 
 % set different bspline degree default is cubic
-% opt = struct;
-% opt = [1; 1];
-% opt = [3; 3];
-% opt = [5; 5];
-% splineCMBL = interpolant('Spline','bspline',{y_St,x_St},c_StVek(:), opt);
 
 splineCMBL = interpolant('Spline','bspline',{y_St,x_St},c_StVek(:));
 clear x_St y_St c_St c_StVek

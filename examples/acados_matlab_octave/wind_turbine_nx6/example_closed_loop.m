@@ -292,9 +292,6 @@ for ii = 1:n_sim
             status, sqp_iter, time_ext * 1e3, time_tot * 1e3, ...
             time_lin * 1e3, time_qp_sol * 1e3, electrical_power);
 
-    if 0
-        ocp_solver.print('stat')
-    end
 end
 
 electrical_power = 0.944 * 97 / 100 * x_sim(1, :) .* x_sim(6, :);
@@ -306,38 +303,36 @@ else
 end
 
 %% Figures
-if 1
-    figure;
+figure;
     
-    subplot(3, 1, 1);
-    plot(0:n_sim, x_sim);
-    xlim([0, n_sim]);
-    ylabel('states');
+subplot(3, 1, 1);
+plot(0:n_sim, x_sim);
+xlim([0, n_sim]);
+ylabel('states');
     
-    subplot(3, 1, 2);
-    plot(0:n_sim - 1, u_sim);
-    xlim([0, n_sim]);
-    ylabel('inputs');
+subplot(3, 1, 2);
+plot(0:n_sim - 1, u_sim);
+xlim([0, n_sim]);
+ylabel('inputs');
     
-    subplot(3, 1, 3);
-    plot(0:n_sim, electrical_power);
-    hold on;
-    plot([0, n_sim], [Pel_max, Pel_max]);
-    hold off;
-    xlim([0, n_sim]);
-    ylim([4.0, 6.0]);
-    ylabel('electrical power');
+subplot(3, 1, 3);
+plot(0:n_sim, electrical_power);
+hold on;
+plot([0, n_sim], [Pel_max, Pel_max]);
+hold off;
+xlim([0, n_sim]);
+ylim([4.0, 6.0]);
+ylabel('electrical power');
 
-    figure;
-    plot(1:n_sim, sqp_iter_sim, 'rx');
-    hold on;
-    plot([1, n_sim], [ocp_nlp_solver_max_iter, ocp_nlp_solver_max_iter]);
-    hold off;
-    ylim([0, ocp_nlp_solver_max_iter + 1]);
-    ylabel('sqp iterations');
-    xlabel('sqp calls');
+figure;
+plot(1:n_sim, sqp_iter_sim, 'rx');
+hold on;
+plot([1, n_sim], [ocp_nlp_solver_max_iter, ocp_nlp_solver_max_iter]);
+hold off;
+ylim([0, ocp_nlp_solver_max_iter + 1]);
+ylabel('sqp iterations');
+xlabel('sqp calls');
     
-    if is_octave()
-        waitforbuttonpress;
-    end
+if is_octave()
+    waitforbuttonpress;
 end

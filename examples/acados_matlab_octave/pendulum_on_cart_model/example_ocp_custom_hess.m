@@ -20,12 +20,11 @@ T = 2; % time horizon length
 x0 = [0; pi; 0; 0];
 xf = [0; 0; 0; 0];
 
-nlp_solver = 'sqp'; % sqp, sqp_rti
-qp_solver = 'partial_condensing_hpipm';
-    % full_condensing_hpipm, partial_condensing_hpipm, full_condensing_qpoases
+nlp_solver = 'SQP';
+qp_solver = 'PARTIAL_CONDENSING_HPIPM';
 qp_solver_cond_N = 5; % for partial condensing
 % integrator type
-sim_method = 'erk'; % erk, irk, irk_gnsf
+sim_method = 'ERK';
 
 %% model dynamics
 model = get_pendulum_on_cart_model();
@@ -68,12 +67,10 @@ ocp.cost.cost_type = 'EXTERNAL';
 ocp.cost.cost_type_e = 'EXTERNAL';
 
 % dynamics
-if (strcmp(sim_method, 'erk'))
+if strcmp(sim_method, 'ERK')
     ocp.model.f_expl_expr = model.f_expl_expr;
-    ocp.solver_options.integrator_type = 'ERK';
 else % irk irk_gnsf
     ocp.model.f_impl_expr = model.f_impl_expr;
-    ocp.solver_options.integrator_type = 'IRK';
 end
 
 % constraints
@@ -90,10 +87,10 @@ ocp.constraints.x0 = x0;
 
 ocp.solver_options.N_horizon = N;
 ocp.solver_options.tf = T;
-ocp.solver_options.nlp_solver_type = upper(nlp_solver);
+ocp.solver_options.nlp_solver_type = nlp_solver;
 ocp.solver_options.hessian_approx = 'EXACT';
-ocp.solver_options.integrator_type = upper(sim_method);
-ocp.solver_options.qp_solver = upper(qp_solver);
+ocp.solver_options.integrator_type = sim_method;
+ocp.solver_options.qp_solver = qp_solver;
 ocp.solver_options.qp_solver_cond_N = qp_solver_cond_N;
 ocp.solver_options.globalization = 'MERIT_BACKTRACKING';
 ocp.solver_options.nlp_solver_max_iter = 500;

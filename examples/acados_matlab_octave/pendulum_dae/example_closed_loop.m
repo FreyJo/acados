@@ -48,7 +48,6 @@ ocp.solver_options.qp_solver_warm_start = 0;
 ocp.solver_options.sim_method_num_stages = 4 * ones(ocp_N, 1);
 ocp.solver_options.sim_method_num_steps = 1;
 ocp.solver_options.sim_method_newton_iter = 3;
-ocp.solver_options.compile_interface = [];
 
 %  sym_x = [xpos, ypos, alpha, vx, vy, valpha]
 length_pendulum = 5;
@@ -266,4 +265,3 @@ if isempty(max_h_violation)
     max_h_violation = 0;
 end
 disp(['maximal constraint h violation   ' num2str( max_h_violation, '%e' ) ])
-

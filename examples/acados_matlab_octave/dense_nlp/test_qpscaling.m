@@ -92,7 +92,6 @@ function ocp_solver = create_solver(solver_name, nlp_solver_type, use_qp_scaling
     solver_options.globalization = 'FUNNEL_L1PEN_LINESEARCH';
     solver_options.globalization_full_step_dual = true;
     % solver_options.print_level = 1;
-    % solver_options.nlp_solver_max_iter = 2;
     solver_options.nlp_solver_ext_qp_res = 0;
 
     if use_qp_scaling
@@ -103,6 +102,5 @@ function ocp_solver = create_solver(solver_name, nlp_solver_type, use_qp_scaling
     % create ocp solver
     ocp_solver = AcadosOcpSolver(ocp);
 end
-
 
 

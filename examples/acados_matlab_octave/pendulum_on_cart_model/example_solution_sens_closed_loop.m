@@ -22,21 +22,20 @@ T = 1.0;
 shooting_nodes = linspace(0, T, N+1);
 h = T/N; % sampling time = length of first shooting interval
 
-nlp_solver = 'sqp'; % sqp, sqp_rti
-qp_solver = 'partial_condensing_hpipm';
-% full_condensing_hpipm, partial_condensing_hpipm, full_condensing_qpoases
+nlp_solver = 'SQP';
+qp_solver = 'PARTIAL_CONDENSING_HPIPM';
 qp_solver_cond_N = 5; % for partial condensing
 
 % we add some model-plant mismatch by choosing different integration
 % methods for model (within the OCP) and plant:
 
 % integrator model
-model_sim_method = 'erk';
+model_sim_method = 'ERK';
 model_sim_method_num_stages = 1;
 model_sim_method_num_steps = 2;
 
 % integrator plant
-plant_sim_method = 'irk';
+plant_sim_method = 'IRK';
 plant_sim_method_num_stages = 3;
 plant_sim_method_num_steps = 3;
 
@@ -68,11 +67,11 @@ ocp.constraints.x0 = xcurrent;
 ocp.solver_options.N_horizon = N;
 ocp.solver_options.tf = T;
 ocp.solver_options.shooting_nodes = shooting_nodes;
-ocp.solver_options.nlp_solver_type = upper(nlp_solver);
-ocp.solver_options.integrator_type = upper(model_sim_method);
+ocp.solver_options.nlp_solver_type = nlp_solver;
+ocp.solver_options.integrator_type = model_sim_method;
 ocp.solver_options.sim_method_num_stages = model_sim_method_num_stages;
 ocp.solver_options.sim_method_num_steps = model_sim_method_num_steps;
-ocp.solver_options.qp_solver = upper(qp_solver);
+ocp.solver_options.qp_solver = qp_solver;
 ocp.solver_options.qp_solver_cond_N = qp_solver_cond_N;
 ocp_solver = AcadosOcpSolver(ocp);
 
@@ -86,7 +85,7 @@ sim.model = model;
 sim.model.name = [model_name, '_plant'];
 
 sim.solver_options.Tsim = h;
-sim.solver_options.integrator_type = upper(plant_sim_method);
+sim.solver_options.integrator_type = plant_sim_method;
 sim.solver_options.num_stages = plant_sim_method_num_stages;
 sim.solver_options.num_steps = plant_sim_method_num_steps;
 sim_solver = AcadosSimSolver(sim);
